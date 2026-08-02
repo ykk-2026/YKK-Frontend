@@ -10,10 +10,10 @@ interface JobCardProps {
 
 export function JobCard({ job, navigate, bookmarked, onBookmark }: JobCardProps) {
   return (
-    <article className="bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+    <article className="bg-white border border-border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-4">
         <button className="flex items-center gap-3 text-left" onClick={() => navigate('job-detail', job.id)}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold" style={{ backgroundColor: job.companyColor }}>
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: job.companyColor }}>
             {job.companyInitials}
           </div>
           <div>
@@ -25,7 +25,7 @@ export function JobCard({ job, navigate, bookmarked, onBookmark }: JobCardProps)
           </div>
         </button>
         <button
-          aria-label={bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+          aria-label={bookmarked ? '북마크 제거' : '북마크 추가'}
           onClick={() => onBookmark(job.id)}
           className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-primary hover:bg-primary/5"
         >
@@ -48,9 +48,9 @@ export function JobCard({ job, navigate, bookmarked, onBookmark }: JobCardProps)
       <p className="text-sm text-muted-foreground mt-4 line-clamp-2">{job.description}</p>
 
       <div className="flex items-center justify-between mt-5">
-        <span className="text-sm font-semibold text-primary">AI match {job.aiScore}%</span>
+        <span className="text-sm font-semibold text-primary">AI 매칭 {job.aiScore}%</span>
         <button onClick={() => navigate('job-detail', job.id)} className="inline-flex items-center gap-1 text-sm font-medium text-primary">
-          Details <ChevronRight size={14} />
+          상세 보기 <ChevronRight size={14} />
         </button>
       </div>
     </article>

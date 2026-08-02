@@ -7,6 +7,7 @@ import { MainPage } from '@/app/pages/home/MainPage';
 import { LoginPage } from '@/app/pages/auth/LoginPage';
 import { RegisterPage } from '@/app/pages/auth/RegisterPage';
 import { AdminPage } from '@/app/pages/admin/AdminPage';
+import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
@@ -56,6 +57,10 @@ export default function App() {
 
       case 'admin':
         return <AdminPage />;
+
+      case 'user-dashboard':
+      case 'corporate':
+        return <ProfilePage currentUser={currentUser} />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;

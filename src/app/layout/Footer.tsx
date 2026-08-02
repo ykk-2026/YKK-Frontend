@@ -16,22 +16,22 @@ export function Footer({ navigate }: FooterProps) {
             </span>
             JobBridgeAI
           </div>
-          <p className="text-sm text-muted-foreground">Accessible employment matching for job seekers and companies.</p>
+          <p className="text-sm text-muted-foreground">구직자와 기업을 위한 장애친화 채용 매칭 서비스입니다.</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-3">Quick links</h4>
+          <h4 className="font-semibold mb-3">바로가기</h4>
           <div className="space-y-2 text-sm">
-            <button onClick={() => navigate('jobs')} className="block text-muted-foreground hover:text-foreground">Jobs</button>
-            <button onClick={() => navigate('ai-recommend')} className="block text-muted-foreground hover:text-foreground">AI recommendations</button>
-            <button onClick={() => navigate('applications')} className="block text-muted-foreground hover:text-foreground">Applications</button>
+            <button onClick={() => navigate('jobs')} className="block text-muted-foreground hover:text-foreground">채용정보</button>
+            <button onClick={() => navigate('ai-recommend')} className="block text-muted-foreground hover:text-foreground">맞춤 추천</button>
+            <button onClick={() => navigate('applications')} className="block text-muted-foreground hover:text-foreground">지원 현황</button>
           </div>
         </div>
         <div>
-          <h4 className="font-semibold mb-3">Contact</h4>
+          <h4 className="font-semibold mb-3">고객지원</h4>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p className="flex items-center gap-2"><Phone size={14} /> 1588-0000</p>
             <p className="flex items-center gap-2"><Mail size={14} /> help@jobbridge.ai</p>
-            <p className="flex items-center gap-2"><MapPin size={14} /> Seoul, Korea</p>
+            <p className="flex items-center gap-2"><MapPin size={14} /> 서울, 대한민국</p>
           </div>
         </div>
       </div>
