@@ -18,19 +18,19 @@ import {
 import { adminStats } from '@/app/data/mockData';
 
 const mockMembers = [
-  { id: '1', name: 'Minjun Kim', email: 'minjun@example.com', joined: '2026-07-01', status: 'Active', role: 'Personal' },
-  { id: '2', name: 'Jieun Lee', email: 'jieun@example.com', joined: '2026-07-05', status: 'Active', role: 'Personal' },
-  { id: '3', name: 'Sungmin Park', email: 'sungmin@example.com', joined: '2026-07-10', status: 'Active', role: 'Personal' },
-  { id: '4', name: 'Samsung SDS', email: 'hr@samsung-sds.com', joined: '2026-06-15', status: 'Verified', role: 'Company' },
-  { id: '5', name: 'Kakao', email: 'recruit@kakao.com', joined: '2026-06-20', status: 'Reviewing', role: 'Company' },
-  { id: '6', name: 'Sujin Choi', email: 'sujin@example.com', joined: '2026-07-20', status: 'Active', role: 'Personal' },
+  { id: '1', name: '김민준', email: 'minjun@example.com', joined: '2026-07-01', status: '활성', role: '구직자' },
+  { id: '2', name: '이지은', email: 'jieun@example.com', joined: '2026-07-05', status: '활성', role: '구직자' },
+  { id: '3', name: '박성민', email: 'sungmin@example.com', joined: '2026-07-10', status: '활성', role: '구직자' },
+  { id: '4', name: 'Samsung SDS', email: 'hr@samsung-sds.com', joined: '2026-06-15', status: '인증완료', role: '기업' },
+  { id: '5', name: 'Kakao', email: 'recruit@kakao.com', joined: '2026-06-20', status: '검토중', role: '기업' },
+  { id: '6', name: '최수진', email: 'sujin@example.com', joined: '2026-07-20', status: '활성', role: '구직자' },
 ];
 
 const mockJobs = [
-  { id: '1', company: 'Samsung SDS', title: 'Java Backend Developer', applicants: 128, status: 'Open', posted: '2026-07-15' },
-  { id: '2', company: 'Kakao', title: 'Frontend Developer', applicants: 93, status: 'Open', posted: '2026-07-18' },
-  { id: '3', company: 'LG CNS', title: 'Data Analyst', applicants: 64, status: 'Open', posted: '2026-07-20' },
-  { id: '4', company: 'SK C&C', title: 'UI/UX Designer', applicants: 41, status: 'Closing soon', posted: '2026-07-22' },
+  { id: '1', company: 'Samsung SDS', title: 'Java 백엔드 개발자', applicants: 128, status: '진행중', posted: '2026-07-15' },
+  { id: '2', company: 'Kakao', title: '프론트엔드 개발자', applicants: 93, status: '진행중', posted: '2026-07-18' },
+  { id: '3', company: 'LG CNS', title: '데이터 분석가', applicants: 64, status: '진행중', posted: '2026-07-20' },
+  { id: '4', company: 'SK C&C', title: 'UI/UX 디자이너', applicants: 41, status: '마감임박', posted: '2026-07-22' },
 ];
 
 export function AdminPage() {
@@ -38,26 +38,26 @@ export function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'members', label: 'Members', icon: Users },
-    { id: 'companies', label: 'Companies', icon: Building2 },
-    { id: 'jobs', label: 'Jobs', icon: Briefcase },
+    { id: 'dashboard', label: '대시보드', icon: BarChart3 },
+    { id: 'members', label: '회원', icon: Users },
+    { id: 'companies', label: '기업', icon: Building2 },
+    { id: 'jobs', label: '채용공고', icon: Briefcase },
   ] as const;
 
   const topStats = [
-    { label: 'Total members', value: adminStats.totalUsers.toLocaleString(), sub: `This month +${adminStats.newUsersThisMonth}`, icon: Users, color: '#1B6EF3' },
-    { label: 'Companies', value: adminStats.totalCompanies.toLocaleString(), sub: '1,021 verified', icon: Building2, color: '#10B981' },
-    { label: 'Job posts', value: adminStats.totalJobs.toLocaleString(), sub: `This month +${adminStats.newJobsThisMonth}`, icon: Briefcase, color: '#8B5CF6' },
-    { label: 'Applications', value: adminStats.totalApplications.toLocaleString(), sub: '5,499 monthly avg', icon: TrendingUp, color: '#F59E0B' },
+    { label: '전체 회원', value: adminStats.totalUsers.toLocaleString(), sub: `이번 달 +${adminStats.newUsersThisMonth}`, icon: Users, color: '#1B6EF3' },
+    { label: '등록 기업', value: adminStats.totalCompanies.toLocaleString(), sub: '1,021개 인증 완료', icon: Building2, color: '#10B981' },
+    { label: '채용공고', value: adminStats.totalJobs.toLocaleString(), sub: `이번 달 +${adminStats.newJobsThisMonth}`, icon: Briefcase, color: '#8B5CF6' },
+    { label: '지원 건수', value: adminStats.totalApplications.toLocaleString(), sub: '월평균 5,499건', icon: TrendingUp, color: '#F59E0B' },
   ];
 
   const statusBadge = (status: string) => {
     const cfg: Record<string, string> = {
-      Active: '#10B981',
-      Verified: '#1B6EF3',
-      Reviewing: '#F59E0B',
-      Open: '#10B981',
-      'Closing soon': '#F59E0B',
+      활성: '#10B981',
+      인증완료: '#1B6EF3',
+      검토중: '#F59E0B',
+      진행중: '#10B981',
+      마감임박: '#F59E0B',
     };
 
     return (
@@ -74,7 +74,7 @@ export function AdminPage() {
   );
 
   const visibleMembers = activeTab === 'companies'
-    ? filteredMembers.filter(member => member.role === 'Company')
+    ? filteredMembers.filter(member => member.role === '기업')
     : filteredMembers;
 
   return (
@@ -86,11 +86,11 @@ export function AdminPage() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: '#8B5CF6' }}>
                 <AlertCircle size={14} />
               </div>
-              <span className="text-sm text-muted-foreground">Admin console</span>
+              <span className="text-sm text-muted-foreground">관리자 콘솔</span>
             </div>
-            <h1 className="font-bold text-foreground" style={{ fontSize: '1.5rem' }}>JobBridgeAI Admin</h1>
+            <h1 className="font-bold text-foreground" style={{ fontSize: '1.5rem' }}>JobBridgeAI 관리자</h1>
           </div>
-          <div className="text-xs text-muted-foreground">Last updated: 2026-07-31 09:00</div>
+          <div className="text-xs text-muted-foreground">마지막 업데이트: 2026-07-31 09:00</div>
         </div>
 
         <div className="flex gap-1 bg-white rounded-xl border border-border p-1 mb-8 overflow-x-auto">
@@ -134,7 +134,7 @@ export function AdminPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl border border-border p-5">
-                <h3 className="font-medium text-foreground mb-4">Monthly member growth</h3>
+                <h3 className="font-medium text-foreground mb-4">월별 회원 증가</h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={adminStats.monthlyData}>
                     <defs>
@@ -153,7 +153,7 @@ export function AdminPage() {
               </div>
 
               <div className="bg-white rounded-xl border border-border p-5">
-                <h3 className="font-medium text-foreground mb-4">Jobs and applications</h3>
+                <h3 className="font-medium text-foreground mb-4">채용공고 및 지원 수</h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={adminStats.monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
@@ -161,14 +161,14 @@ export function AdminPage() {
                     <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="jobs" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="apps" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="jobs" name="채용공고" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="apps" name="지원" fill="#F59E0B" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
               <div className="bg-white rounded-xl border border-border p-5 lg:col-span-2">
-                <h3 className="font-medium text-foreground mb-4">Disability type distribution</h3>
+                <h3 className="font-medium text-foreground mb-4">장애 유형 분포</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 items-center">
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
@@ -203,7 +203,7 @@ export function AdminPage() {
                 <input
                   value={searchQuery}
                   onChange={event => setSearchQuery(event.target.value)}
-                  placeholder="Search members"
+                  placeholder="회원 검색"
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -213,12 +213,12 @@ export function AdminPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr>
-                    <th className="px-5 py-3 text-left font-medium">Name</th>
-                    <th className="px-5 py-3 text-left font-medium">Email</th>
-                    <th className="px-5 py-3 text-left font-medium">Type</th>
-                    <th className="px-5 py-3 text-left font-medium">Joined</th>
-                    <th className="px-5 py-3 text-left font-medium">Status</th>
-                    <th className="px-5 py-3 text-right font-medium">Actions</th>
+                    <th className="px-5 py-3 text-left font-medium">이름</th>
+                    <th className="px-5 py-3 text-left font-medium">이메일</th>
+                    <th className="px-5 py-3 text-left font-medium">유형</th>
+                    <th className="px-5 py-3 text-left font-medium">가입일</th>
+                    <th className="px-5 py-3 text-left font-medium">상태</th>
+                    <th className="px-5 py-3 text-right font-medium">관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -231,10 +231,10 @@ export function AdminPage() {
                       <td className="px-5 py-4">{statusBadge(member.status)}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <button className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-green-600 hover:bg-green-50">
+                          <button aria-label="승인" className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-green-600 hover:bg-green-50">
                             <Check size={14} />
                           </button>
-                          <button className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-red-600 hover:bg-red-50">
+                          <button aria-label="거절" className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-red-600 hover:bg-red-50">
                             <X size={14} />
                           </button>
                         </div>
@@ -250,17 +250,17 @@ export function AdminPage() {
         {activeTab === 'jobs' && (
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <div className="p-5 border-b border-border">
-              <h2 className="font-semibold text-foreground">Job post management</h2>
+              <h2 className="font-semibold text-foreground">채용공고 관리</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr>
-                    <th className="px-5 py-3 text-left font-medium">Company</th>
-                    <th className="px-5 py-3 text-left font-medium">Title</th>
-                    <th className="px-5 py-3 text-left font-medium">Applicants</th>
-                    <th className="px-5 py-3 text-left font-medium">Posted</th>
-                    <th className="px-5 py-3 text-left font-medium">Status</th>
+                    <th className="px-5 py-3 text-left font-medium">기업</th>
+                    <th className="px-5 py-3 text-left font-medium">공고명</th>
+                    <th className="px-5 py-3 text-left font-medium">지원자</th>
+                    <th className="px-5 py-3 text-left font-medium">등록일</th>
+                    <th className="px-5 py-3 text-left font-medium">상태</th>
                   </tr>
                 </thead>
                 <tbody>
