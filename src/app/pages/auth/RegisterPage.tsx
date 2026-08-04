@@ -18,6 +18,32 @@ const initialForm: RegisterFormData = {
 };
 
 const reservedIds = ['admin', 'demo', 'test', 'user', 'jobbridge', 'minjun_kim'];
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
+const phonePattern = /^010-\d{4}-\d{4}$/;
+
+const isValidBirthDate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const today = new Date();
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day &&
+    date <= today &&
+    year >= 1900
+  );
+};
+
+const formatPhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+};
 
 export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
   const [form, setForm] = useState<RegisterFormData>(initialForm);
@@ -27,9 +53,12 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState('');
   const [idAvailable, setIdAvailable] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const updateField = (field: keyof RegisterFormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: '' }));
+
     if (field === 'loginId') {
       setIdCheckMessage('');
       setIdAvailable(false);
@@ -59,10 +88,39 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
 
     setIdAvailable(true);
     setIdCheckMessage('사용 가능한 아이디입니다.');
+    setErrors(prev => ({ ...prev, loginId: '' }));
+  };
+
+  const validateForm = () => {
+    const nextErrors: Record<string, string> = {};
+    const loginId = form.loginId.trim().toLowerCase();
+
+    if (!loginId) nextErrors.loginId = '아이디를 입력해 주세요.';
+    else if (!/^[a-z0-9]{4,20}$/.test(loginId)) nextErrors.loginId = '아이디는 영문 소문자와 숫자 조합 4~20자로 입력해 주세요.';
+    else if (!idAvailable) nextErrors.loginId = '아이디 중복확인을 해 주세요.';
+
+    if (!passwordPattern.test(form.password)) nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.';
+    if (form.password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
+    if (!form.name.trim()) nextErrors.name = '이름을 입력해 주세요.';
+    if (!emailPattern.test(form.email.trim())) nextErrors.email = '올바른 이메일 형식으로 입력해 주세요. 예: name@example.com';
+    if (!isValidBirthDate(form.birthDate.trim())) nextErrors.birthDate = '생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요. 예: 1999-01-01';
+    if (!form.gender) nextErrors.gender = '성별을 선택해 주세요.';
+    if (!phonePattern.test(phone)) nextErrors.phone = '전화번호는 010-1234-5678 형식으로 입력해 주세요.';
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const submitRegister = () => {
-    onRegister(form);
+    if (!validateForm()) return;
+
+    onRegister({
+      ...form,
+      loginId: form.loginId.trim().toLowerCase(),
+      name: form.name.trim(),
+      email: form.email.trim(),
+      birthDate: form.birthDate.trim(),
+    });
     window.alert('회원가입이 완료되었습니다. 로그인해 주세요.');
     navigate('login');
   };
@@ -71,7 +129,7 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
     <div className="min-h-screen bg-[#F3F7FF] flex items-stretch justify-center">
       <aside className="hidden lg:flex w-[360px] bg-gradient-to-b from-white to-[#EAF4FF] px-8 py-10 flex-col justify-between border-r border-[#DCEAF3]">
         <div>
-          <button onClick={() => navigate('main')} className="flex items-center gap-2 font-bold text-foreground mb-12">
+          <button type="button" onClick={() => navigate('main')} className="flex items-center gap-2 font-bold text-foreground mb-12">
             <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
               <Briefcase size={18} />
             </span>
@@ -81,10 +139,10 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
           <h1 className="text-3xl font-bold leading-tight text-foreground">
             당신의 가능성을
             <br />
-            <span className="text-primary">더 큰 기회로</span>
+            <span className="text-primary">일할 기회로</span>
           </h1>
           <p className="text-sm text-muted-foreground leading-6 mt-6">
-            역량과 접근성 조건에 맞는 일자리를 추천하고, 지원 과정을 더 쉽게 관리할 수 있도록 도와드립니다.
+            역량과 접근성 조건에 맞는 일자리를 추천하고, 지원 과정을 쉽게 관리할 수 있도록 도와드립니다.
           </p>
 
           <div className="space-y-7 mt-12">
@@ -114,7 +172,7 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
 
       <main className="w-full max-w-4xl bg-white px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <div className="max-w-3xl mx-auto">
-          <button onClick={() => navigate('main')} className="lg:hidden flex items-center gap-2 font-bold text-foreground mb-8">
+          <button type="button" onClick={() => navigate('main')} className="lg:hidden flex items-center gap-2 font-bold text-foreground mb-8">
             <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
               <Briefcase size={18} />
             </span>
@@ -123,11 +181,11 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-foreground">회원가입</h1>
-            <p className="text-sm text-muted-foreground mt-2">회원 정보를 입력해 주세요.</p>
+            <p className="text-sm text-muted-foreground mt-2">회원 정보를 정확히 입력해 주세요.</p>
           </div>
 
           <div className="mb-7">
-            <h2 className="text-center text-xl font-bold text-foreground">개인회원가입</h2>
+            <h2 className="text-center text-xl font-bold text-foreground">개인 회원가입</h2>
             <div className="mt-4 h-px bg-border" />
           </div>
 
@@ -139,15 +197,14 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                   value={form.loginId}
                   onChange={event => updateField('loginId', event.target.value)}
                   className={`flex-1 px-3 py-3 rounded-lg border ${idCheckMessage ? (idAvailable ? 'border-green-500' : 'border-red-400') : 'border-border'}`}
-                  placeholder="영문, 숫자 조합 4~20자"
+                  placeholder="영문 소문자, 숫자 조합 4~20자"
                 />
                 <button type="button" onClick={checkLoginId} className="px-4 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">
                   중복확인
                 </button>
               </div>
-              {idCheckMessage && (
-                <p className={`mt-2 text-sm ${idAvailable ? 'text-green-600' : 'text-red-500'}`}>{idCheckMessage}</p>
-              )}
+              {idCheckMessage && <p className={`mt-2 text-sm ${idAvailable ? 'text-green-600' : 'text-red-500'}`}>{idCheckMessage}</p>}
+              {errors.loginId && <p className="mt-2 text-sm text-red-500">{errors.loginId}</p>}
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -165,6 +222,7 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {errors.password && <p className="mt-2 text-sm text-red-500">{errors.password}</p>}
               </label>
 
               <label className="block">
@@ -172,15 +230,19 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                 <div className="relative">
                   <input
                     value={passwordConfirm}
-                    onChange={event => setPasswordConfirm(event.target.value)}
+                    onChange={event => {
+                      setPasswordConfirm(event.target.value);
+                      setErrors(prev => ({ ...prev, passwordConfirm: '' }));
+                    }}
                     type={showPwConfirm ? 'text' : 'password'}
                     className="w-full px-3 py-3 pr-10 rounded-lg border border-border"
-                    placeholder="비밀번호를 다시 입력해 주세요."
+                    placeholder="비밀번호를 다시 입력해 주세요"
                   />
                   <button type="button" aria-label="비밀번호 확인 보기" onClick={() => setShowPwConfirm(prev => !prev)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     {showPwConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {errors.passwordConfirm && <p className="mt-2 text-sm text-red-500">{errors.passwordConfirm}</p>}
               </label>
             </div>
 
@@ -191,8 +253,9 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                   value={form.name}
                   onChange={event => updateField('name', event.target.value)}
                   className="w-full px-3 py-3 rounded-lg border border-border"
-                  placeholder="이름을 입력해 주세요."
+                  placeholder="이름을 입력해 주세요"
                 />
+                {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name}</p>}
               </label>
 
               <label className="block">
@@ -202,8 +265,9 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                   onChange={event => updateField('email', event.target.value)}
                   type="email"
                   className="w-full px-3 py-3 rounded-lg border border-border"
-                  placeholder="이메일을 입력해 주세요."
+                  placeholder="예: name@example.com"
                 />
+                {errors.email && <p className="mt-2 text-sm text-red-500">{errors.email}</p>}
               </label>
             </div>
 
@@ -218,6 +282,7 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                   className="w-full px-3 py-3 rounded-lg border border-border"
                   placeholder="예: 1999-01-01"
                 />
+                {errors.birthDate && <p className="mt-2 text-sm text-red-500">{errors.birthDate}</p>}
               </label>
 
               <label className="block">
@@ -232,17 +297,23 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                   <option value="여성">여성</option>
                   <option value="선택 안 함">선택 안 함</option>
                 </select>
+                {errors.gender && <p className="mt-2 text-sm text-red-500">{errors.gender}</p>}
               </label>
             </div>
 
             <label className="block">
-              <span className="block text-sm font-medium mb-2">전화번호</span>
+              <span className="block text-sm font-medium mb-2">전화번호 <span className="text-red-500">*</span></span>
               <input
                 value={phone}
-                onChange={event => setPhone(event.target.value)}
+                onChange={event => {
+                  setPhone(formatPhoneNumber(event.target.value));
+                  setErrors(prev => ({ ...prev, phone: '' }));
+                }}
+                inputMode="numeric"
                 className="w-full px-3 py-3 rounded-lg border border-border"
-                placeholder="- 없이 숫자만 입력해 주세요. 예: 01012345678"
+                placeholder="예: 010-1234-5678"
               />
+              {errors.phone && <p className="mt-2 text-sm text-red-500">{errors.phone}</p>}
             </label>
 
             <label className="block">
@@ -251,15 +322,15 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
                 value={form.preferredRole}
                 onChange={event => updateField('preferredRole', event.target.value)}
                 className="w-full px-3 py-3 rounded-lg border border-border"
-                placeholder="희망하는 직무를 입력해 주세요."
+                placeholder="희망하는 직무를 입력해 주세요"
               />
             </label>
           </div>
 
-          <button onClick={submitRegister} className="mt-6 w-full py-3.5 rounded-lg bg-primary text-white font-medium shadow-sm hover:bg-primary/90">
+          <button type="button" onClick={submitRegister} className="mt-6 w-full py-3.5 rounded-lg bg-primary text-white font-medium shadow-sm hover:bg-primary/90">
             회원가입
           </button>
-          <button onClick={() => navigate('login')} className="w-full mt-4 text-sm text-muted-foreground">
+          <button type="button" onClick={() => navigate('login')} className="w-full mt-4 text-sm text-muted-foreground">
             이미 계정이 있으신가요? <span className="font-semibold text-primary">로그인</span>
           </button>
         </div>
