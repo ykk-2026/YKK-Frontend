@@ -19,6 +19,21 @@ export interface CurrentUser {
   id: string;
   disability?: string;
   avatar?: string;
+  loginId?: string;
+  email?: string;
+  birthDate?: string;
+  gender?: string;
+  preferredRole?: string;
+}
+
+export interface RegisterFormData {
+  loginId: string;
+  password: string;
+  birthDate: string;
+  name: string;
+  email: string;
+  gender: string;
+  preferredRole: string;
 }
 
 export interface Job {

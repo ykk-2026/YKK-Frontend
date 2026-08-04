@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Page, CurrentUser, UserRole } from '@/app/types';
-import { mockUser, mockCorporateUser, mockAdminUser } from '@/app/data/mockData';
+import type { CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
+import { mockAdminUser, mockCorporateUser, mockUser } from '@/app/data/mockData';
 import { Navbar } from '@/app/layout/Navbar';
 import { Footer } from '@/app/layout/Footer';
 import { MainPage } from '@/app/pages/home/MainPage';
@@ -15,6 +15,7 @@ const noNavPages: Page[] = ['login', 'register'];
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('main');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(null);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(['1', '2']));
 
   const navigate = (page: Page) => {
@@ -22,7 +23,33 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLogin = (role: UserRole) => {
+  const createUserFromForm = (role: UserRole, formData: RegisterFormData): CurrentUser => ({
+    role,
+    name: formData.name.trim() || '구직자',
+    id: formData.loginId.trim() || 'new_user',
+    avatar: (formData.name.trim() || '회').slice(0, 1),
+    loginId: formData.loginId,
+    email: formData.email,
+    birthDate: formData.birthDate,
+    gender: formData.gender,
+    preferredRole: formData.preferredRole,
+  });
+
+  const handleRegister = (formData: RegisterFormData) => {
+    setRegisteredUser(formData);
+  };
+
+  const handleLogin = (role: UserRole, formData?: RegisterFormData) => {
+    if (formData) {
+      setCurrentUser(createUserFromForm(role, formData));
+      return;
+    }
+
+    if (role === 'personal' && registeredUser) {
+      setCurrentUser(createUserFromForm(role, registeredUser));
+      return;
+    }
+
     if (role === 'admin') setCurrentUser(mockAdminUser);
     else if (role === 'corporate') setCurrentUser(mockCorporateUser);
     else setCurrentUser(mockUser);
@@ -50,10 +77,10 @@ export default function App() {
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
 
       case 'login':
-        return <LoginPage navigate={navigate} onLogin={handleLogin} />;
+        return <LoginPage navigate={navigate} onLogin={handleLogin} registeredUser={registeredUser} />;
 
       case 'register':
-        return <RegisterPage navigate={navigate} onLogin={handleLogin} />;
+        return <RegisterPage navigate={navigate} onRegister={handleRegister} />;
 
       case 'admin':
         return <AdminPage />;
