@@ -1,10 +1,11 @@
-import { Briefcase, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
+import { ArrowLeft, Briefcase, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
 import { useState } from 'react';
 import type { Page, RegisterFormData } from '@/app/types';
 
 interface RegisterPageProps {
   navigate: (page: Page) => void;
   onRegister: (formData: RegisterFormData) => void;
+  onBack: () => void;
 }
 
 const initialForm: RegisterFormData = {
@@ -45,7 +46,7 @@ const formatPhoneNumber = (value: string) => {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
-export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
+export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps) {
   const [form, setForm] = useState<RegisterFormData>(initialForm);
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [phone, setPhone] = useState('');
@@ -172,6 +173,15 @@ export function RegisterPage({ navigate, onRegister }: RegisterPageProps) {
 
       <main className="w-full max-w-4xl bg-white px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <div className="max-w-3xl mx-auto">
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-5 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft size={16} />
+            뒤로가기
+          </button>
+
           <button type="button" onClick={() => navigate('main')} className="lg:hidden flex items-center gap-2 font-bold text-foreground mb-8">
             <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
               <Briefcase size={18} />

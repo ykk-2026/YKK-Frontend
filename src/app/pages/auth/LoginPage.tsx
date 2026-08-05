@@ -1,4 +1,4 @@
-import { Briefcase, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
+import { ArrowLeft, Briefcase, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
 import { useState } from 'react';
 import type { Page, RegisterFormData, UserRole } from '@/app/types';
 
@@ -6,9 +6,10 @@ interface LoginPageProps {
   navigate: (page: Page) => void;
   onLogin: (role: UserRole, formData?: RegisterFormData) => void;
   registeredUser: RegisterFormData | null;
+  onBack: () => void;
 }
 
-export function LoginPage({ navigate, onLogin, registeredUser }: LoginPageProps) {
+export function LoginPage({ navigate, onLogin, registeredUser, onBack }: LoginPageProps) {
   const [showPw, setShowPw] = useState(false);
   const [loginId, setLoginId] = useState(registeredUser?.loginId ?? 'demo');
   const [password, setPassword] = useState(registeredUser ? '' : 'password');
@@ -82,6 +83,15 @@ export function LoginPage({ navigate, onLogin, registeredUser }: LoginPageProps)
 
       <main className="w-full max-w-3xl bg-white px-5 py-8 sm:px-8 lg:px-12 lg:py-10 flex items-center">
         <div className="w-full max-w-md mx-auto">
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-5 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft size={16} />
+            뒤로가기
+          </button>
+
           <button onClick={() => navigate('main')} className="lg:hidden flex items-center gap-2 font-bold text-foreground mb-8">
             <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
               <Briefcase size={18} />

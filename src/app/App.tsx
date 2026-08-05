@@ -14,12 +14,23 @@ const noNavPages: Page[] = ['login', 'register'];
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('main');
+  const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(null);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(['1', '2']));
 
   const navigate = (page: Page) => {
+    if (page !== currentPage) {
+      setPageHistory(prev => [...prev, currentPage]);
+    }
     setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBack = () => {
+    const previousPage = pageHistory[pageHistory.length - 1] || 'main';
+    setPageHistory(prev => prev.slice(0, -1));
+    setCurrentPage(previousPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -57,6 +68,7 @@ export default function App() {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setPageHistory([]);
     setCurrentPage('main');
   };
 
@@ -77,10 +89,10 @@ export default function App() {
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
 
       case 'login':
-        return <LoginPage navigate={navigate} onLogin={handleLogin} registeredUser={registeredUser} />;
+        return <LoginPage navigate={navigate} onLogin={handleLogin} registeredUser={registeredUser} onBack={handleBack} />;
 
       case 'register':
-        return <RegisterPage navigate={navigate} onRegister={handleRegister} />;
+        return <RegisterPage navigate={navigate} onRegister={handleRegister} onBack={handleBack} />;
 
       case 'admin':
         return <AdminPage />;
