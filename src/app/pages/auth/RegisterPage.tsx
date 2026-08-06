@@ -14,6 +14,7 @@ const initialForm: RegisterFormData = {
   birthDate: '',
   name: '',
   email: '',
+  phone: '',
   gender: '',
   preferredRole: '',
 };
@@ -46,10 +47,16 @@ const formatPhoneNumber = (value: string) => {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
+const formatBirthDate = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+};
+
 export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps) {
   const [form, setForm] = useState<RegisterFormData>(initialForm);
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [phone, setPhone] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState('');
@@ -106,7 +113,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
     if (!emailPattern.test(form.email.trim())) nextErrors.email = '올바른 이메일 형식으로 입력해 주세요. 예: name@example.com';
     if (!isValidBirthDate(form.birthDate.trim())) nextErrors.birthDate = '생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요. 예: 1999-01-01';
     if (!form.gender) nextErrors.gender = '성별을 선택해 주세요.';
-    if (!phonePattern.test(phone)) nextErrors.phone = '전화번호는 010-1234-5678 형식으로 입력해 주세요.';
+    if (!phonePattern.test(form.phone)) nextErrors.phone = '전화번호는 010-1234-5678 형식으로 입력해 주세요.';
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -120,6 +127,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
       loginId: form.loginId.trim().toLowerCase(),
       name: form.name.trim(),
       email: form.email.trim(),
+      phone: form.phone,
       birthDate: form.birthDate.trim(),
     });
     window.alert('회원가입이 완료되었습니다. 로그인해 주세요.');
@@ -286,7 +294,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                 <span className="block text-sm font-medium mb-2">생년월일 <span className="text-red-500">*</span></span>
                 <input
                   value={form.birthDate}
-                  onChange={event => updateField('birthDate', event.target.value)}
+                  onChange={event => updateField('birthDate', formatBirthDate(event.target.value))}
                   type="text"
                   inputMode="numeric"
                   className="w-full px-3 py-3 rounded-lg border border-border"
@@ -314,9 +322,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
             <label className="block">
               <span className="block text-sm font-medium mb-2">전화번호 <span className="text-red-500">*</span></span>
               <input
-                value={phone}
+                value={form.phone}
                 onChange={event => {
-                  setPhone(formatPhoneNumber(event.target.value));
+                  updateField('phone', formatPhoneNumber(event.target.value));
                   setErrors(prev => ({ ...prev, phone: '' }));
                 }}
                 inputMode="numeric"

@@ -11,12 +11,27 @@ import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
+const registeredUserStorageKey = 'jobBridgeRegisteredUser';
+
+const loadRegisteredUser = (): RegisterFormData | null => {
+  if (typeof window === 'undefined') return null;
+
+  const savedUser = localStorage.getItem(registeredUserStorageKey);
+  if (!savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser) as RegisterFormData;
+  } catch {
+    localStorage.removeItem(registeredUserStorageKey);
+    return null;
+  }
+};
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('main');
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(null);
+  const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(() => loadRegisteredUser());
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(['1', '2']));
 
   const navigate = (page: Page) => {
@@ -41,6 +56,7 @@ export default function App() {
     avatar: (formData.name.trim() || '회').slice(0, 1),
     loginId: formData.loginId,
     email: formData.email,
+    phone: formData.phone,
     birthDate: formData.birthDate,
     gender: formData.gender,
     preferredRole: formData.preferredRole,
@@ -48,6 +64,17 @@ export default function App() {
 
   const handleRegister = (formData: RegisterFormData) => {
     setRegisteredUser(formData);
+    localStorage.setItem(registeredUserStorageKey, JSON.stringify(formData));
+  };
+
+  const handleResetPassword = (newPassword: string) => {
+    setRegisteredUser(prev => {
+      if (!prev) return prev;
+
+      const updatedUser = { ...prev, password: newPassword };
+      localStorage.setItem(registeredUserStorageKey, JSON.stringify(updatedUser));
+      return updatedUser;
+    });
   };
 
   const handleLogin = (role: UserRole, formData?: RegisterFormData) => {
@@ -89,7 +116,7 @@ export default function App() {
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
 
       case 'login':
-        return <LoginPage navigate={navigate} onLogin={handleLogin} registeredUser={registeredUser} onBack={handleBack} />;
+        return <LoginPage navigate={navigate} onLogin={handleLogin} registeredUser={registeredUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
 
       case 'register':
         return <RegisterPage navigate={navigate} onRegister={handleRegister} onBack={handleBack} />;
