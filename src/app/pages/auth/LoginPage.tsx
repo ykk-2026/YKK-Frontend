@@ -4,7 +4,7 @@ import type { Page, RegisterFormData, UserRole } from '@/app/types';
 
 interface LoginPageProps {
   navigate: (page: Page) => void;
-  onLogin: (role: UserRole, formData?: RegisterFormData) => void;
+  onLogin: (role: UserRole, formData?: RegisterFormData, keepLoggedIn?: boolean) => void;
   registeredUser: RegisterFormData | null;
   onBack: () => void;
   onResetPassword: (newPassword: string) => void;
@@ -24,11 +24,10 @@ const formatPhoneNumber = (value: string) => {
 const isPhoneLike = (value: string) => /^\d|^-?\d/.test(value.replace(/\s/g, ''));
 
 export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPassword }: LoginPageProps) {
-  const savedLoginId = typeof window !== 'undefined' ? localStorage.getItem('savedLoginId') : null;
   const [showPw, setShowPw] = useState(false);
-  const [loginId, setLoginId] = useState(savedLoginId || '');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberId, setRememberId] = useState(Boolean(savedLoginId));
+  const [autoLogin, setAutoLogin] = useState(false);
   const [error, setError] = useState('');
   const [findMode, setFindMode] = useState<FindMode>(null);
   const [findName, setFindName] = useState('');
@@ -61,11 +60,6 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
     setNewPasswordConfirm('');
   };
 
-  const saveRememberedId = (id: string) => {
-    if (rememberId) localStorage.setItem('savedLoginId', id);
-    else localStorage.removeItem('savedLoginId');
-  };
-
   const submitLogin = () => {
     if (registeredUser) {
       if (loginId.trim() !== registeredUser.loginId.trim() || password !== registeredUser.password) {
@@ -73,8 +67,7 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
         return;
       }
 
-      saveRememberedId(registeredUser.loginId.trim());
-      onLogin('personal', registeredUser);
+      onLogin('personal', registeredUser, autoLogin);
       navigate('user-dashboard');
       return;
     }
@@ -84,8 +77,7 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
       return;
     }
 
-    saveRememberedId('demo');
-    onLogin('personal');
+    onLogin('personal', undefined, autoLogin);
     navigate('user-dashboard');
   };
 
@@ -229,12 +221,6 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
             <div className="mt-4 h-px bg-border" />
           </div>
 
-          {registeredUser && (
-            <div className="mb-5 rounded-lg bg-[#F0FBF8] px-4 py-3 text-sm text-[#176B87]">
-              회원가입이 완료되었습니다. 가입한 아이디로 로그인해 주세요.
-            </div>
-          )}
-
           <div className="space-y-4">
             <label className="block">
               <span className="block text-sm font-medium mb-2">아이디</span>
@@ -280,13 +266,10 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
             <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
-                checked={rememberId}
-                onChange={event => {
-                  setRememberId(event.target.checked);
-                  if (!event.target.checked) localStorage.removeItem('savedLoginId');
-                }}
+                checked={autoLogin}
+                onChange={event => setAutoLogin(event.target.checked)}
               />
-              아이디 저장
+              자동 로그인
             </label>
             <div className="flex items-center gap-2 text-muted-foreground">
               <button type="button" className="hover:text-foreground" onClick={() => openFindModal('id')}>
