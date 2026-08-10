@@ -1,4 +1,4 @@
-import { Briefcase, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { BriefcaseBusiness, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
 import type { CurrentUser, Page } from '@/app/types';
 
@@ -31,25 +31,23 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => goTo('main')} className="flex items-center gap-2 font-bold text-foreground">
-            <span className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center">
-              <Briefcase size={18} />
-            </span>
-            JobBridgeAI
-          </button>
-        </div>
+    <header className="sticky top-0 z-40 border-b border-[#E5EAF0] bg-white">
+      <div className="mx-auto flex h-16 max-w-[1256px] items-center justify-between px-5 sm:px-8">
+        <button type="button" onClick={() => goTo('main')} className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0D6BEA] text-white shadow-sm">
+            <BriefcaseBusiness size={21} strokeWidth={2.2} />
+          </span>
+          <span className="text-xl font-bold tracking-normal text-[#111827]">JobBridgeAI</span>
+        </button>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden items-center gap-10 md:flex">
           {navItems.map(item => (
             <button
               type="button"
               key={item.page}
               onClick={() => goTo(item.page)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                currentPage === item.page ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              className={`text-base font-bold transition ${
+                currentPage === item.page ? 'text-[#0D6BEA]' : 'text-[#1F2A44] hover:text-[#0D6BEA]'
               }`}
             >
               {item.label}
@@ -57,97 +55,78 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden items-center gap-5 md:flex">
           {currentUser ? (
             <>
-              <button
-                type="button"
-                onClick={() => goTo(userPage)}
-                className="px-3 py-2 rounded-lg text-sm font-medium bg-muted text-foreground inline-flex items-center gap-2 hover:bg-[#EAF4FF]"
-              >
-                <span className="w-7 h-7 rounded-full bg-[#DDF7F2] text-[#176B87] flex items-center justify-center">
-                  {currentUser.avatar ? <span className="text-xs font-bold">{currentUser.avatar}</span> : <UserRound size={15} />}
-                </span>
+              <button type="button" onClick={() => goTo(userPage)} className="text-base font-bold text-[#111827] hover:text-[#0D6BEA]">
                 프로필
               </button>
-              <button
-                type="button"
-                onClick={logout}
-                className="px-3 py-2 rounded-lg border border-border text-sm font-semibold text-muted-foreground inline-flex items-center gap-2 hover:bg-muted hover:text-foreground"
-              >
+              <button type="button" onClick={logout} className="inline-flex items-center gap-2 rounded-lg border border-[#DCE3EB] px-3.5 py-2 text-sm font-bold text-[#475467] hover:bg-[#F7F9FC]">
                 <LogOut size={16} />
                 로그아웃
               </button>
             </>
           ) : (
             <>
-              <button type="button" onClick={() => goTo('login')} className="px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => goTo('login')} className="text-base font-bold text-[#111827] hover:text-[#0D6BEA]">
                 로그인
               </button>
-              <button type="button" onClick={() => goTo('register')} className="px-3 py-2 rounded-lg text-sm font-medium bg-primary text-white">
+              <button type="button" onClick={() => goTo('register')} className="rounded-lg bg-[#0D6BEA] px-5 py-2.5 text-base font-bold text-white shadow-sm hover:bg-[#0959C7]">
                 회원가입
               </button>
             </>
           )}
         </div>
 
-        <div className="flex md:hidden items-center gap-2">
-          <button
-            type="button"
-            aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
-            className="w-9 h-9 rounded-lg border border-border flex items-center justify-center"
-            onClick={() => setOpen(prev => !prev)}
-          >
-            {open ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
+        <button
+          type="button"
+          aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE3EB] md:hidden"
+          onClick={() => setOpen(prev => !prev)}
+        >
+          {open ? <X size={19} /> : <Menu size={19} />}
+        </button>
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-border bg-white px-4 py-3 space-y-1">
-          {navItems.map(item => (
-            <button
-              type="button"
-              key={item.page}
-              onClick={() => goTo(item.page)}
-              className={`block w-full text-left px-3 py-2 rounded-lg text-sm ${
-                currentPage === item.page ? 'bg-primary text-white font-semibold' : 'hover:bg-muted'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="border-t border-[#E5EAF0] bg-white px-5 py-4 md:hidden">
+          <div className="space-y-1">
+            {navItems.map(item => (
+              <button
+                type="button"
+                key={item.page}
+                onClick={() => goTo(item.page)}
+                className={`block w-full rounded-lg px-3 py-3 text-left text-base font-bold ${
+                  currentPage === item.page ? 'bg-[#EEF5FF] text-[#0D6BEA]' : 'text-[#1F2A44] hover:bg-[#F7F9FC]'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
 
-          <div className="pt-2 mt-2 border-t border-border">
-            {currentUser ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => goTo(userPage)}
-                  className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-muted"
-                >
-                  <UserRound size={16} />
-                  프로필
-                </button>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50"
-                >
-                  <LogOut size={16} />
-                  로그아웃
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="button" onClick={() => goTo('login')} className="block w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted">
-                  로그인
-                </button>
-                <button type="button" onClick={() => goTo('register')} className="block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-primary hover:bg-[#EAF4FF]">
-                  회원가입
-                </button>
-              </>
-            )}
+            <div className="mt-3 border-t border-[#E5EAF0] pt-3">
+              {currentUser ? (
+                <>
+                  <button type="button" onClick={() => goTo(userPage)} className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-base font-bold hover:bg-[#F7F9FC]">
+                    <UserRound size={18} />
+                    프로필
+                  </button>
+                  <button type="button" onClick={logout} className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-base font-bold text-red-600 hover:bg-red-50">
+                    <LogOut size={18} />
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => goTo('login')} className="block w-full rounded-lg px-3 py-3 text-left text-base font-bold hover:bg-[#F7F9FC]">
+                    로그인
+                  </button>
+                  <button type="button" onClick={() => goTo('register')} className="block w-full rounded-lg px-3 py-3 text-left text-base font-bold text-[#0D6BEA] hover:bg-[#EEF5FF]">
+                    회원가입
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
