@@ -104,7 +104,7 @@ export default function App() {
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(['1', '2']));
 
-  const navigate = (page: Page) => {
+  const navigate = (page: Page, jobId?: string) => {
     if (page !== currentPage) {
       setPageHistory(prev => [...prev, currentPage]);
     }
@@ -189,7 +189,7 @@ export default function App() {
 
       case 'user-dashboard':
       case 'corporate':
-        return <ProfilePage currentUser={currentUser} />;
+        return <ProfilePage currentUser={currentUser} navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
 
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;

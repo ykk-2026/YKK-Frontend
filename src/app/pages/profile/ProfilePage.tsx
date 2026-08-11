@@ -1,21 +1,32 @@
 import { useState } from 'react';
 import {
+  ArrowRight,
   Bell,
   Bookmark,
+  BookmarkCheck,
   Briefcase,
   Camera,
   CheckCircle2,
+  Download,
+  Eye,
   FileText,
   Lock,
   Mail,
+  MapPin,
+  Plus,
   Phone,
   Save,
+  Trash2,
   UserRound,
 } from 'lucide-react';
-import type { CurrentUser } from '@/app/types';
+import { applications, mockJobs } from '@/app/data/mockData';
+import type { CurrentUser, Page } from '@/app/types';
 
 interface ProfilePageProps {
   currentUser: CurrentUser | null;
+  navigate: (page: Page, jobId?: string) => void;
+  bookmarks: Set<string>;
+  onBookmark: (id: string) => void;
 }
 
 const regionOptions = [
@@ -55,13 +66,31 @@ const menuItems = [
 const workTypes = ['재택근무', '유연근무', '하이브리드', '출퇴근 근무'];
 const maxIntroLength = 500;
 
-export function ProfilePage({ currentUser }: ProfilePageProps) {
+const initialResumes = [
+  { id: 'resume-1', title: '기본 이력서', updatedAt: '2026-08-01', status: '대표 이력서' },
+  { id: 'resume-2', title: '개발 직무 지원용', updatedAt: '2026-07-22', status: '임시 저장' },
+];
+
+export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: ProfilePageProps) {
   const initialName = currentUser?.name || '김민준';
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const [activeMenu, setActiveMenu] = useState('내 프로필');
   const [savedMessage, setSavedMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isRegionOpen, setIsRegionOpen] = useState(false);
+  const [resumes, setResumes] = useState(initialResumes);
+  const [accountForm, setAccountForm] = useState({
+    loginId: currentUser?.loginId || currentUser?.id || 'minjun_kim',
+    email: currentUser?.email || '',
+    phone: currentUser?.phone || '010-1234-5678',
+    currentPassword: '',
+    newPassword: '',
+  });
+  const [notificationSettings, setNotificationSettings] = useState({
+    deadline: true,
+    recommendation: true,
+    application: true,
+  });
   const [profileForm, setProfileForm] = useState({
     name: initialName,
     birthDate: currentUser?.birthDate || '1998-05-23',
@@ -96,13 +125,50 @@ export function ProfilePage({ currentUser }: ProfilePageProps) {
     window.alert('프로필 정보가 저장되었습니다.');
   };
 
-  const panelText: Record<string, string> = {
-    '이력서 관리': '대표 이력서를 관리할 수 있습니다.',
-    '지원 현황': '지원한 공고와 진행 상태를 확인할 수 있습니다.',
-    '관심 공고': '저장한 공고 목록을 확인할 수 있습니다.',
-    'AI 추천 결과': '프로필 기준 추천 공고와 적합도를 확인할 수 있습니다.',
-    '계정 설정': '로그인 정보와 알림 설정을 관리할 수 있습니다.',
+  const addResume = () => {
+    const nextResume = {
+      id: `resume-${Date.now()}`,
+      title: `새 이력서 ${resumes.length + 1}`,
+      updatedAt: '2026-08-11',
+      status: '임시 저장',
+    };
+    setResumes(prev => [nextResume, ...prev]);
+    setSavedMessage('새 이력서가 추가되었습니다.');
   };
+
+  const setPrimaryResume = (resumeId: string) => {
+    setResumes(prev => prev.map(resume => ({ ...resume, status: resume.id === resumeId ? '대표 이력서' : '임시 저장' })));
+    setSavedMessage('대표 이력서가 변경되었습니다.');
+  };
+
+  const deleteResume = (resumeId: string) => {
+    setResumes(prev => prev.filter(resume => resume.id !== resumeId));
+    setSavedMessage('이력서가 삭제되었습니다.');
+  };
+
+  const updateAccountForm = (field: keyof typeof accountForm, value: string) => {
+    setAccountForm(prev => ({ ...prev, [field]: value }));
+    setSavedMessage('');
+  };
+
+  const saveAccountSettings = () => {
+    setSavedMessage('계정 설정이 저장되었습니다.');
+    setAccountForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
+  };
+
+  const toggleNotification = (field: keyof typeof notificationSettings) => {
+    setNotificationSettings(prev => ({ ...prev, [field]: !prev[field] }));
+    setSavedMessage('알림 설정이 변경되었습니다.');
+  };
+
+  const savedJobs = mockJobs
+    .map(job => {
+      const savedKey = bookmarks.has(job.id) ? job.id : bookmarks.has(`job-${job.id}`) ? `job-${job.id}` : '';
+      return { ...job, savedKey };
+    })
+    .filter(job => job.savedKey);
+
+  const recommendedJobs = [...mockJobs].sort((a, b) => b.aiScore - a.aiScore).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[#F3F7FF] text-[#111827]">
@@ -162,11 +228,268 @@ export function ProfilePage({ currentUser }: ProfilePageProps) {
             {savedMessage && <p className="mt-4 rounded-lg bg-[#E7F8EF] px-4 py-3 text-sm font-bold text-[#14843C]">{savedMessage}</p>}
           </div>
 
-          {activeMenu !== '내 프로필' ? (
+          {activeMenu === '이력서 관리' ? (
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-extrabold text-black">이력서 관리</h2>
+                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">대표 이력서와 지원용 이력서를 관리합니다.</p>
+                </div>
+                <button type="button" onClick={addResume} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7]">
+                  <Plus size={16} />
+                  이력서 추가
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                {resumes.map(resume => (
+                  <article key={resume.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-extrabold text-black">{resume.title}</h3>
+                          <span className={`rounded-full px-3 py-1 text-xs font-bold ${resume.status === '대표 이력서' ? 'bg-[#E4EFFF] text-[#0D6BEA]' : 'bg-[#F1F3F6] text-[#596273]'}`}>
+                            {resume.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-[#7A8495]">최근 수정 {resume.updatedAt}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 sm:justify-end">
+                        <button type="button" onClick={() => setPrimaryResume(resume.id)} className="rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
+                          대표 설정
+                        </button>
+                        <button type="button" onClick={() => window.alert(`${resume.title} 미리보기를 엽니다.`)} className="inline-flex items-center gap-1 rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
+                          <Eye size={15} />
+                          미리보기
+                        </button>
+                        <button type="button" onClick={() => window.alert(`${resume.title} PDF 다운로드를 시작합니다.`)} className="inline-flex items-center gap-1 rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
+                          <Download size={15} />
+                          PDF
+                        </button>
+                        <button type="button" onClick={() => deleteResume(resume.id)} className="inline-flex items-center gap-1 rounded-lg border border-[#F4B7B7] px-3 py-2 text-sm font-bold text-[#D92D20] hover:bg-[#FFF5F5]">
+                          <Trash2 size={15} />
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : activeMenu === '지원 현황' ? (
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-extrabold text-black">지원 현황</h2>
+                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">지원한 공고 {applications.length}건의 진행 상태입니다.</p>
+                </div>
+                <button type="button" onClick={() => navigate('jobs')} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
+                  공고 더 보기 <ArrowRight size={15} />
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                {applications.map(application => (
+                  <article key={application.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <span className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ backgroundColor: application.statusColor }}>
+                          {application.status}
+                        </span>
+                        <h3 className="mt-3 text-lg font-extrabold text-black">{application.job.title}</h3>
+                        <p className="mt-1 text-sm font-bold text-[#7A8495]">{application.job.company} · 지원일 {application.appliedAt} · 업데이트 {application.updatedAt}</p>
+                      </div>
+                      <button type="button" onClick={() => window.alert(`${application.job.company} 지원 상세를 확인합니다.`)} className="rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
+                        상세 확인
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                      {application.timeline.map(step => (
+                        <div key={step.step} className={`rounded-lg px-3 py-3 ${step.done ? 'bg-[#E7F8EF]' : 'bg-[#F8FAFC]'}`}>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 size={16} className={step.done ? 'text-[#14843C]' : 'text-[#A0A8B5]'} />
+                            <p className="text-sm font-extrabold text-black">{step.step}</p>
+                          </div>
+                          <p className="mt-1 text-xs font-bold text-[#7A8495]">{step.date || '대기중'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : activeMenu === '관심 공고' ? (
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-extrabold text-black">관심 공고</h2>
+                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">저장한 공고 {savedJobs.length}건을 확인할 수 있습니다.</p>
+                </div>
+                <button type="button" onClick={() => navigate('saved')} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
+                  전체 보기 <ArrowRight size={15} />
+                </button>
+              </div>
+
+              {savedJobs.length > 0 ? (
+                <div className="grid gap-3">
+                  {savedJobs.map(job => (
+                    <article key={job.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <button type="button" onClick={() => navigate('jobs')} className="flex min-w-0 items-start gap-3 text-left">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold text-white" style={{ backgroundColor: job.companyColor }}>
+                            {job.companyInitials}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold text-[#7A8495]">{job.company}</span>
+                            <span className="mt-1 block text-lg font-extrabold text-black">{job.title}</span>
+                            <span className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-[#596273]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F3F6] px-3 py-1">
+                                <MapPin size={13} /> {job.location}
+                              </span>
+                              <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{job.workType}</span>
+                              <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{job.salary}</span>
+                            </span>
+                          </span>
+                        </button>
+
+                        <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                          <button
+                            type="button"
+                            onClick={() => onBookmark(job.savedKey)}
+                            className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 text-sm font-bold hover:bg-[#F8FAFC]"
+                          >
+                            <BookmarkCheck size={16} />
+                            저장됨
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-[#D7DDE5] bg-[#F8FAFC] p-8 text-center">
+                  <Bookmark size={32} className="mx-auto text-[#7A8495]" />
+                  <p className="mt-3 text-base font-extrabold text-black">저장한 관심 공고가 없습니다.</p>
+                  <button type="button" onClick={() => navigate('jobs')} className="mt-4 rounded-lg bg-[#0D6BEA] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0959C7]">
+                    공고 보러가기
+                  </button>
+                </div>
+              )}
+            </section>
+          ) : activeMenu === 'AI 추천 결과' ? (
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-extrabold text-black">AI 추천 결과</h2>
+                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">현재 프로필과 가까운 공고를 적합도순으로 보여줍니다.</p>
+                </div>
+                <button type="button" onClick={() => setSavedMessage('AI 추천 결과를 새로 계산했습니다.')} className="rounded-lg border border-[#D7DDE5] px-4 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
+                  다시 추천받기
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                {recommendedJobs.map(job => {
+                  const savedKey = bookmarks.has(job.id) ? job.id : bookmarks.has(`job-${job.id}`) ? `job-${job.id}` : job.id;
+                  const isSaved = bookmarks.has(job.id) || bookmarks.has(`job-${job.id}`);
+                  return (
+                    <article key={job.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex min-w-0 gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold text-white" style={{ backgroundColor: job.companyColor }}>
+                            {job.companyInitials}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-[#7A8495]">{job.company}</p>
+                            <h3 className="mt-1 text-lg font-extrabold text-black">{job.title}</h3>
+                            <p className="mt-2 text-sm font-semibold text-[#596273]">{job.aiReasons[0]}</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {job.requirements.slice(0, 4).map(requirement => (
+                                <span key={requirement} className="rounded-full bg-[#E4EFFF] px-3 py-1 text-xs font-bold text-[#0D6BEA]">{requirement}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                          <button type="button" onClick={() => onBookmark(savedKey)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 text-sm font-bold hover:bg-[#F8FAFC]">
+                            {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                            {isSaved ? '저장됨' : '저장'}
+                          </button>
+                          <button type="button" onClick={() => navigate('jobs')} className="inline-flex h-9 items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
+                            공고 보기 <ArrowRight size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ) : activeMenu === '계정 설정' ? (
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <div className="mb-5">
+                <h2 className="text-lg font-extrabold text-black">계정 설정</h2>
+                <p className="mt-1 text-sm font-semibold text-[#7A8495]">로그인 정보와 알림 수신 여부를 관리합니다.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold">로그인 아이디</span>
+                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.loginId} onChange={event => updateAccountForm('loginId', event.target.value)} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold">이메일</span>
+                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.email} onChange={event => updateAccountForm('email', event.target.value)} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold">전화번호</span>
+                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.phone} onChange={event => updateAccountForm('phone', event.target.value)} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold">현재 비밀번호</span>
+                  <input type="password" className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.currentPassword} onChange={event => updateAccountForm('currentPassword', event.target.value)} />
+                </label>
+                <label className="block sm:col-span-2">
+                  <span className="mb-2 block text-sm font-bold">새 비밀번호</span>
+                  <input type="password" className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.newPassword} onChange={event => updateAccountForm('newPassword', event.target.value)} placeholder="변경할 때만 입력하세요" />
+                </label>
+              </div>
+
+              <div className="mt-6 border-t border-[#E7ECF2] pt-5">
+                <h3 className="text-base font-extrabold text-black">알림 설정</h3>
+                <div className="mt-3 grid gap-3">
+                  {[
+                    { key: 'deadline' as const, title: '마감 임박 알림', desc: '관심 공고 마감일이 가까워지면 알려줍니다.' },
+                    { key: 'recommendation' as const, title: 'AI 추천 알림', desc: '프로필에 맞는 새 공고를 알려줍니다.' },
+                    { key: 'application' as const, title: '지원 상태 알림', desc: '서류 검토, 면접 제안 등 상태 변경을 알려줍니다.' },
+                  ].map(item => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      onClick={() => toggleNotification(item.key)}
+                      className="flex items-center justify-between gap-4 rounded-lg border border-[#E1E6EE] px-4 py-3 text-left hover:bg-[#F8FAFC]"
+                    >
+                      <span>
+                        <span className="block text-sm font-extrabold text-black">{item.title}</span>
+                        <span className="mt-1 block text-xs font-semibold text-[#7A8495]">{item.desc}</span>
+                      </span>
+                      <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold ${notificationSettings[item.key] ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F3F6] text-[#596273]'}`}>
+                        {notificationSettings[item.key] ? 'ON' : 'OFF'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button type="button" onClick={saveAccountSettings} className="mt-6 rounded-lg bg-[#0D6BEA] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#0959C7]">
+                계정 설정 저장
+              </button>
+            </section>
+          ) : activeMenu !== '내 프로필' ? (
             <div className="rounded-xl border border-[#DDE3EA] bg-white p-8 text-center shadow-sm">
               <CheckCircle2 size={36} className="mx-auto text-[#0D6BEA]" />
               <h2 className="mt-4 text-xl font-extrabold">{activeMenu}</h2>
-              <p className="mt-2 text-sm font-semibold text-[#7A8495]">{panelText[activeMenu]}</p>
             </div>
           ) : (
             <>
