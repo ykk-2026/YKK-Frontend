@@ -8,6 +8,7 @@ interface NavbarProps {
   navigate: (page: Page) => void;
   currentUser: CurrentUser | null;
   onLogout: () => void;
+  onSearch: (query: string) => void;
 }
 
 type MenuPanel = 'all' | 'jobs' | null;
@@ -61,7 +62,7 @@ const jobMenuSections = [
   },
 ];
 
-export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarProps) {
+export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<MenuPanel>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,7 +120,9 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
   };
 
   const submitSearch = () => {
-    goTo('jobs');
+    onSearch(searchQuery);
+    setMobileOpen(false);
+    setActivePanel(null);
   };
 
   const logout = () => {

@@ -131,6 +131,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || (getAutoLoggedInUser(registeredUser) ? 'user-dashboard' : 'main'));
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
 
   const navigate = (page: Page, jobId?: string) => {
     if (page !== currentPage) {
@@ -202,6 +203,11 @@ export default function App() {
     });
   };
 
+  const handleHeaderSearch = (query: string) => {
+    setHeaderSearchQuery(query.trim());
+    navigate('jobs');
+  };
+
   const showNavFooter = !noNavPages.includes(currentPage);
 
   const renderPage = () => {
@@ -223,13 +229,13 @@ export default function App() {
         return <ProfilePage currentUser={currentUser} navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
 
       case 'jobs':
-        return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
+        return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       case 'saved':
-        return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
+        return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       case 'ai-recommend':
-        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
+        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
@@ -244,6 +250,7 @@ export default function App() {
           navigate={navigate}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onSearch={handleHeaderSearch}
         />
       )}
 

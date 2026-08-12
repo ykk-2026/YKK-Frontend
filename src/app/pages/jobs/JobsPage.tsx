@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
   Star,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Page } from '@/app/types';
 
 interface JobsPageProps {
@@ -20,6 +20,7 @@ interface JobsPageProps {
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
   onBookmark: (id: string) => void;
+  initialQuery?: string;
 }
 
 interface JobListing {
@@ -206,8 +207,8 @@ const quickFilters = [
   { label: '오늘 마감', query: 'D-3', icon: Clock3 },
 ];
 
-export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: JobsPageProps) {
-  const [query, setQuery] = useState('');
+export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initialQuery = '' }: JobsPageProps) {
+  const [query, setQuery] = useState(initialQuery);
   const [selectedRegion, setSelectedRegion] = useState('전체');
   const [selectedCompany, setSelectedCompany] = useState('전체');
   const [companyPanelOpen, setCompanyPanelOpen] = useState(false);
@@ -215,6 +216,11 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: Jobs
   const submitSearch = () => {
     setCompanyPanelOpen(false);
   };
+
+  useEffect(() => {
+    setQuery(initialQuery);
+    setCompanyPanelOpen(false);
+  }, [initialQuery]);
 
   const filteredJobs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
