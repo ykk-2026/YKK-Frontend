@@ -19,6 +19,13 @@ interface NavItem {
   authRequired?: boolean;
 }
 
+interface BrandCompany {
+  name: string;
+  mark: string;
+  color: string;
+  bg: string;
+}
+
 const allMenuSections = [
   {
     title: '개인회원',
@@ -77,32 +84,55 @@ const jobMenuSections = [
   },
 ];
 
-const brandCompanies = [
-  '네이버클라우드',
-  '카카오',
-  '쿠팡',
-  '라인플러스',
-  '우아한형제들',
-  '토스',
-  '스타벅스',
-  '이마트',
-  '롯데',
-  'CJ',
-  '삼성전자',
-  '현대백화점',
-  'SK텔레콤',
-  'KT',
-  'LG유플러스',
-  '당근',
-  '무신사',
-  '배달의민족',
-  '컬리',
-  'GS리테일',
-  '신세계',
-  '올리브영',
-  '파리바게뜨',
-  '공공기관',
+const brandCompanies: BrandCompany[] = [
+  { name: '네이버클라우드', mark: 'N', color: '#03C75A', bg: '#EAFBF1' },
+  { name: '카카오', mark: 'K', color: '#3B1E1E', bg: '#FFE812' },
+  { name: '쿠팡', mark: 'C', color: '#E52528', bg: '#FFF0F0' },
+  { name: '라인플러스', mark: 'LINE', color: '#06C755', bg: '#EAFBF1' },
+  { name: '우아한형제들', mark: '배민', color: '#00A9A5', bg: '#E8FBFA' },
+  { name: '토스', mark: 'T', color: '#0064FF', bg: '#EEF5FF' },
+  { name: '스타벅스', mark: 'S', color: '#00704A', bg: '#EAF7F1' },
+  { name: '이마트', mark: 'em', color: '#F5A400', bg: '#FFF8E3' },
+  { name: '롯데', mark: 'L', color: '#DA291C', bg: '#FFF0EE' },
+  { name: 'CJ', mark: 'CJ', color: '#E31B23', bg: '#FFF1F1' },
+  { name: '삼성전자', mark: 'SAMSUNG', color: '#1428A0', bg: '#EEF2FF' },
+  { name: '현대백화점', mark: 'H', color: '#111827', bg: '#F2F4F7' },
+  { name: 'SK텔레콤', mark: 'SK', color: '#EA002C', bg: '#FFF0F3' },
+  { name: 'KT', mark: 'KT', color: '#D71920', bg: '#FFF0F0' },
+  { name: 'LG유플러스', mark: 'U+', color: '#E6007E', bg: '#FFF0F8' },
+  { name: '당근', mark: '당근', color: '#FF6F0F', bg: '#FFF3EA' },
+  { name: '무신사', mark: 'M', color: '#111111', bg: '#F2F2F2' },
+  { name: '배달의민족', mark: 'B', color: '#00A9A5', bg: '#E8FBFA' },
+  { name: '컬리', mark: 'KURLY', color: '#5F0080', bg: '#F8EEFF' },
+  { name: 'GS리테일', mark: 'GS', color: '#0072CE', bg: '#EEF7FF' },
+  { name: '신세계', mark: 'S', color: '#C9A227', bg: '#FFF9E8' },
+  { name: '올리브영', mark: 'OY', color: '#6FBA2C', bg: '#F1FAEA' },
+  { name: '파리바게뜨', mark: 'PB', color: '#113A8F', bg: '#EEF4FF' },
+  { name: '공공기관', mark: 'Gov', color: '#0B6B57', bg: '#EAF7F4' },
 ];
+
+function BrandCompanyTile({ company, onClick }: { company: BrandCompany; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${company.name} 채용정보 보기`}
+      className="flex min-h-[60px] items-center justify-center rounded-lg border border-[#E1E7EF] bg-white px-3 py-2 transition hover:border-[#0D6BEA] hover:shadow-sm"
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <span
+          className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-black leading-none"
+          style={{ color: company.color, backgroundColor: company.bg }}
+        >
+          {company.mark}
+        </span>
+        <span className="truncate text-sm font-black tracking-normal" style={{ color: company.color }}>
+          {company.name}
+        </span>
+      </span>
+    </button>
+  );
+}
 
 export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -264,14 +294,7 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
               <h3 className="mb-4 text-sm font-extrabold text-black">주요 기업 채용</h3>
               <div className="grid grid-cols-4 gap-3 lg:grid-cols-6">
                 {brandCompanies.map(company => (
-                  <button
-                    type="button"
-                    key={company}
-                    onClick={() => goTo('jobs')}
-                    className="min-h-[54px] rounded-lg border border-[#E1E7EF] bg-[#FAFBFD] px-3 py-2 text-center text-xs font-extrabold text-[#1F2A44] hover:border-[#0D6BEA] hover:bg-white hover:text-[#0D6BEA]"
-                  >
-                    {company}
-                  </button>
+                  <BrandCompanyTile key={company.name} company={company} onClick={() => goTo('jobs')} />
                 ))}
               </div>
             </div>
