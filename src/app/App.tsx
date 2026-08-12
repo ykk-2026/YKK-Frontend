@@ -130,7 +130,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser));
   const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || (getAutoLoggedInUser(registeredUser) ? 'user-dashboard' : 'main'));
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(['1', '2']));
+  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
 
   const navigate = (page: Page, jobId?: string) => {
     if (page !== currentPage) {
