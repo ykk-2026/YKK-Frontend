@@ -1,4 +1,4 @@
-import { ChevronRight, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { ChevronRight, LogOut, Menu, Search, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
 import { BrandLogo } from '@/app/components/BrandLogo';
 import type { CurrentUser, Page } from '@/app/types';
@@ -10,7 +10,7 @@ interface NavbarProps {
   onLogout: () => void;
 }
 
-type MenuPanel = 'all' | 'jobs' | 'brand' | null;
+type MenuPanel = 'all' | 'jobs' | null;
 
 interface NavItem {
   label: string;
@@ -19,49 +19,26 @@ interface NavItem {
   authRequired?: boolean;
 }
 
-interface BrandCompany {
-  name: string;
-  mark: string;
-  color: string;
-  bg: string;
-}
-
 const allMenuSections = [
   {
-    title: '개인회원',
-    links: [
-      { label: '프로필 관리', page: 'user-dashboard' as Page, authRequired: true },
-      { label: '이력서 관리', page: 'user-dashboard' as Page, authRequired: true },
-      { label: '지원 현황', page: 'user-dashboard' as Page, authRequired: true },
-      { label: '관심 공고', page: 'saved' as Page },
-    ],
+    title: '채용분류',
+    links: ['전체 채용정보', '오늘 올라온 공고', '마감 임박 공고', '저장한 공고', 'AI 추천 공고'],
   },
   {
-    title: '채용 탐색',
-    links: [
-      { label: '전체 채용정보', page: 'jobs' as Page },
-      { label: '마감 임박 공고', page: 'jobs' as Page },
-      { label: '재택 가능 공고', page: 'jobs' as Page },
-      { label: '장애친화 공고', page: 'jobs' as Page },
-    ],
+    title: '지역별 채용',
+    links: ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '전국'],
   },
   {
-    title: '기업회원',
-    links: [
-      { label: '기업 프로필', page: 'corporate' as Page, authRequired: true },
-      { label: '공고 관리', page: 'corporate' as Page, authRequired: true },
-      { label: '지원자 관리', page: 'corporate' as Page, authRequired: true },
-      { label: '채용 통계', page: 'corporate' as Page, authRequired: true },
-    ],
+    title: '직무별 채용',
+    links: ['개발', '데이터', '디자인', '서비스 기획', '운영', '고객지원', '사무보조'],
   },
   {
-    title: '안내',
-    links: [
-      { label: '취업스토리', page: 'main' as Page },
-      { label: '고객지원', page: 'main' as Page },
-      { label: '회원가입', page: 'register' as Page },
-      { label: '로그인', page: 'login' as Page },
-    ],
+    title: '근무조건',
+    links: ['재택근무', '하이브리드', '유연근무', '장애인 주차', '보조기기 지원', '화상 면접', '초보 가능'],
+  },
+  {
+    title: '회원서비스',
+    links: ['프로필 관리', '이력서 관리', '지원 현황', '관심 공고', '고객지원'],
   },
 ];
 
@@ -72,7 +49,7 @@ const jobMenuSections = [
   },
   {
     title: '지역별',
-    links: ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '전국'],
+    links: ['서울', '경기', '인천', '부산', '대구', '전국'],
   },
   {
     title: '직무별',
@@ -84,65 +61,15 @@ const jobMenuSections = [
   },
 ];
 
-const brandCompanies: BrandCompany[] = [
-  { name: '네이버클라우드', mark: 'N', color: '#03C75A', bg: '#EAFBF1' },
-  { name: '카카오', mark: 'K', color: '#3B1E1E', bg: '#FFE812' },
-  { name: '쿠팡', mark: 'C', color: '#E52528', bg: '#FFF0F0' },
-  { name: '라인플러스', mark: 'LINE', color: '#06C755', bg: '#EAFBF1' },
-  { name: '우아한형제들', mark: '배민', color: '#00A9A5', bg: '#E8FBFA' },
-  { name: '토스', mark: 'T', color: '#0064FF', bg: '#EEF5FF' },
-  { name: '스타벅스', mark: 'S', color: '#00704A', bg: '#EAF7F1' },
-  { name: '이마트', mark: 'em', color: '#F5A400', bg: '#FFF8E3' },
-  { name: '롯데', mark: 'L', color: '#DA291C', bg: '#FFF0EE' },
-  { name: 'CJ', mark: 'CJ', color: '#E31B23', bg: '#FFF1F1' },
-  { name: '삼성전자', mark: 'SAMSUNG', color: '#1428A0', bg: '#EEF2FF' },
-  { name: '현대백화점', mark: 'H', color: '#111827', bg: '#F2F4F7' },
-  { name: 'SK텔레콤', mark: 'SK', color: '#EA002C', bg: '#FFF0F3' },
-  { name: 'KT', mark: 'KT', color: '#D71920', bg: '#FFF0F0' },
-  { name: 'LG유플러스', mark: 'U+', color: '#E6007E', bg: '#FFF0F8' },
-  { name: '당근', mark: '당근', color: '#FF6F0F', bg: '#FFF3EA' },
-  { name: '무신사', mark: 'M', color: '#111111', bg: '#F2F2F2' },
-  { name: '배달의민족', mark: 'B', color: '#00A9A5', bg: '#E8FBFA' },
-  { name: '컬리', mark: 'KURLY', color: '#5F0080', bg: '#F8EEFF' },
-  { name: 'GS리테일', mark: 'GS', color: '#0072CE', bg: '#EEF7FF' },
-  { name: '신세계', mark: 'S', color: '#C9A227', bg: '#FFF9E8' },
-  { name: '올리브영', mark: 'OY', color: '#6FBA2C', bg: '#F1FAEA' },
-  { name: '파리바게뜨', mark: 'PB', color: '#113A8F', bg: '#EEF4FF' },
-  { name: '공공기관', mark: 'Gov', color: '#0B6B57', bg: '#EAF7F4' },
-];
-
-function BrandCompanyTile({ company, onClick }: { company: BrandCompany; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`${company.name} 채용정보 보기`}
-      className="flex min-h-[60px] items-center justify-center rounded-lg border border-[#E1E7EF] bg-white px-3 py-2 transition hover:border-[#0D6BEA] hover:shadow-sm"
-    >
-      <span className="flex min-w-0 items-center gap-2">
-        <span
-          className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-black leading-none"
-          style={{ color: company.color, backgroundColor: company.bg }}
-        >
-          {company.mark}
-        </span>
-        <span className="truncate text-sm font-black tracking-normal" style={{ color: company.color }}>
-          {company.name}
-        </span>
-      </span>
-    </button>
-  );
-}
-
 export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<MenuPanel>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const userPage: Page = currentUser?.role === 'corporate' ? 'corporate' : currentUser?.role === 'admin' ? 'admin' : 'user-dashboard';
 
   const navItems: NavItem[] = [
     { label: '전체메뉴', page: 'jobs', panel: 'all' },
     { label: '채용정보', page: 'jobs', panel: 'jobs' },
-    { label: '브랜드채용', page: 'jobs', panel: 'brand' },
     { label: '인재정보', page: userPage, authRequired: true },
     { label: '취업스토리', page: 'main' },
     { label: '고객지원', page: 'main' },
@@ -163,8 +90,36 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
     goTo(page);
   };
 
-  const handleJobLink = (link: string) => {
-    goTo(link === '저장한 공고' ? 'saved' : 'jobs');
+  const openPanel = (panel: Exclude<MenuPanel, null>) => {
+    setActivePanel(prev => (prev === panel ? null : panel));
+  };
+
+  const handleMenuLink = (label: string) => {
+    if (label === '저장한 공고' || label === '관심 공고') {
+      goTo('saved');
+      return;
+    }
+
+    if (label === 'AI 추천 공고') {
+      goTo('ai-recommend');
+      return;
+    }
+
+    if (['프로필 관리', '이력서 관리', '지원 현황'].includes(label)) {
+      goProtected(userPage, true);
+      return;
+    }
+
+    if (label === '고객지원') {
+      goTo('main');
+      return;
+    }
+
+    goTo('jobs');
+  };
+
+  const submitSearch = () => {
+    goTo('jobs');
   };
 
   const logout = () => {
@@ -175,10 +130,33 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E5EAF0] bg-white">
-      <div className="mx-auto flex h-20 max-w-[1256px] items-center justify-between px-5 sm:px-8">
-        <button type="button" onClick={() => goTo('main')} className="flex items-center gap-3" aria-label="일이음 홈으로 이동">
-          <BrandLogo compact />
-        </button>
+      <div className="mx-auto flex h-20 max-w-[1256px] items-center justify-between gap-5 px-5 sm:px-8">
+        <div className="flex min-w-0 flex-1 items-center gap-5">
+          <button type="button" onClick={() => goTo('main')} className="flex shrink-0 items-center gap-3" aria-label="일이음 홈으로 이동">
+            <BrandLogo compact />
+          </button>
+
+          <div className="relative hidden w-full max-w-[520px] md:block">
+            <Search size={18} strokeWidth={2.6} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1F2A44]" />
+            <input
+              value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === 'Enter') submitSearch();
+              }}
+              placeholder="직무, 회사, 지역, 편의시설 검색"
+              className="h-11 w-full rounded-lg border border-[#D7DDE5] bg-[#F8FAFC] pl-11 pr-12 text-sm font-semibold text-[#111827] outline-none placeholder:text-[#8A94A6] focus:border-[#0D6BEA] focus:bg-white focus:ring-4 focus:ring-[#0D6BEA]/10"
+            />
+            <button
+              type="button"
+              onClick={submitSearch}
+              aria-label="검색"
+              className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md bg-[#0D6BEA] text-white hover:bg-[#0959C7]"
+            >
+              <Search size={16} strokeWidth={2.8} />
+            </button>
+          </div>
+        </div>
 
         <div className="hidden items-center gap-5 md:flex">
           {currentUser ? (
@@ -221,11 +199,14 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
                 type="button"
                 key={item.label}
                 onMouseEnter={() => setActivePanel(item.panel || null)}
-                onClick={() => goProtected(item.page, item.authRequired)}
-                className="relative flex h-full items-center gap-1 text-sm font-extrabold text-[#111827] transition hover:text-[#0D6BEA]"
+                onClick={() => (item.panel ? openPanel(item.panel) : goProtected(item.page, item.authRequired))}
+                className={`relative flex h-full items-center gap-1 text-sm font-extrabold transition ${
+                  activePanel === item.panel ? 'text-[#0D6BEA]' : 'text-[#111827] hover:text-[#0D6BEA]'
+                }`}
               >
                 {item.label === '전체메뉴' && <Menu size={16} />}
                 {item.label}
+                {activePanel === item.panel && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0D6BEA]" />}
               </button>
             ))}
           </div>
@@ -239,7 +220,7 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
           onMouseLeave={() => setActivePanel(null)}
         >
           {activePanel === 'all' && (
-            <div className="mx-auto grid max-w-[1256px] grid-cols-4 divide-x divide-[#E7ECF2] px-5 py-6 sm:px-8">
+            <div className="mx-auto grid max-w-[1256px] grid-cols-5 divide-x divide-[#E7ECF2] px-5 py-6 sm:px-8">
               {allMenuSections.map(section => (
                 <div key={section.title} className="px-5 first:pl-0 last:pr-0">
                   <h3 className="mb-4 text-base font-extrabold text-black">{section.title}</h3>
@@ -247,11 +228,11 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
                     {section.links.map(link => (
                       <button
                         type="button"
-                        key={link.label}
-                        onClick={() => goProtected(link.page, link.authRequired)}
+                        key={link}
+                        onClick={() => handleMenuLink(link)}
                         className="text-left text-sm font-semibold text-[#596273] hover:text-[#0D6BEA]"
                       >
-                        {link.label}
+                        {link}
                       </button>
                     ))}
                   </div>
@@ -277,7 +258,7 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
                       <button
                         type="button"
                         key={link}
-                        onClick={() => handleJobLink(link)}
+                        onClick={() => handleMenuLink(link)}
                         className="text-left text-sm font-semibold text-[#596273] hover:text-[#0D6BEA]"
                       >
                         {link}
@@ -286,17 +267,6 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {activePanel === 'brand' && (
-            <div className="mx-auto max-w-[1256px] px-5 py-5 sm:px-8">
-              <h3 className="mb-4 text-sm font-extrabold text-black">주요 기업 채용</h3>
-              <div className="grid grid-cols-4 gap-3 lg:grid-cols-6">
-                {brandCompanies.map(company => (
-                  <BrandCompanyTile key={company.name} company={company} onClick={() => goTo('jobs')} />
-                ))}
-              </div>
             </div>
           )}
         </div>
