@@ -14,6 +14,20 @@ import { JobsPage } from '@/app/pages/jobs/JobsPage';
 const noNavPages: Page[] = ['login', 'register'];
 const registeredUserStorageKey = 'jobBridgeRegisteredUser';
 const autoLoginStorageKey = 'jobBridgeAutoLogin';
+const currentPageStorageKey = 'jobBridgeCurrentPage';
+const pageValues: Page[] = [
+  'main',
+  'login',
+  'register',
+  'user-dashboard',
+  'ai-recommend',
+  'jobs',
+  'job-detail',
+  'saved',
+  'applications',
+  'corporate',
+  'admin',
+];
 
 interface AutoLoginSession {
   role: UserRole;
@@ -55,6 +69,20 @@ const saveAutoLoginSession = (session: AutoLoginSession) => {
 const clearAutoLoginSession = () => {
   localStorage.removeItem(autoLoginStorageKey);
   localStorage.removeItem('savedLoginId');
+};
+
+const loadCurrentPage = (): Page | null => {
+  if (typeof window === 'undefined') return null;
+
+  const savedPage = localStorage.getItem(currentPageStorageKey);
+  if (!savedPage) return null;
+
+  return pageValues.includes(savedPage as Page) ? (savedPage as Page) : null;
+};
+
+const saveCurrentPage = (page: Page) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(currentPageStorageKey, page);
 };
 
 const createUserFromForm = (role: UserRole, formData: RegisterFormData): CurrentUser => ({
@@ -100,7 +128,7 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
 export default function App() {
   const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(() => loadRegisteredUser());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser));
-  const [currentPage, setCurrentPage] = useState<Page>(() => (getAutoLoggedInUser(registeredUser) ? 'user-dashboard' : 'main'));
+  const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || (getAutoLoggedInUser(registeredUser) ? 'user-dashboard' : 'main'));
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(['1', '2']));
 
@@ -108,6 +136,7 @@ export default function App() {
     if (page !== currentPage) {
       setPageHistory(prev => [...prev, currentPage]);
     }
+    saveCurrentPage(page);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -115,6 +144,7 @@ export default function App() {
   const handleBack = () => {
     const previousPage = pageHistory[pageHistory.length - 1] || 'main';
     setPageHistory(prev => prev.slice(0, -1));
+    saveCurrentPage(previousPage);
     setCurrentPage(previousPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -159,6 +189,7 @@ export default function App() {
     clearAutoLoginSession();
     setCurrentUser(null);
     setPageHistory([]);
+    saveCurrentPage('main');
     setCurrentPage('main');
   };
 

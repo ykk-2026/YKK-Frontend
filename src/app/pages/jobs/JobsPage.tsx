@@ -129,10 +129,82 @@ const jobs: JobListing[] = [
     tags: ['Linux', '모니터링', 'ITSM'],
     accessibility: ['엘리베이터', '보조기기 지원', '접근성 확인'],
   },
+  {
+    id: 'job-7',
+    company: 'Coupang',
+    initial: 'C',
+    color: '#DC2626',
+    title: '물류 운영 데이터 담당자',
+    region: '서울',
+    location: '서울 잠실',
+    workType: '시차출퇴근',
+    salary: '월 290만원 이상',
+    deadline: 'D-3',
+    score: 86,
+    tags: ['Excel', 'SQL', '운영 관리'],
+    accessibility: ['엘리베이터', '장애인 주차', '장애친화'],
+  },
+  {
+    id: 'job-8',
+    company: 'Line Plus',
+    initial: 'L',
+    color: '#06C755',
+    title: 'QA 테스트 엔지니어',
+    region: '경기',
+    location: '경기 성남시',
+    workType: '하이브리드',
+    salary: '월 310만원 이상',
+    deadline: 'D-11',
+    score: 89,
+    tags: ['QA', '테스트 자동화', 'Jira'],
+    accessibility: ['배리어프리', '보조기기 지원', '화상 면접'],
+  },
+  {
+    id: 'job-9',
+    company: 'Woowa Brothers',
+    initial: 'W',
+    color: '#14B8A6',
+    title: '서비스 운영 매니저',
+    region: '서울',
+    location: '서울 송파구',
+    workType: '유연근무',
+    salary: '월 300만원 이상',
+    deadline: 'D-14',
+    score: 87,
+    tags: ['서비스 운영', 'CS', '데이터 분석'],
+    accessibility: ['장애인 주차', '엘리베이터', '화상 면접'],
+  },
+  {
+    id: 'job-10',
+    company: 'Toss',
+    initial: 'T',
+    color: '#2563EB',
+    title: '고객 데이터 분석 담당자',
+    region: '서울',
+    location: '서울 강남구',
+    workType: '재택근무 가능',
+    salary: '월 340만원 이상',
+    deadline: 'D-6',
+    score: 93,
+    tags: ['SQL', 'Python', '데이터 분석'],
+    accessibility: ['보조기기 지원', '접근성 우수', '유연근무'],
+  },
 ];
 
 const regions = ['전체', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종'];
-const companies = ['전체', 'Samsung SDS', 'kakao', 'LG CNS', 'Naver', 'SK C&C', 'Hyundai IT&E'];
+const companies = ['전체', ...Array.from(new Set(jobs.map(job => job.company)))];
+const quickFilters = [
+  { label: '재택근무 가능', query: '재택', icon: BriefcaseBusiness },
+  { label: '장애인 주차', query: '장애인 주차', icon: Accessibility },
+  { label: '화상 면접', query: '화상 면접', icon: Search },
+  { label: '보조기기 지원', query: '보조기기', icon: Accessibility },
+  { label: '엘리베이터', query: '엘리베이터', icon: Building2 },
+  { label: '유연근무', query: '유연근무', icon: BriefcaseBusiness },
+  { label: '하이브리드', query: '하이브리드', icon: BriefcaseBusiness },
+  { label: '장애친화', query: '장애친화', icon: Star },
+  { label: 'SQL 직무', query: 'SQL', icon: Search },
+  { label: '오늘 마감', query: 'D-3', icon: Clock3 },
+];
 
 export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: JobsPageProps) {
   const [query, setQuery] = useState('');
@@ -140,6 +212,9 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: Jobs
   const [selectedCompany, setSelectedCompany] = useState('전체');
   const [companyPanelOpen, setCompanyPanelOpen] = useState(false);
   const [sort, setSort] = useState<'recommend' | 'deadline'>('recommend');
+  const submitSearch = () => {
+    setCompanyPanelOpen(false);
+  };
 
   const filteredJobs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -151,7 +226,7 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: Jobs
         if (selectedCompany !== '전체' && job.company !== selectedCompany) return false;
         if (!normalizedQuery) return true;
 
-        const target = [job.title, job.company, job.location, job.workType, ...job.tags, ...job.accessibility].join(' ').toLowerCase();
+        const target = [job.title, job.company, job.location, job.workType, job.salary, job.deadline, ...job.tags, ...job.accessibility].join(' ').toLowerCase();
         return target.includes(normalizedQuery);
       })
       .sort((a, b) => {
@@ -204,6 +279,9 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: Jobs
               <input
                 value={query}
                 onChange={event => setQuery(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') submitSearch();
+                }}
                 placeholder="직무, 회사, 지역, 편의시설 검색"
                 className="h-12 w-full rounded-lg border border-[#D7DDE5] bg-white pl-11 pr-4 text-sm font-semibold outline-none placeholder:text-[#8A94A6] focus:ring-4 focus:ring-[#0D6BEA]/15"
               />
@@ -349,16 +427,23 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark }: Jobs
                 <Star size={20} className="text-[#596273]" />
                 <h2 className="text-lg font-extrabold text-black">빠른 조건</h2>
               </div>
-              <div className="space-y-2">
-                <button type="button" onClick={() => setQuery('재택')} className="flex w-full items-center gap-2 rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm font-bold hover:bg-[#E4EFFF]">
-                  <BriefcaseBusiness size={16} /> 재택근무 가능
-                </button>
-                <button type="button" onClick={() => setQuery('장애인 주차')} className="flex w-full items-center gap-2 rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm font-bold hover:bg-[#E4EFFF]">
-                  <Accessibility size={16} /> 장애인 주차
-                </button>
-                <button type="button" onClick={() => setQuery('화상 면접')} className="flex w-full items-center gap-2 rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm font-bold hover:bg-[#E4EFFF]">
-                  <Search size={16} /> 화상 면접
-                </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                {quickFilters.map(filter => {
+                  const Icon = filter.icon;
+                  return (
+                    <button
+                      type="button"
+                      key={filter.label}
+                      onClick={() => {
+                        setQuery(filter.query);
+                        setSelectedCompany('전체');
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm font-bold hover:bg-[#E4EFFF]"
+                    >
+                      <Icon size={16} /> {filter.label}
+                    </button>
+                  );
+                })}
               </div>
             </section>
           </aside>

@@ -436,23 +436,33 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold">로그인 아이디</span>
-                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.loginId} onChange={event => updateAccountForm('loginId', event.target.value)} />
+                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.loginId} onChange={event => updateAccountForm('loginId', event.target.value)} onKeyDown={event => {
+                    if (event.key === 'Enter') saveAccountSettings();
+                  }} />
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold">이메일</span>
-                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.email} onChange={event => updateAccountForm('email', event.target.value)} />
+                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.email} onChange={event => updateAccountForm('email', event.target.value)} onKeyDown={event => {
+                    if (event.key === 'Enter') saveAccountSettings();
+                  }} />
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold">전화번호</span>
-                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.phone} onChange={event => updateAccountForm('phone', event.target.value)} />
+                  <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.phone} onChange={event => updateAccountForm('phone', event.target.value)} onKeyDown={event => {
+                    if (event.key === 'Enter') saveAccountSettings();
+                  }} />
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-bold">현재 비밀번호</span>
-                  <input type="password" className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.currentPassword} onChange={event => updateAccountForm('currentPassword', event.target.value)} />
+                  <input type="password" className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.currentPassword} onChange={event => updateAccountForm('currentPassword', event.target.value)} onKeyDown={event => {
+                    if (event.key === 'Enter') saveAccountSettings();
+                  }} />
                 </label>
                 <label className="block sm:col-span-2">
                   <span className="mb-2 block text-sm font-bold">새 비밀번호</span>
-                  <input type="password" className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.newPassword} onChange={event => updateAccountForm('newPassword', event.target.value)} placeholder="변경할 때만 입력하세요" />
+                  <input type="password" className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={accountForm.newPassword} onChange={event => updateAccountForm('newPassword', event.target.value)} onKeyDown={event => {
+                    if (event.key === 'Enter') saveAccountSettings();
+                  }} placeholder="변경할 때만 입력하세요" />
                 </label>
               </div>
 
@@ -505,11 +515,15 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold">이름</span>
-                    <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.name} onChange={event => updateForm('name', event.target.value)} />
+                    <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.name} onChange={event => updateForm('name', event.target.value)} onKeyDown={event => {
+                      if (event.key === 'Enter') handleSave();
+                    }} />
                   </label>
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold">생년월일</span>
-                    <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.birthDate} onChange={event => updateForm('birthDate', event.target.value)} />
+                    <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.birthDate} onChange={event => updateForm('birthDate', event.target.value)} onKeyDown={event => {
+                      if (event.key === 'Enter') handleSave();
+                    }} />
                   </label>
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold">성별</span>
@@ -522,14 +536,18 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold">이메일</span>
                     <div className="relative">
-                      <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 pr-10 text-sm" value={profileForm.email} onChange={event => updateForm('email', event.target.value)} />
+                      <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 pr-10 text-sm" value={profileForm.email} onChange={event => updateForm('email', event.target.value)} onKeyDown={event => {
+                        if (event.key === 'Enter') handleSave();
+                      }} />
                       <Mail size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A8495]" />
                     </div>
                   </label>
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold">전화번호</span>
                     <div className="relative">
-                      <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 pr-10 text-sm" value={profileForm.phone} onChange={event => updateForm('phone', event.target.value)} />
+                      <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 pr-10 text-sm" value={profileForm.phone} onChange={event => updateForm('phone', event.target.value)} onKeyDown={event => {
+                        if (event.key === 'Enter') handleSave();
+                      }} />
                       <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A8495]" />
                     </div>
                   </label>
@@ -575,6 +593,9 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
                       className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm"
                       value={profileForm.preferredRole}
                       onChange={event => updateForm('preferredRole', event.target.value)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') handleSave();
+                      }}
                       placeholder="예: 백엔드 개발자"
                     />
                   </label>
@@ -594,6 +615,9 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
                       className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm"
                       value={profileForm.salary}
                       onChange={event => updateForm('salary', event.target.value)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') handleSave();
+                      }}
                       placeholder="예: 4,000"
                     />
                   </label>

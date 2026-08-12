@@ -1,5 +1,6 @@
-import { ArrowLeft, Briefcase, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
 import { useState } from 'react';
+import { BrandLogo } from '@/app/components/BrandLogo';
 import type { Page, RegisterFormData } from '@/app/types';
 
 interface RegisterPageProps {
@@ -134,10 +135,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
       <aside className="hidden w-[360px] flex-col justify-between border-r border-[#DCEAF3] bg-gradient-to-b from-white to-[#EAF4FF] px-8 py-10 lg:flex">
         <div>
           <button type="button" onClick={() => navigate('main')} className="mb-12 flex items-center gap-2 font-bold text-foreground">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-              <Briefcase size={18} />
-            </span>
-            JobBridgeAI
+            <BrandLogo compact />
           </button>
 
           <h1 className="text-3xl font-bold leading-tight text-foreground">
@@ -186,10 +184,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
           </button>
 
           <button type="button" onClick={() => navigate('main')} className="mb-8 flex items-center gap-2 font-bold text-foreground lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-              <Briefcase size={18} />
-            </span>
-            JobBridgeAI
+            <BrandLogo compact />
           </button>
 
           <div className="mb-8">
@@ -209,6 +204,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                 <input
                   value={form.loginId}
                   onChange={event => updateField('loginId', event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') checkLoginId();
+                  }}
                   className={`flex-1 rounded-lg border px-3 py-3 ${idCheckMessage ? (idAvailable ? 'border-green-500' : 'border-red-400') : 'border-border'}`}
                   placeholder="영문 소문자, 숫자 조합 4~20자"
                 />
@@ -227,6 +225,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                   <input
                     value={form.password}
                     onChange={event => updateField('password', event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') submitRegister();
+                    }}
                     type={showPw ? 'text' : 'password'}
                     className="w-full rounded-lg border border-border px-3 py-3 pr-10"
                     placeholder="영문, 숫자, 특수문자 포함 8~20자"
@@ -247,6 +248,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                       setPasswordConfirm(event.target.value);
                       setErrors(prev => ({ ...prev, passwordConfirm: '' }));
                     }}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') submitRegister();
+                    }}
                     type={showPwConfirm ? 'text' : 'password'}
                     className="w-full rounded-lg border border-border px-3 py-3 pr-10"
                     placeholder="비밀번호를 다시 입력해 주세요"
@@ -265,6 +269,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                 <input
                   value={form.name}
                   onChange={event => updateField('name', event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitRegister();
+                  }}
                   className="w-full rounded-lg border border-border px-3 py-3"
                   placeholder="이름을 입력해 주세요"
                 />
@@ -276,6 +283,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                 <input
                   value={form.email}
                   onChange={event => updateField('email', event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitRegister();
+                  }}
                   type="email"
                   className="w-full rounded-lg border border-border px-3 py-3"
                   placeholder="예: name@example.com"
@@ -290,6 +300,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                 <input
                   value={form.birthDate}
                   onChange={event => updateField('birthDate', formatBirthDate(event.target.value))}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitRegister();
+                  }}
                   type="text"
                   inputMode="numeric"
                   className="w-full rounded-lg border border-border px-3 py-3"
@@ -319,6 +332,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
               <input
                 value={form.phone}
                 onChange={event => updateField('phone', formatPhoneNumber(event.target.value))}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') submitRegister();
+                }}
                 inputMode="numeric"
                 className="w-full rounded-lg border border-border px-3 py-3"
                 placeholder="예: 010-1234-5678"
@@ -331,6 +347,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
               <input
                 value={form.preferredRole}
                 onChange={event => updateField('preferredRole', event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') submitRegister();
+                }}
                 className="w-full rounded-lg border border-border px-3 py-3"
                 placeholder="희망하는 직무를 입력해 주세요"
               />

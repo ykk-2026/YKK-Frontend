@@ -71,6 +71,9 @@ const bottomStats = [
 export function MainPage({ navigate }: MainPageProps) {
   const [query, setQuery] = useState('');
   const goJobs = () => navigate('jobs');
+  const submitSearch = () => {
+    goJobs();
+  };
 
   return (
     <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
@@ -97,13 +100,16 @@ export function MainPage({ navigate }: MainPageProps) {
                 <input
                   value={query}
                   onChange={event => setQuery(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitSearch();
+                  }}
                   placeholder="직무, 회사, 지역, 편의시설 검색"
                   className="h-12 w-full rounded-lg border border-[#D7DDE5] bg-white pl-12 pr-4 text-sm font-semibold text-[#111827] outline-none placeholder:text-[#8A94A6] focus:ring-4 focus:ring-[#0D6BEA]/15"
                 />
               </div>
               <button
                 type="button"
-                onClick={goJobs}
+                onClick={submitSearch}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] px-6 text-base font-bold text-white shadow-sm hover:bg-[#0959C7]"
               >
                 검색 <ArrowRight size={20} />

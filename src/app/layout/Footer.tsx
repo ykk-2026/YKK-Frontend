@@ -1,4 +1,5 @@
-import { Briefcase, Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
+import { BrandLogo } from '@/app/components/BrandLogo';
 import type { Page } from '@/app/types';
 
 interface FooterProps {
@@ -11,10 +12,7 @@ export function Footer({ navigate }: FooterProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
           <div className="flex items-center gap-2 font-bold mb-3">
-            <span className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center">
-              <Briefcase size={18} />
-            </span>
-            JobBridgeAI
+            <BrandLogo compact />
           </div>
           <p className="text-sm text-muted-foreground">구직자와 기업을 위한 장애친화 채용 매칭 서비스입니다.</p>
         </div>

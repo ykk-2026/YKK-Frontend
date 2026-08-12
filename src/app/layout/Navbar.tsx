@@ -1,5 +1,6 @@
-import { BriefcaseBusiness, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { LogOut, Menu, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
+import { BrandLogo } from '@/app/components/BrandLogo';
 import type { CurrentUser, Page } from '@/app/types';
 
 interface NavbarProps {
@@ -32,12 +33,9 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout }: NavbarP
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E5EAF0] bg-white">
-      <div className="mx-auto flex h-16 max-w-[1256px] items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-20 max-w-[1256px] items-center justify-between px-5 sm:px-8">
         <button type="button" onClick={() => goTo('main')} className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0D6BEA] text-white shadow-sm">
-            <BriefcaseBusiness size={21} strokeWidth={2.2} />
-          </span>
-          <span className="text-xl font-bold tracking-normal text-[#111827]">JobBridgeAI</span>
+          <BrandLogo compact />
         </button>
 
         <nav className="hidden items-center gap-10 md:flex">
