@@ -22,6 +22,7 @@ export interface CurrentUser {
   loginId?: string;
   email?: string;
   phone?: string;
+  currentRegion?: string;
   birthDate?: string;
   gender?: string;
   preferredRole?: string;
@@ -34,6 +35,7 @@ export interface RegisterFormData {
   name: string;
   email: string;
   phone: string;
+  currentRegion?: string;
   gender: string;
   preferredRole: string;
 }

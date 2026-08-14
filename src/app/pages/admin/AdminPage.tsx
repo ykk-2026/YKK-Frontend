@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, BarChart3, Briefcase, Building2, Check, ChevronDown, Search, TrendingUp, Users, X } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, Check, ChevronDown, Search, TrendingUp, Users, X } from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -16,6 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { adminStats } from '@/app/data/mockData';
+import { BrandLogo } from '@/app/components/BrandLogo';
 
 const mockMembers = [
   { id: '1', name: '김민준', email: 'minjun@example.com', joined: '2026-07-01', status: '활성', role: '구직자' },
@@ -83,12 +84,10 @@ export function AdminPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: '#8B5CF6' }}>
-                <AlertCircle size={14} />
-              </div>
+              <BrandLogo compact />
               <span className="text-sm text-muted-foreground">관리자 콘솔</span>
             </div>
-            <h1 className="font-bold text-foreground" style={{ fontSize: '1.5rem' }}>JobBridgeAI 관리자</h1>
+            <h1 className="font-bold text-foreground" style={{ fontSize: '1.5rem' }}>일이음 관리자</h1>
           </div>
           <div className="text-xs text-muted-foreground">마지막 업데이트: 2026-07-31 09:00</div>
         </div>
@@ -203,6 +202,9 @@ export function AdminPage() {
                 <input
                   value={searchQuery}
                   onChange={event => setSearchQuery(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') event.currentTarget.blur();
+                  }}
                   placeholder="회원 검색"
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 />
