@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   Bell,
@@ -26,6 +26,7 @@ interface ProfilePageProps {
   currentUser: CurrentUser | null;
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
+  appliedJobIds?: Set<string>;
   onBookmark: (id: string) => void;
 }
 
@@ -65,6 +66,19 @@ const menuItems = [
 
 const workTypes = ['재택근무', '유연근무', '하이브리드', '출퇴근 근무'];
 const maxIntroLength = 500;
+const profilePhotoStoragePrefix = 'jobBridgeProfilePhoto';
+const maxProfilePhotoSize = 3 * 1024 * 1024;
+type ProfileAvatar = {
+  type: 'initial' | 'preset' | 'upload';
+  value: string;
+};
+
+const defaultProfileOptions = [
+  { id: 'blue', label: '블루', backgroundColor: '#E4EFFF', color: '#0D6BEA' },
+  { id: 'green', label: '그린', backgroundColor: '#E8F7EF', color: '#14843C' },
+  { id: 'yellow', label: '옐로', backgroundColor: '#FFF5D6', color: '#B7791F' },
+  { id: 'gray', label: '그레이', backgroundColor: '#EEF2F6', color: '#475467' },
+];
 
 interface ResumeItem {
   id: string;
@@ -72,15 +86,43 @@ interface ResumeItem {
   updatedAt: string;
 }
 
-export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: ProfilePageProps) {
+const getProfilePhotoStorageKey = (userId: string) => `${profilePhotoStoragePrefix}:${userId}`;
+
+const loadProfilePhoto = (userId: string) => {
+  if (typeof window === 'undefined') return { type: 'initial', value: '' } satisfies ProfileAvatar;
+
+  const savedAvatar = localStorage.getItem(getProfilePhotoStorageKey(userId));
+  if (!savedAvatar) return { type: 'initial', value: '' } satisfies ProfileAvatar;
+
+  if (savedAvatar.startsWith('data:image/')) {
+    return { type: 'upload', value: savedAvatar } satisfies ProfileAvatar;
+  }
+
+  try {
+    const parsedAvatar = JSON.parse(savedAvatar) as ProfileAvatar;
+    if (parsedAvatar.type === 'initial' || parsedAvatar.type === 'preset' || parsedAvatar.type === 'upload') {
+      return parsedAvatar;
+    }
+  } catch {
+    localStorage.removeItem(getProfilePhotoStorageKey(userId));
+  }
+
+  return { type: 'initial', value: '' } satisfies ProfileAvatar;
+};
+
+export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = new Set(), onBookmark }: ProfilePageProps) {
   const initialName = currentUser?.name || '김민준';
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
+  const userId = currentUser?.loginId || currentUser?.id || 'guest';
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [activeMenu, setActiveMenu] = useState('내 프로필');
   const [savedMessage, setSavedMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isRegionOpen, setIsRegionOpen] = useState(false);
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
   const [aiRecommendations, setAiRecommendations] = useState<Job[]>([]);
+  const [profileAvatar, setProfileAvatar] = useState<ProfileAvatar>(() => loadProfilePhoto(userId));
   const [accountForm, setAccountForm] = useState({
     loginId: currentUser?.loginId || currentUser?.id || 'minjun_kim',
     email: currentUser?.email || '',
@@ -107,6 +149,43 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
     introduction: '',
   });
 
+  useEffect(() => {
+    setProfileAvatar(loadProfilePhoto(userId));
+  }, [userId]);
+
+  const avatarInitial = (profileForm.name.trim() || initialName).slice(0, 1);
+  const selectedDefaultProfile = defaultProfileOptions.find(option => option.id === profileAvatar.value) || defaultProfileOptions[0];
+
+  const saveProfileAvatar = (nextAvatar: ProfileAvatar, message: string) => {
+    setProfileAvatar(nextAvatar);
+    try {
+      localStorage.setItem(getProfilePhotoStorageKey(userId), JSON.stringify(nextAvatar));
+      setSavedMessage(message);
+    } catch {
+      window.alert('프로필 사진 저장 공간이 부족합니다. 더 작은 이미지를 선택해 주세요.');
+    }
+  };
+
+  const renderProfileAvatar = (className: string) => {
+    if (profileAvatar.type === 'upload' && profileAvatar.value) {
+      return (
+        <div className={`${className} overflow-hidden rounded-full bg-[#E4EFFF]`}>
+          <img src={profileAvatar.value} alt={`${profileForm.name} 프로필 사진`} className="h-full w-full object-cover" />
+        </div>
+      );
+    }
+
+    const avatarStyle = profileAvatar.type === 'preset'
+      ? { backgroundColor: selectedDefaultProfile.backgroundColor, color: selectedDefaultProfile.color }
+      : { backgroundColor: '#E4EFFF', color: '#0D6BEA' };
+
+    return (
+      <div className={`${className} rounded-full font-extrabold`} style={avatarStyle}>
+        {avatarInitial || initialAvatar}
+      </div>
+    );
+  };
+
   const updateForm = (field: keyof typeof profileForm, value: string | string[]) => {
     setProfileForm(prev => ({ ...prev, [field]: value }));
     setSavedMessage('');
@@ -125,6 +204,40 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
   const handleSave = () => {
     setSavedMessage('프로필 정보가 저장되었습니다.');
     window.alert('프로필 정보가 저장되었습니다.');
+  };
+
+  const handleProfilePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      window.alert('이미지 파일만 선택할 수 있습니다.');
+      return;
+    }
+
+    if (file.size > maxProfilePhotoSize) {
+      window.alert('프로필 사진은 3MB 이하 이미지만 등록할 수 있습니다.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextPhotoUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!nextPhotoUrl) return;
+
+      saveProfileAvatar({ type: 'upload', value: nextPhotoUrl }, '프로필 사진이 변경되었습니다.');
+      setIsPhotoPickerOpen(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const selectDefaultProfile = (profileId: string) => {
+    saveProfileAvatar({ type: 'preset', value: profileId }, '기본 프로필이 선택되었습니다.');
+  };
+
+  const resetProfileAvatar = () => {
+    saveProfileAvatar({ type: 'initial', value: '' }, '기본 이니셜 프로필이 선택되었습니다.');
   };
 
   const addResume = () => {
@@ -163,6 +276,7 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
       return { ...job, savedKey };
     })
     .filter(job => job.savedKey);
+  const appliedJobs = mockJobs.filter(job => appliedJobIds.has(job.id));
 
   const refreshAiRecommendations = () => {
     setAiRecommendations([...mockJobs].sort((a, b) => b.aiScore - a.aiScore).slice(0, 4));
@@ -175,9 +289,7 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
         <aside className="rounded-xl border border-[#DDE3EA] bg-white p-4 shadow-sm">
           <div className="mb-4 rounded-xl bg-[#F4F8FC] px-4 py-4">
             <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E4EFFF] text-lg font-extrabold text-[#0D6BEA]">
-              {initialAvatar}
-            </div>
+            {renderProfileAvatar('flex h-11 w-11 shrink-0 items-center justify-center text-lg')}
             <div className="min-w-0">
               <p className="truncate text-base font-extrabold text-black">{profileForm.name}</p>
               <p className="mt-1 truncate text-xs font-bold text-[#7A8495]">{profileForm.preferredRole || '개인회원'}</p>
@@ -293,13 +405,44 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
                 </button>
               </div>
 
-              <div className="rounded-lg border border-dashed border-[#D7DDE5] bg-[#F8FAFC] p-8 text-center">
-                <Briefcase size={32} className="mx-auto text-[#7A8495]" />
-                <p className="mt-3 text-base font-extrabold text-black">지원한 공고가 없습니다.</p>
-                <button type="button" onClick={() => navigate('jobs')} className="mt-4 rounded-lg bg-[#0D6BEA] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0959C7]">
-                  공고 보러가기
-                </button>
-              </div>
+              {appliedJobs.length > 0 ? (
+                <div className="grid gap-3">
+                  {appliedJobs.map(job => (
+                    <article key={job.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="flex min-w-0 items-start gap-3 text-left">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold text-white" style={{ backgroundColor: job.companyColor }}>
+                            {job.companyInitials}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold text-[#7A8495]">{job.company}</span>
+                            <span className="mt-1 block text-lg font-extrabold text-black">{job.title}</span>
+                            <span className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-[#596273]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F3F6] px-3 py-1">
+                                <MapPin size={13} /> {job.location}
+                              </span>
+                              <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{job.workType}</span>
+                              <span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-[#14843C]">지원 완료</span>
+                            </span>
+                          </span>
+                        </button>
+
+                        <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="inline-flex h-9 items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
+                          상세 보기 <ArrowRight size={15} />
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-[#D7DDE5] bg-[#F8FAFC] p-8 text-center">
+                  <Briefcase size={32} className="mx-auto text-[#7A8495]" />
+                  <p className="mt-3 text-base font-extrabold text-black">지원한 공고가 없습니다.</p>
+                  <button type="button" onClick={() => navigate('jobs')} className="mt-4 rounded-lg bg-[#0D6BEA] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0959C7]">
+                    공고 보러가기
+                  </button>
+                </div>
+              )}
             </section>
           ) : activeMenu === '관심 공고' ? (
             <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
@@ -498,11 +641,68 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
               <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
                 <div className="mb-5 flex items-center justify-between">
                   <h2 className="text-lg font-extrabold">기본 정보</h2>
-                  <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
+                  <button type="button" onClick={() => setIsPhotoPickerOpen(prev => !prev)} className="inline-flex items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
                     <Camera size={16} />
                     사진 변경
                   </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProfilePhotoChange}
+                  />
                 </div>
+
+                {isPhotoPickerOpen && (
+                  <div className="mb-5 rounded-lg border border-[#DDE3EA] bg-[#F8FAFC] p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        {renderProfileAvatar('flex h-16 w-16 shrink-0 items-center justify-center text-2xl')}
+                        <div>
+                          <p className="text-sm font-extrabold text-black">프로필 사진 선택</p>
+                          <p className="mt-1 text-xs font-semibold text-[#7A8495]">사진 업로드 또는 기본 프로필을 선택하세요.</p>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => photoInputRef.current?.click()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7]">
+                        <Camera size={16} />
+                        사진 업로드
+                      </button>
+                    </div>
+
+                    <div className="mt-4">
+                      <p className="mb-2 text-sm font-bold text-[#344054]">기본 프로필</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={resetProfileAvatar}
+                          aria-pressed={profileAvatar.type === 'initial'}
+                          className={`flex h-12 w-12 items-center justify-center rounded-full border-2 bg-[#E4EFFF] text-base font-extrabold text-[#0D6BEA] ${
+                            profileAvatar.type === 'initial' ? 'border-[#0D6BEA]' : 'border-transparent hover:border-[#B9D6FF]'
+                          }`}
+                          title="이니셜 기본 프로필"
+                        >
+                          {avatarInitial || initialAvatar}
+                        </button>
+                        {defaultProfileOptions.map(option => (
+                          <button
+                            type="button"
+                            key={option.id}
+                            onClick={() => selectDefaultProfile(option.id)}
+                            aria-pressed={profileAvatar.type === 'preset' && profileAvatar.value === option.id}
+                            className={`flex h-12 w-12 items-center justify-center rounded-full border-2 text-base font-extrabold ${
+                              profileAvatar.type === 'preset' && profileAvatar.value === option.id ? 'border-[#0D6BEA]' : 'border-transparent hover:border-[#B9D6FF]'
+                            }`}
+                            style={{ backgroundColor: option.backgroundColor, color: option.color }}
+                            title={`${option.label} 기본 프로필`}
+                          >
+                            {avatarInitial || initialAvatar}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
@@ -654,10 +854,13 @@ export function ProfilePage({ currentUser, navigate, bookmarks, onBookmark }: Pr
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold text-[#0D6BEA]">프로필 미리보기</p>
-                <h2 className="mt-1 text-2xl font-extrabold">{profileForm.name}</h2>
-                <p className="mt-1 text-sm font-semibold text-[#7A8495]">{profileForm.preferredRole}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                {renderProfileAvatar('flex h-14 w-14 shrink-0 items-center justify-center text-xl')}
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#0D6BEA]">프로필 미리보기</p>
+                  <h2 className="mt-1 truncate text-2xl font-extrabold">{profileForm.name}</h2>
+                  <p className="mt-1 truncate text-sm font-semibold text-[#7A8495]">{profileForm.preferredRole}</p>
+                </div>
               </div>
               <button type="button" onClick={() => setIsPreviewOpen(false)} className="rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold">
                 닫기

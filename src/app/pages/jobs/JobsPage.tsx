@@ -192,19 +192,95 @@ const jobs: JobListing[] = [
   },
 ];
 
-const regions = ['전체', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종'];
-const companies = ['전체', ...Array.from(new Set(jobs.map(job => job.company)))];
+const partTimeJobs: JobListing[] = [
+  {
+    id: 'job-11',
+    company: '스타벅스 코리아',
+    initial: 'S',
+    color: '#00704A',
+    title: '매장 바리스타 알바',
+    region: '서울',
+    location: '서울 마포구',
+    workType: '파트타임 알바',
+    salary: '시급 12,000원',
+    deadline: 'D-3',
+    score: 92,
+    tags: ['알바', '고객응대', '오늘 등록'],
+    accessibility: ['유연근무', '엘리베이터', '보조기기 지원'],
+  },
+  {
+    id: 'job-12',
+    company: '올리브영',
+    initial: 'O',
+    color: '#65A30D',
+    title: '매장 진열 및 계산 보조 알바',
+    region: '경기',
+    location: '경기 성남시',
+    workType: '주말 알바',
+    salary: '시급 11,500원',
+    deadline: 'D-6',
+    score: 88,
+    tags: ['알바', '매장관리', '초보 가능'],
+    accessibility: ['장애인 주차', '유연근무', '화상 면접'],
+  },
+  {
+    id: 'job-13',
+    company: '쿠팡풀필먼트',
+    initial: 'C',
+    color: '#DC2626',
+    title: '물류센터 포장 검수 알바',
+    region: '인천',
+    location: '인천 서구',
+    workType: '단기 알바',
+    salary: '일급 105,000원',
+    deadline: 'D-2',
+    score: 84,
+    tags: ['알바', '단기근무', '운영'],
+    accessibility: ['장애인 주차', '엘리베이터', '보조기기 지원'],
+  },
+  {
+    id: 'job-14',
+    company: '배달의민족 B마트',
+    initial: 'B',
+    color: '#14B8A6',
+    title: '상품 피킹 및 재고 정리 알바',
+    region: '부산',
+    location: '부산 해운대구',
+    workType: '오후 알바',
+    salary: '시급 12,300원',
+    deadline: 'D-9',
+    score: 86,
+    tags: ['알바', '재고관리', '운영'],
+    accessibility: ['유연근무', '장애인 주차', '엘리베이터'],
+  },
+  {
+    id: 'job-15',
+    company: '교보문고',
+    initial: 'K',
+    color: '#2563EB',
+    title: '도서 정리 및 고객 안내 알바',
+    region: '대구',
+    location: '대구 중구',
+    workType: '평일 알바',
+    salary: '시급 11,200원',
+    deadline: 'D-12',
+    score: 90,
+    tags: ['알바', '고객지원', '오늘 등록'],
+    accessibility: ['화상 면접', '보조기기 지원', '유연근무'],
+  },
+];
+
+const allJobs = [...jobs, ...partTimeJobs];
+const regions = ['전체', '서울', '경기', '인천', '부산', '대구', '전국'];
+const companies = ['전체', ...Array.from(new Set(allJobs.map(job => job.company)))];
 const quickFilters = [
-  { label: '재택근무 가능', query: '재택', icon: BriefcaseBusiness },
-  { label: '장애인 주차', query: '장애인 주차', icon: Accessibility },
-  { label: '화상 면접', query: '화상 면접', icon: Search },
-  { label: '보조기기 지원', query: '보조기기', icon: Accessibility },
-  { label: '엘리베이터', query: '엘리베이터', icon: Building2 },
-  { label: '유연근무', query: '유연근무', icon: BriefcaseBusiness },
+  { label: '알바 공고', query: '알바', icon: Star },
+  { label: '재택근무', query: '재택근무', icon: BriefcaseBusiness },
   { label: '하이브리드', query: '하이브리드', icon: BriefcaseBusiness },
-  { label: '장애친화', query: '장애친화', icon: Star },
-  { label: 'SQL 직무', query: 'SQL', icon: Search },
-  { label: '오늘 마감', query: 'D-3', icon: Clock3 },
+  { label: '유연근무', query: '유연근무', icon: BriefcaseBusiness },
+  { label: '장애인 주차', query: '장애인 주차', icon: Accessibility },
+  { label: '보조기기 지원', query: '보조기기', icon: Accessibility },
+  { label: '화상 면접', query: '화상 면접', icon: Search },
 ];
 
 export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initialQuery = '' }: JobsPageProps) {
@@ -225,10 +301,10 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
   const filteredJobs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return jobs
+    return allJobs
       .filter(job => {
         if (mode === 'saved' && !bookmarks.has(job.id)) return false;
-        if (selectedRegion !== '전체' && job.region !== selectedRegion) return false;
+        if (selectedRegion !== '전체' && selectedRegion !== '전국' && job.region !== selectedRegion) return false;
         if (selectedCompany !== '전체' && job.company !== selectedCompany) return false;
         if (!normalizedQuery) return true;
 

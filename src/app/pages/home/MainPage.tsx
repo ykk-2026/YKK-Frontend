@@ -19,30 +19,38 @@ interface MainPageProps {
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
   onBookmark: (id: string) => void;
+  onSearch: (query: string) => void;
 }
 
-const heroTags = ['재택근무', '장애인 주차', '화상 면접', '보조기기 지원', '서울 개발자', '초보 가능'];
+const heroTags = [
+  { label: '재택근무', query: '재택근무' },
+  { label: '장애인 주차', query: '장애인 주차' },
+  { label: '화상 면접', query: '화상 면접' },
+  { label: '보조기기 지원', query: '보조기기 지원' },
+  { label: '서울 개발자', query: '서울 개발' },
+  { label: '초보 가능', query: '초보 가능' },
+];
 
 const recommendedJobs = [
-  { title: 'Java 백엔드 개발자', location: '서울 송파구', score: 98 },
-  { title: 'React 프론트엔드 개발자', location: '경기 성남시', score: 94 },
-  { title: '데이터 분석가', location: '서울 강서구', score: 92 },
+  { id: '1', title: 'Java 백엔드 개발자', location: '서울 송파구', score: 98 },
+  { id: '2', title: 'React 프론트엔드 개발자', location: '경기 성남시', score: 94 },
+  { id: '3', title: '데이터 분석가', location: '서울 강서구', score: 92 },
 ];
 
 const quickMenus = [
-  { label: '지역별', helper: '가까운 공고', icon: MapPin },
-  { label: '재택 가능', helper: '출퇴근 부담 없이', icon: Home },
-  { label: '장애친화', helper: '접근성 확인', icon: Accessibility },
-  { label: '오늘 마감', helper: '바로 지원', icon: CalendarDays },
-  { label: '급구', helper: '빠른 채용', icon: Bell },
-  { label: '추천순', helper: '조건 매칭', icon: Star },
+  { label: '지역별', helper: '가까운 공고', query: '', icon: MapPin },
+  { label: '재택 가능', helper: '출퇴근 부담 없이', query: '재택근무', icon: Home },
+  { label: '장애친화', helper: '접근성 확인', query: '장애인 주차', icon: Accessibility },
+  { label: '오늘 마감', helper: '바로 지원', query: 'D-3', icon: CalendarDays },
+  { label: '알바 공고', helper: '시간 선택 근무', query: '알바', icon: Bell },
+  { label: '추천순', helper: '조건 매칭', page: 'ai-recommend' as Page, icon: Star },
 ];
 
 const todayStats = [
-  { title: '접근성 검증 완료', count: '312건', helper: '시설 사진과 상세 조건 제공', icon: ShieldCheck },
-  { title: '재택·하이브리드', count: '486건', helper: '이동 부담을 줄이는 공고', icon: Home },
-  { title: '오늘 뜬 공고', count: '94건', helper: '최근 등록순으로 확인', icon: Clock3 },
-  { title: '즉시 지원 가능', count: '139건', helper: '간편 지원 기업', icon: BriefcaseBusiness },
+  { title: '접근성 검증 완료', count: '312건', helper: '시설 사진과 상세 조건 제공', query: '장애인 주차', icon: ShieldCheck },
+  { title: '재택·하이브리드', count: '486건', helper: '이동 부담을 줄이는 공고', query: '재택근무', icon: Home },
+  { title: '오늘 뜬 공고', count: '94건', helper: '최근 등록순으로 확인', query: '오늘', icon: Clock3 },
+  { title: '즉시 지원 가능', count: '139건', helper: '간편 지원 기업', query: '지원', icon: BriefcaseBusiness },
 ];
 
 const companies = [
@@ -66,8 +74,19 @@ const bottomStats = [
   { label: '추천 만족도', value: '98%', icon: Star },
 ];
 
-export function MainPage({ navigate }: MainPageProps) {
-  const goJobs = () => navigate('jobs');
+export function MainPage({ navigate, onSearch }: MainPageProps) {
+  const goJobs = (query = '') => {
+    onSearch(query);
+  };
+
+  const openQuickMenu = (item: (typeof quickMenus)[number]) => {
+    if ('page' in item && item.page) {
+      navigate(item.page);
+      return;
+    }
+
+    goJobs(item.query);
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#111827]">
@@ -93,17 +112,17 @@ export function MainPage({ navigate }: MainPageProps) {
                 {heroTags.map(tag => (
                   <button
                     type="button"
-                    key={tag}
-                    onClick={goJobs}
+                    key={tag.label}
+                    onClick={() => goJobs(tag.query)}
                     className="rounded-lg border border-[#D7E4F7] bg-white px-3.5 py-2 text-sm font-extrabold text-[#315078] shadow-sm hover:border-[#0D6BEA] hover:text-[#0D6BEA]"
                   >
-                    #{tag}
+                    #{tag.label}
                   </button>
                 ))}
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <button type="button" onClick={goJobs} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] px-5 text-sm font-extrabold text-white hover:bg-[#0959C7]">
+                <button type="button" onClick={() => goJobs()} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] px-5 text-sm font-extrabold text-white hover:bg-[#0959C7]">
                   채용정보 보기 <ArrowRight size={18} />
                 </button>
                 <button type="button" onClick={() => navigate('ai-recommend')} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#CFE0F7] bg-white px-5 text-sm font-extrabold text-[#0D6BEA] hover:bg-[#F8FBFF]">
@@ -126,7 +145,7 @@ export function MainPage({ navigate }: MainPageProps) {
                   <button
                     type="button"
                     key={job.title}
-                    onClick={goJobs}
+                    onClick={() => navigate('job-detail', `job-${job.id}`)}
                     className="w-full rounded-lg border border-[#E1E6EE] bg-[#F8FAFC] px-3.5 py-3 text-left transition hover:border-[#0D6BEA] hover:bg-white"
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -138,7 +157,7 @@ export function MainPage({ navigate }: MainPageProps) {
                 ))}
               </div>
 
-              <button type="button" onClick={goJobs} className="mt-4 inline-flex w-full items-center justify-center gap-2 text-sm font-extrabold text-[#0D6BEA]">
+              <button type="button" onClick={() => navigate('ai-recommend')} className="mt-4 inline-flex w-full items-center justify-center gap-2 text-sm font-extrabold text-[#0D6BEA]">
                 전체 보기 <ArrowRight size={16} />
               </button>
             </aside>
@@ -152,7 +171,7 @@ export function MainPage({ navigate }: MainPageProps) {
                 {quickMenus.map(item => {
                   const Icon = item.icon;
                   return (
-                    <button type="button" key={item.label} onClick={goJobs} className="px-3 py-4 text-center transition hover:bg-[#F8FAFC]">
+                    <button type="button" key={item.label} onClick={() => openQuickMenu(item)} className="px-3 py-4 text-center transition hover:bg-[#F8FAFC]">
                       <Icon size={26} strokeWidth={2.2} className="mx-auto mb-2 text-[#596273]" />
                       <p className="text-base font-extrabold text-[#111A44]">{item.label}</p>
                       <p className="mt-1 text-xs font-semibold text-[#8A94A6]">{item.helper}</p>
@@ -165,7 +184,7 @@ export function MainPage({ navigate }: MainPageProps) {
             <section className="rounded-xl border border-[#DDE3EA] bg-white px-5 py-5 shadow-sm">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <h2 className="text-lg font-extrabold text-black">오늘 바로 볼 채용</h2>
-                <button type="button" onClick={goJobs} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
+                <button type="button" onClick={() => goJobs()} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
                   전체 보기 <ArrowRight size={16} />
                 </button>
               </div>
@@ -174,7 +193,7 @@ export function MainPage({ navigate }: MainPageProps) {
                 {todayStats.map(item => {
                   const Icon = item.icon;
                   return (
-                    <button type="button" key={item.title} onClick={goJobs} className="rounded-lg border border-[#E1E6EE] bg-[#F8FAFC] px-4 py-3.5 text-left transition hover:border-[#0D6BEA] hover:bg-white">
+                    <button type="button" key={item.title} onClick={() => goJobs(item.query)} className="rounded-lg border border-[#E1E6EE] bg-[#F8FAFC] px-4 py-3.5 text-left transition hover:border-[#0D6BEA] hover:bg-white">
                       <Icon size={22} strokeWidth={2.3} className="mb-3 text-[#596273]" />
                       <p className="text-xs font-bold text-[#8A94A6]">{item.title}</p>
                       <p className="mt-2 text-2xl font-extrabold leading-none text-[#111827]">{item.count}</p>
@@ -188,14 +207,14 @@ export function MainPage({ navigate }: MainPageProps) {
             <section className="rounded-xl border border-[#DDE3EA] bg-white px-5 py-5 shadow-sm">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <h2 className="text-lg font-extrabold text-black">장애친화 우수 기업</h2>
-                <button type="button" onClick={goJobs} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
+                <button type="button" onClick={() => goJobs()} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
                   기업 더 보기 <ArrowRight size={16} />
                 </button>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {companies.map(company => (
-                  <button type="button" key={company.name} onClick={goJobs} className="rounded-lg border border-[#E1E6EE] bg-white px-4 py-3.5 text-left transition hover:border-[#0D6BEA]">
+                  <button type="button" key={company.name} onClick={() => goJobs(company.name)} className="rounded-lg border border-[#E1E6EE] bg-white px-4 py-3.5 text-left transition hover:border-[#0D6BEA]">
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 items-center justify-center rounded-lg text-lg font-extrabold text-white" style={{ backgroundColor: company.color }}>
                         {company.name.slice(0, 1)}
@@ -278,7 +297,7 @@ export function MainPage({ navigate }: MainPageProps) {
               </div>
               <div className="grid grid-cols-3 gap-2.5">
                 {regions.map(region => (
-                  <button type="button" key={region} onClick={goJobs} className="rounded-full bg-[#F1F3F6] px-3 py-2 text-xs font-extrabold text-black transition hover:bg-[#0D6BEA] hover:text-white">
+                  <button type="button" key={region} onClick={() => goJobs(region === '전국' ? '' : region)} className="rounded-full bg-[#F1F3F6] px-3 py-2 text-xs font-extrabold text-black transition hover:bg-[#0D6BEA] hover:text-white">
                     {region}
                   </button>
                 ))}
