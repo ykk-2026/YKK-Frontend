@@ -67,9 +67,8 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
   const navItems: NavItem[] = [
     { label: '전체메뉴', page: 'jobs', panel: 'all' },
     { label: '채용정보', page: 'jobs', panel: 'jobs' },
-    { label: '인재정보', page: userPage, authRequired: true },
-    { label: '취업스토리', page: 'main' },
-    { label: '고객지원', page: 'main' },
+    { label: '취업스토리', page: 'career-story' },
+    { label: '고객지원', page: 'support' },
   ];
 
   const goTo = (page: Page) => {

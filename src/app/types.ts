@@ -6,6 +6,8 @@ export type Page =
   | 'ai-recommend'
   | 'jobs'
   | 'job-detail'
+  | 'career-story'
+  | 'support'
   | 'saved'
   | 'applications'
   | 'corporate'

@@ -65,6 +65,12 @@ const menuItems = [
 ];
 
 const workTypes = ['재택근무', '유연근무', '하이브리드', '출퇴근 근무'];
+const salaryPresets = [
+  { label: '3,000만원', value: '30,000,000' },
+  { label: '4,000만원', value: '40,000,000' },
+  { label: '5,000만원', value: '50,000,000' },
+  { label: '1억원', value: '100,000,000' },
+];
 const maxIntroLength = 500;
 const profilePhotoStoragePrefix = 'jobBridgeProfilePhoto';
 const maxProfilePhotoSize = 3 * 1024 * 1024;
@@ -87,6 +93,12 @@ interface ResumeItem {
 }
 
 const getProfilePhotoStorageKey = (userId: string) => `${profilePhotoStoragePrefix}:${userId}`;
+
+const formatSalaryInput = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 12);
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+};
 
 const loadProfilePhoto = (userId: string) => {
   if (typeof window === 'undefined') return { type: 'initial', value: '' } satisfies ProfileAvatar;
@@ -802,16 +814,37 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
                     </select>
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-bold">희망 연봉</span>
-                    <input
-                      className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm"
-                      value={profileForm.salary}
-                      onChange={event => updateForm('salary', event.target.value)}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter') handleSave();
-                      }}
-                      placeholder="예: 4,000"
-                    />
+                    <span className="mb-2 block text-sm font-bold">희망 연봉 <span className="text-[#7A8495]">(원)</span></span>
+                    <div className="relative">
+                      <input
+                        className="w-full rounded-lg border border-[#DCEAF3] py-3 pl-3 pr-24 text-sm font-bold outline-none focus:ring-4 focus:ring-[#0D6BEA]/15"
+                        value={profileForm.salary}
+                        onChange={event => updateForm('salary', formatSalaryInput(event.target.value))}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter') handleSave();
+                        }}
+                        inputMode="numeric"
+                        placeholder="예: 40,000,000"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 inline-flex min-w-[60px] -translate-y-1/2 justify-end whitespace-nowrap text-sm font-extrabold text-[#596273]">
+                        원 이상
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold text-[#7A8495]">연봉 기준 원 단위로 숫자만 입력하세요. 예: 40,000,000원 이상, 100,000,000원 이상</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {salaryPresets.map(salary => (
+                        <button
+                          type="button"
+                          key={salary.value}
+                          onClick={() => updateForm('salary', salary.value)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                            profileForm.salary === salary.value ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F3F6] text-[#344054] hover:bg-[#E4EFFF]'
+                          }`}
+                        >
+                          {salary.label}
+                        </button>
+                      ))}
+                    </div>
                   </label>
                 </div>
 
@@ -870,6 +903,7 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
               <p><b>전화번호</b> {profileForm.phone}</p>
               <p><b>이메일</b> {profileForm.email || '미입력'}</p>
               <p><b>현재 거주지역</b> {profileForm.currentRegion}</p>
+              <p><b>희망 연봉</b> {profileForm.salary ? `${profileForm.salary}원 이상` : '미입력'}</p>
               <p><b>근무 방식</b> {profileForm.workTypes.join(', ')}</p>
               <p className="whitespace-pre-line"><b>자기소개</b><br />{profileForm.introduction}</p>
             </div>

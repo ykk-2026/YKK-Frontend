@@ -10,6 +10,8 @@ import { AdminPage } from '@/app/pages/admin/AdminPage';
 import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
+import { CareerStoryPage } from '@/app/pages/story/CareerStoryPage';
+import { SupportPage } from '@/app/pages/support/SupportPage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
@@ -27,6 +29,8 @@ const pageValues: Page[] = [
   'ai-recommend',
   'jobs',
   'job-detail',
+  'career-story',
+  'support',
   'saved',
   'applications',
   'corporate',
@@ -222,23 +226,19 @@ export default function App() {
   };
 
   const handleLogin = (role: UserRole, formData?: RegisterFormData, keepLoggedIn = false) => {
-    if (!keepLoggedIn) {
-      clearAutoLoginSession();
-    }
-
     if (formData) {
-      if (keepLoggedIn) saveAutoLoginSession({ role, loginId: formData.loginId.trim() });
+      saveAutoLoginSession({ role, loginId: formData.loginId.trim() });
       setCurrentUser(createUserFromForm(role, formData));
       return;
     }
 
     if (role === 'personal' && registeredUser) {
-      if (keepLoggedIn) saveAutoLoginSession({ role, loginId: registeredUser.loginId.trim() });
+      saveAutoLoginSession({ role, loginId: registeredUser.loginId.trim() });
       setCurrentUser(createUserFromForm(role, registeredUser));
       return;
     }
 
-    if (keepLoggedIn) saveAutoLoginSession({ role, loginId: role === 'personal' ? 'demo' : undefined });
+    saveAutoLoginSession({ role, loginId: role === 'personal' ? 'demo' : undefined });
     setCurrentUser(getMockUserByRole(role));
   };
 
@@ -330,6 +330,12 @@ export default function App() {
 
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+
+      case 'career-story':
+        return <CareerStoryPage navigate={navigate} />;
+
+      case 'support':
+        return <SupportPage />;
 
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
