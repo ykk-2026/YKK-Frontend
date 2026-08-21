@@ -6,6 +6,7 @@ import type { Page, RegisterFormData, UserRole } from '@/app/types';
 interface LoginPageProps {
   navigate: (page: Page) => void;
   onLogin: (role: UserRole, formData?: RegisterFormData, keepLoggedIn?: boolean) => void;
+  onLoginSuccess?: () => void;
   registeredUser: RegisterFormData | null;
   onBack: () => void;
   onResetPassword: (newPassword: string) => void;
@@ -24,7 +25,7 @@ const formatPhoneNumber = (value: string) => {
 
 const isPhoneLike = (value: string) => /^\d|^-?\d/.test(value.replace(/\s/g, ''));
 
-export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPassword }: LoginPageProps) {
+export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, onBack, onResetPassword }: LoginPageProps) {
   const [showPw, setShowPw] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +39,15 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
   const [isPasswordVerified, setIsPasswordVerified] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+
+  const finishLogin = () => {
+    if (onLoginSuccess) {
+      onLoginSuccess();
+      return;
+    }
+
+    navigate('main');
+  };
 
   const closeFindModal = () => {
     setFindMode(null);
@@ -69,7 +79,7 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
       }
 
       onLogin('personal', registeredUser, autoLogin);
-      navigate('user-dashboard');
+      finishLogin();
       return;
     }
 
@@ -79,7 +89,7 @@ export function LoginPage({ navigate, onLogin, registeredUser, onBack, onResetPa
     }
 
     onLogin('personal', undefined, autoLogin);
-    navigate('user-dashboard');
+    finishLogin();
   };
 
   const findLoginIdByInfo = () => {

@@ -8,13 +8,19 @@ import { LoginPage } from '@/app/pages/auth/LoginPage';
 import { RegisterPage } from '@/app/pages/auth/RegisterPage';
 import { AdminPage } from '@/app/pages/admin/AdminPage';
 import { ProfilePage } from '@/app/pages/profile/ProfilePage';
+import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
+import { CareerStoryPage } from '@/app/pages/story/CareerStoryPage';
+import { SupportPage } from '@/app/pages/support/SupportPage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
 const registeredUserStorageKey = 'jobBridgeRegisteredUser';
 const autoLoginStorageKey = 'jobBridgeAutoLogin';
 const currentPageStorageKey = 'jobBridgeCurrentPage';
+const currentJobStorageKey = 'jobBridgeCurrentJob';
+const appliedJobsStorageKey = 'jobBridgeAppliedJobs';
+const pendingApplicationStorageKey = 'jobBridgePendingApplicationJob';
 const pageValues: Page[] = [
   'main',
   'login',
@@ -23,6 +29,8 @@ const pageValues: Page[] = [
   'ai-recommend',
   'jobs',
   'job-detail',
+  'career-story',
+  'support',
   'saved',
   'applications',
   'corporate',
@@ -85,6 +93,51 @@ const saveCurrentPage = (page: Page) => {
   localStorage.setItem(currentPageStorageKey, page);
 };
 
+const loadCurrentJobId = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(currentJobStorageKey);
+};
+
+const saveCurrentJobId = (jobId?: string) => {
+  if (typeof window === 'undefined') return;
+  if (jobId) localStorage.setItem(currentJobStorageKey, jobId);
+};
+
+const loadAppliedJobIds = () => {
+  if (typeof window === 'undefined') return new Set<string>();
+
+  const savedJobs = localStorage.getItem(appliedJobsStorageKey);
+  if (!savedJobs) return new Set<string>();
+
+  try {
+    const parsedJobs = JSON.parse(savedJobs) as string[];
+    return new Set(parsedJobs);
+  } catch {
+    localStorage.removeItem(appliedJobsStorageKey);
+    return new Set<string>();
+  }
+};
+
+const saveAppliedJobIds = (jobIds: Set<string>) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(appliedJobsStorageKey, JSON.stringify(Array.from(jobIds)));
+};
+
+const loadPendingApplicationJobId = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(pendingApplicationStorageKey);
+};
+
+const savePendingApplicationJobId = (jobId: string) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(pendingApplicationStorageKey, jobId);
+};
+
+const clearPendingApplicationJobId = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(pendingApplicationStorageKey);
+};
+
 const createUserFromForm = (role: UserRole, formData: RegisterFormData): CurrentUser => ({
   role,
   name: formData.name.trim() || '구직자',
@@ -129,13 +182,20 @@ export default function App() {
   const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(() => loadRegisteredUser());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser));
   const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || (getAutoLoggedInUser(registeredUser) ? 'user-dashboard' : 'main'));
+  const [currentJobId, setCurrentJobId] = useState<string | null>(() => loadCurrentJobId());
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(() => loadAppliedJobIds());
+  const [pendingApplicationJobId, setPendingApplicationJobId] = useState<string | null>(() => loadPendingApplicationJobId());
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
 
   const navigate = (page: Page, jobId?: string) => {
     if (page !== currentPage) {
       setPageHistory(prev => [...prev, currentPage]);
+    }
+    if (jobId) {
+      setCurrentJobId(jobId);
+      saveCurrentJobId(jobId);
     }
     saveCurrentPage(page);
     setCurrentPage(page);
@@ -166,23 +226,19 @@ export default function App() {
   };
 
   const handleLogin = (role: UserRole, formData?: RegisterFormData, keepLoggedIn = false) => {
-    if (!keepLoggedIn) {
-      clearAutoLoginSession();
-    }
-
     if (formData) {
-      if (keepLoggedIn) saveAutoLoginSession({ role, loginId: formData.loginId.trim() });
+      saveAutoLoginSession({ role, loginId: formData.loginId.trim() });
       setCurrentUser(createUserFromForm(role, formData));
       return;
     }
 
     if (role === 'personal' && registeredUser) {
-      if (keepLoggedIn) saveAutoLoginSession({ role, loginId: registeredUser.loginId.trim() });
+      saveAutoLoginSession({ role, loginId: registeredUser.loginId.trim() });
       setCurrentUser(createUserFromForm(role, registeredUser));
       return;
     }
 
-    if (keepLoggedIn) saveAutoLoginSession({ role, loginId: role === 'personal' ? 'demo' : undefined });
+    saveAutoLoginSession({ role, loginId: role === 'personal' ? 'demo' : undefined });
     setCurrentUser(getMockUserByRole(role));
   };
 
@@ -203,6 +259,34 @@ export default function App() {
     });
   };
 
+  const handleApplyJob = (id: string) => {
+    setAppliedJobIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      saveAppliedJobIds(next);
+      return next;
+    });
+  };
+
+  const handleRequireLoginForApply = (id: string) => {
+    const normalizedJobId = id.replace(/^job-/, '');
+    setPendingApplicationJobId(normalizedJobId);
+    savePendingApplicationJobId(normalizedJobId);
+    navigate('login', `job-${normalizedJobId}`);
+  };
+
+  const handleLoginSuccess = () => {
+    if (pendingApplicationJobId) {
+      const normalizedJobId = pendingApplicationJobId.replace(/^job-/, '');
+      setPendingApplicationJobId(null);
+      clearPendingApplicationJobId();
+      navigate('job-detail', `job-${normalizedJobId}`);
+      return;
+    }
+
+    navigate('main');
+  };
+
   const handleHeaderSearch = (query: string) => {
     setHeaderSearchQuery(query.trim());
     navigate('jobs');
@@ -213,10 +297,10 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'main':
-        return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
+        return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
 
       case 'login':
-        return <LoginPage navigate={navigate} onLogin={handleLogin} registeredUser={registeredUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
+        return <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
 
       case 'register':
         return <RegisterPage navigate={navigate} onRegister={handleRegister} onBack={handleBack} />;
@@ -224,12 +308,34 @@ export default function App() {
       case 'admin':
         return <AdminPage />;
 
+      case 'job-detail': {
+        const normalizedJobId = currentJobId?.replace(/^job-/, '') || '1';
+        return (
+          <JobDetailPage
+            jobId={currentJobId}
+            currentUser={currentUser}
+            navigate={navigate}
+            bookmarked={bookmarks.has(`job-${normalizedJobId}`)}
+            applied={appliedJobIds.has(normalizedJobId)}
+            onBookmark={handleBookmark}
+            onApply={handleApplyJob}
+            onRequireLoginForApply={handleRequireLoginForApply}
+          />
+        );
+      }
+
       case 'user-dashboard':
       case 'corporate':
-        return <ProfilePage currentUser={currentUser} navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
+        return <ProfilePage currentUser={currentUser} navigate={navigate} bookmarks={bookmarks} appliedJobIds={appliedJobIds} onBookmark={handleBookmark} />;
 
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+
+      case 'career-story':
+        return <CareerStoryPage navigate={navigate} />;
+
+      case 'support':
+        return <SupportPage />;
 
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
@@ -238,7 +344,7 @@ export default function App() {
         return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       default:
-        return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} />;
+        return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
     }
   };
 

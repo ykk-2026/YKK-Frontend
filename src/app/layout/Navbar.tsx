@@ -22,31 +22,27 @@ interface NavItem {
 
 const allMenuSections = [
   {
-    title: '채용분류',
-    links: ['전체 채용정보', '오늘 올라온 공고', '마감 임박 공고', '저장한 공고', 'AI 추천 공고'],
+    title: '채용정보',
+    links: ['전체 채용정보', '오늘 올라온 공고', '마감 임박 공고', '알바 공고', '저장한 공고'],
   },
   {
-    title: '지역별 채용',
-    links: ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '전국'],
+    title: '지역별',
+    links: ['서울', '경기', '인천', '부산', '대구', '전국'],
   },
   {
-    title: '직무별 채용',
-    links: ['개발', '데이터', '디자인', '서비스 기획', '운영', '고객지원', '사무보조'],
+    title: '직무별',
+    links: ['개발', '데이터', '디자인', '서비스 기획', '운영', '고객지원'],
   },
   {
     title: '근무조건',
-    links: ['재택근무', '하이브리드', '유연근무', '장애인 주차', '보조기기 지원', '화상 면접', '초보 가능'],
-  },
-  {
-    title: '회원서비스',
-    links: ['프로필 관리', '이력서 관리', '지원 현황', '관심 공고', '고객지원'],
+    links: ['재택근무', '하이브리드', '유연근무', '장애인 주차', '보조기기 지원', '화상 면접'],
   },
 ];
 
 const jobMenuSections = [
   {
     title: '채용정보',
-    links: ['전체 채용정보', '오늘 올라온 공고', '마감 임박 공고', '저장한 공고'],
+    links: ['전체 채용정보', '오늘 올라온 공고', '마감 임박 공고', '알바 공고', '저장한 공고'],
   },
   {
     title: '지역별',
@@ -71,9 +67,8 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
   const navItems: NavItem[] = [
     { label: '전체메뉴', page: 'jobs', panel: 'all' },
     { label: '채용정보', page: 'jobs', panel: 'jobs' },
-    { label: '인재정보', page: userPage, authRequired: true },
-    { label: '취업스토리', page: 'main' },
-    { label: '고객지원', page: 'main' },
+    { label: '취업스토리', page: 'career-story' },
+    { label: '고객지원', page: 'support' },
   ];
 
   const goTo = (page: Page) => {
@@ -96,27 +91,27 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
   };
 
   const handleMenuLink = (label: string) => {
-    if (label === '저장한 공고' || label === '관심 공고') {
+    if (label === '저장한 공고') {
       goTo('saved');
       return;
     }
 
-    if (label === 'AI 추천 공고') {
-      goTo('ai-recommend');
+    if (label === '전체 채용정보' || label === '전국') {
+      onSearch('');
+      setMobileOpen(false);
+      setActivePanel(null);
       return;
     }
 
-    if (['프로필 관리', '이력서 관리', '지원 현황'].includes(label)) {
-      goProtected(userPage, true);
-      return;
-    }
+    const menuSearchMap: Record<string, string> = {
+      '오늘 올라온 공고': '오늘',
+      '마감 임박 공고': 'D-3',
+      '알바 공고': '알바',
+    };
 
-    if (label === '고객지원') {
-      goTo('main');
-      return;
-    }
-
-    goTo('jobs');
+    onSearch(menuSearchMap[label] || label);
+    setMobileOpen(false);
+    setActivePanel(null);
   };
 
   const submitSearch = () => {
@@ -223,7 +218,7 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
           onMouseLeave={() => setActivePanel(null)}
         >
           {activePanel === 'all' && (
-            <div className="mx-auto grid max-w-[1256px] grid-cols-5 divide-x divide-[#E7ECF2] px-5 py-6 sm:px-8">
+            <div className="mx-auto grid max-w-[1256px] grid-cols-4 divide-x divide-[#E7ECF2] px-5 py-6 sm:px-8">
               {allMenuSections.map(section => (
                 <div key={section.title} className="px-5 first:pl-0 last:pr-0">
                   <h3 className="mb-4 text-base font-extrabold text-black">{section.title}</h3>
