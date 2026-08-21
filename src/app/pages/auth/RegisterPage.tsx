@@ -106,7 +106,8 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
     if (!passwordPattern.test(form.password)) nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.';
     if (form.password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
     if (!form.name.trim()) nextErrors.name = '이름을 입력해 주세요.';
-    if (email && !emailPattern.test(email)) nextErrors.email = '올바른 이메일 형식으로 입력해 주세요. 예: name@example.com';
+    if (!email) nextErrors.email = '이메일을 입력해 주세요.';
+    else if (!emailPattern.test(email)) nextErrors.email = '올바른 이메일 형식으로 입력해 주세요. 예: name@example.com';
     if (!isValidBirthDate(form.birthDate.trim())) nextErrors.birthDate = '생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요. 예: 1999-01-01';
     if (!form.gender) nextErrors.gender = '성별을 선택해 주세요.';
     if (!phonePattern.test(form.phone)) nextErrors.phone = '전화번호는 010-1234-5678 형식으로 입력해 주세요.';
@@ -279,7 +280,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-medium">이메일</span>
+                <span className="mb-2 block text-sm font-medium">이메일 <span className="text-red-500">*</span></span>
                 <input
                   value={form.email}
                   onChange={event => updateField('email', event.target.value)}
@@ -319,9 +320,9 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                   className="w-full rounded-lg border border-border bg-white px-3 py-3"
                 >
                   <option value="">성별을 선택해 주세요</option>
-                  <option value="남성">남성</option>
-                  <option value="여성">여성</option>
-                  <option value="선택 안함">선택 안함</option>
+                      <option value="MALE">남성</option>
+                      <option value="FEMALE">여성</option>
+                      <option value="OTHER">기타/선택 안함</option>
                 </select>
                 {errors.gender && <p className="mt-2 text-sm text-red-500">{errors.gender}</p>}
               </label>
@@ -343,7 +344,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium">희망 직무</span>
+              <span className="mb-2 block text-sm font-medium">희망 직무 <span className="text-xs text-muted-foreground">(프로필)</span></span>
               <input
                 value={form.preferredRole}
                 onChange={event => updateField('preferredRole', event.target.value)}

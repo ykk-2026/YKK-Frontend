@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Page } from '@/app/types';
 
 interface JobsPageProps {
-  mode?: 'all' | 'saved' | 'recommended';
+  mode?: 'all' | 'saved';
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
   onBookmark: (id: string) => void;
@@ -288,7 +288,7 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
   const [selectedRegion, setSelectedRegion] = useState('전체');
   const [selectedCompany, setSelectedCompany] = useState('전체');
   const [companyPanelOpen, setCompanyPanelOpen] = useState(false);
-  const [sort, setSort] = useState<'recommend' | 'deadline'>('recommend');
+  const [sort, setSort] = useState<'latest' | 'deadline'>('latest');
   const submitSearch = () => {
     setCompanyPanelOpen(false);
   };
@@ -312,7 +312,7 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
         return target.includes(normalizedQuery);
       })
       .sort((a, b) => {
-        if (mode === 'recommended' || sort === 'recommend') return b.score - a.score;
+        if (sort === 'latest') return Number(b.id.replace('job-', '')) - Number(a.id.replace('job-', ''));
         return Number(a.deadline.replace('D-', '')) - Number(b.deadline.replace('D-', ''));
       });
   }, [bookmarks, mode, query, selectedCompany, selectedRegion, sort]);
@@ -321,10 +321,10 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
     setQuery('');
     setSelectedRegion('전체');
     setSelectedCompany('전체');
-    setSort('recommend');
+    setSort('latest');
   };
 
-  const title = mode === 'saved' ? '저장한 공고' : mode === 'recommended' ? '맞춤 추천 채용' : '채용정보';
+  const title = mode === 'saved' ? '관심공고' : '채용정보';
 
   return (
     <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
@@ -355,7 +355,7 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_180px_150px]">
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_180px]">
             <div className="relative">
               <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-black" />
               <input
@@ -370,14 +370,11 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
             </div>
             <button
               type="button"
-              onClick={() => setSort(sort === 'recommend' ? 'deadline' : 'recommend')}
+              onClick={() => setSort(sort === 'latest' ? 'deadline' : 'latest')}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-[#D7DDE5] bg-white text-sm font-bold hover:bg-[#F8FAFC]"
             >
               <SlidersHorizontal size={17} />
-              {sort === 'recommend' ? '추천순' : '마감순'}
-            </button>
-            <button type="button" onClick={() => navigate('ai-recommend')} className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] text-sm font-bold text-white hover:bg-[#0959C7]">
-              AI 추천
+              {sort === 'latest' ? '등록순' : '마감순'}
             </button>
           </div>
         </section>
@@ -413,7 +410,7 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
                     </button>
 
                     <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-                      <span className="rounded-full bg-[#DDFCEB] px-3 py-1 text-sm font-extrabold text-[#14843C]">{job.score}%</span>
+                      <span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-sm font-extrabold text-[#14843C]">OPEN</span>
                       <button
                         type="button"
                         onClick={() => onBookmark(job.id)}

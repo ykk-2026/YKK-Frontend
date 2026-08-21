@@ -76,6 +76,7 @@ export function JobDetailPage({
   const meta = useMemo(() => getJobMeta(job), [job]);
   const initialPhoneParts = (currentUser?.phone || '').split('-');
   const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const [submittedApplied, setSubmittedApplied] = useState(false);
   const [applyError, setApplyError] = useState('');
   const [applicationForm, setApplicationForm] = useState({
     name: currentUser?.name || '',
@@ -91,6 +92,7 @@ export function JobDetailPage({
 
   const activeAccessibility = accessibilityLabels.filter(item => job.accessibility[item.key]);
   const inactiveAccessibility = accessibilityLabels.filter(item => !job.accessibility[item.key]);
+  const isApplied = applied || submittedApplied;
 
   const updateApplicationForm = (field: keyof typeof applicationForm, value: string | boolean) => {
     setApplicationForm(prev => ({ ...prev, [field]: value }));
@@ -109,7 +111,7 @@ export function JobDetailPage({
       return;
     }
 
-    if (applied) return;
+    if (isApplied) return;
 
     setApplicationForm(prev => ({
       ...prev,
@@ -155,6 +157,7 @@ export function JobDetailPage({
     }
 
     onApply(job.id);
+    setSubmittedApplied(true);
     setIsApplyOpen(false);
     window.alert('지원서가 제출되었습니다.');
   };
@@ -208,13 +211,13 @@ export function JobDetailPage({
               <button
                 type="button"
                 onClick={handleApply}
-                disabled={applied}
+                disabled={isApplied}
                 className={`inline-flex h-11 min-w-[116px] items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 text-sm font-extrabold ${
-                  applied ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#0D6BEA] text-white hover:bg-[#0959C7]'
+                  isApplied ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#0D6BEA] text-white hover:bg-[#0959C7]'
                 }`}
               >
-                {applied ? <CheckCircle2 size={17} /> : <Send size={17} />}
-                {applied ? '지원 완료' : '지원하기'}
+                {isApplied ? <CheckCircle2 size={17} /> : <Send size={17} />}
+                {isApplied ? '지원 완료' : '지원하기'}
               </button>
             </div>
           </div>
@@ -333,13 +336,13 @@ export function JobDetailPage({
               <button
                 type="button"
                 onClick={handleApply}
-                disabled={applied}
+                disabled={isApplied}
                 className={`mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-extrabold ${
-                  applied ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#0D6BEA] text-white hover:bg-[#0959C7]'
+                  isApplied ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#0D6BEA] text-white hover:bg-[#0959C7]'
                 }`}
               >
-                {applied ? <CheckCircle2 size={17} /> : <Send size={17} />}
-                {applied ? '지원 완료' : '즉시 지원하기'}
+                {isApplied ? <CheckCircle2 size={17} /> : <Send size={17} />}
+                {isApplied ? '지원 완료' : '즉시 지원하기'}
               </button>
             </section>
 
@@ -401,13 +404,13 @@ export function JobDetailPage({
           <button
             type="button"
             onClick={handleApply}
-            disabled={applied}
+            disabled={isApplied}
             className={`flex h-12 items-center justify-center gap-2 rounded-lg text-sm font-extrabold ${
-              applied ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#0D6BEA] text-white'
+              isApplied ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#0D6BEA] text-white'
             }`}
           >
-            {applied ? <CheckCircle2 size={17} /> : <Send size={17} />}
-            {applied ? '지원 완료' : '지원하기'}
+            {isApplied ? <CheckCircle2 size={17} /> : <Send size={17} />}
+            {isApplied ? '지원 완료' : '지원하기'}
           </button>
         </div>
       </div>

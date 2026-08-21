@@ -3,15 +3,11 @@ export type Page =
   | 'login'
   | 'register'
   | 'user-dashboard'
-  | 'ai-recommend'
   | 'jobs'
   | 'job-detail'
-  | 'career-story'
-  | 'support'
   | 'saved'
   | 'applications'
-  | 'corporate'
-  | 'admin';
+  | 'corporate';
 
 export type UserRole = 'personal' | 'corporate' | 'admin';
 

@@ -6,12 +6,9 @@ import { Footer } from '@/app/layout/Footer';
 import { MainPage } from '@/app/pages/home/MainPage';
 import { LoginPage } from '@/app/pages/auth/LoginPage';
 import { RegisterPage } from '@/app/pages/auth/RegisterPage';
-import { AdminPage } from '@/app/pages/admin/AdminPage';
 import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
-import { CareerStoryPage } from '@/app/pages/story/CareerStoryPage';
-import { SupportPage } from '@/app/pages/support/SupportPage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
@@ -26,15 +23,11 @@ const pageValues: Page[] = [
   'login',
   'register',
   'user-dashboard',
-  'ai-recommend',
   'jobs',
   'job-detail',
-  'career-story',
-  'support',
   'saved',
   'applications',
   'corporate',
-  'admin',
 ];
 
 interface AutoLoginSession {
@@ -103,6 +96,8 @@ const saveCurrentJobId = (jobId?: string) => {
   if (jobId) localStorage.setItem(currentJobStorageKey, jobId);
 };
 
+const normalizeJobId = (id: string) => id.replace(/^job-/, '');
+
 const loadAppliedJobIds = () => {
   if (typeof window === 'undefined') return new Set<string>();
 
@@ -111,7 +106,7 @@ const loadAppliedJobIds = () => {
 
   try {
     const parsedJobs = JSON.parse(savedJobs) as string[];
-    return new Set(parsedJobs);
+    return new Set(parsedJobs.map(normalizeJobId));
   } catch {
     localStorage.removeItem(appliedJobsStorageKey);
     return new Set<string>();
@@ -120,7 +115,7 @@ const loadAppliedJobIds = () => {
 
 const saveAppliedJobIds = (jobIds: Set<string>) => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(appliedJobsStorageKey, JSON.stringify(Array.from(jobIds)));
+  localStorage.setItem(appliedJobsStorageKey, JSON.stringify(Array.from(jobIds).map(normalizeJobId)));
 };
 
 const loadPendingApplicationJobId = () => {
@@ -153,8 +148,8 @@ const createUserFromForm = (role: UserRole, formData: RegisterFormData): Current
 });
 
 const getMockUserByRole = (role: UserRole): CurrentUser => {
-  if (role === 'admin') return mockAdminUser;
   if (role === 'corporate') return mockCorporateUser;
+  if (role === 'admin') return mockAdminUser;
   return mockUser;
 };
 
@@ -170,7 +165,7 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
     return mockUser;
   }
 
-  if (session.role === 'admin' || session.role === 'corporate') {
+  if (session.role === 'corporate' || session.role === 'admin') {
     return getMockUserByRole(session.role);
   }
 
@@ -260,9 +255,10 @@ export default function App() {
   };
 
   const handleApplyJob = (id: string) => {
+    const normalizedJobId = normalizeJobId(id);
     setAppliedJobIds(prev => {
       const next = new Set(prev);
-      next.add(id);
+      next.add(normalizedJobId);
       saveAppliedJobIds(next);
       return next;
     });
@@ -305,11 +301,8 @@ export default function App() {
       case 'register':
         return <RegisterPage navigate={navigate} onRegister={handleRegister} onBack={handleBack} />;
 
-      case 'admin':
-        return <AdminPage />;
-
       case 'job-detail': {
-        const normalizedJobId = currentJobId?.replace(/^job-/, '') || '1';
+        const normalizedJobId = normalizeJobId(currentJobId || '1');
         return (
           <JobDetailPage
             jobId={currentJobId}
@@ -331,17 +324,8 @@ export default function App() {
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
-      case 'career-story':
-        return <CareerStoryPage navigate={navigate} />;
-
-      case 'support':
-        return <SupportPage />;
-
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
-
-      case 'ai-recommend':
-        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
@@ -364,7 +348,7 @@ export default function App() {
         {renderPage()}
       </main>
 
-      {showNavFooter && currentPage !== 'user-dashboard' && currentPage !== 'corporate' && currentPage !== 'admin' && (
+      {showNavFooter && currentPage !== 'user-dashboard' && currentPage !== 'corporate' && (
         <Footer navigate={navigate} />
       )}
     </div>

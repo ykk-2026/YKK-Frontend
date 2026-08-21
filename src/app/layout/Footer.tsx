@@ -20,15 +20,13 @@ export function Footer({ navigate }: FooterProps) {
           <h4 className="mb-3 font-semibold">바로가기</h4>
           <div className="space-y-2 text-sm">
             <button type="button" onClick={() => navigate('jobs')} className="block text-muted-foreground hover:text-foreground">채용정보</button>
-            <button type="button" onClick={() => navigate('career-story')} className="block text-muted-foreground hover:text-foreground">취업스토리</button>
             <button type="button" onClick={() => navigate('saved')} className="block text-muted-foreground hover:text-foreground">저장한 공고</button>
             <button type="button" onClick={() => navigate('user-dashboard')} className="block text-muted-foreground hover:text-foreground">지원관리</button>
           </div>
         </div>
         <div>
-          <h4 className="mb-3 font-semibold">고객지원</h4>
+          <h4 className="mb-3 font-semibold">연락처</h4>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <button type="button" onClick={() => navigate('support')} className="block text-left text-muted-foreground hover:text-foreground">고객센터 바로가기</button>
             <p className="flex items-center gap-2"><Phone size={14} /> 1588-0000</p>
             <p className="flex items-center gap-2"><Mail size={14} /> help@ileeum.ai</p>
             <p className="flex items-center gap-2"><MapPin size={14} /> 서울, 대한민국</p>
