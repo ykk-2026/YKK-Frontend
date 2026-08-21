@@ -413,8 +413,8 @@ export function JobDetailPage({
       </div>
 
       {isApplyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden bg-black/45 px-4 py-6">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto overflow-x-hidden rounded-xl bg-white shadow-xl">
             <div className="flex items-start justify-between gap-4 border-b border-[#E7ECF2] px-6 py-5">
               <div>
                 <p className="text-sm font-bold text-[#0D6BEA]">{job.company}</p>
@@ -437,7 +437,7 @@ export function JobDetailPage({
               </div>
 
               <div className="mt-5 divide-y divide-[#E7ECF2] border-t border-[#D7DDE5]">
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_1fr]">
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-bold text-[#596273]">성명</span>
                   <input
                     value={applicationForm.name}
@@ -446,21 +446,21 @@ export function JobDetailPage({
                   />
                 </label>
 
-                <div className="grid gap-3 py-5 sm:grid-cols-[140px_1fr]">
+                <div className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <p className="text-sm font-bold text-[#596273]">휴대전화</p>
-                  <div className="flex items-center gap-2">
+                  <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
                     {(['phone1', 'phone2', 'phone3'] as const).map((field, index) => (
                       <input
                         key={field}
                         value={applicationForm[field]}
                         onChange={event => updateApplicationForm(field, event.target.value.replace(/\D/g, '').slice(0, index === 0 ? 3 : 4))}
-                        className="h-11 min-w-0 flex-1 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
+                        className="h-11 min-w-0 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
                       />
                     ))}
                   </div>
                 </div>
 
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_1fr]">
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-bold text-[#596273]">이메일</span>
                   <input
                     value={applicationForm.email}
@@ -470,7 +470,7 @@ export function JobDetailPage({
                   />
                 </label>
 
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_1fr]">
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-bold text-[#596273]">고용형태</span>
                   <select
                     value={applicationForm.employmentType}
@@ -483,7 +483,7 @@ export function JobDetailPage({
                   </select>
                 </label>
 
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_1fr]">
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-bold text-[#596273]">비밀번호</span>
                   <div className="grid gap-2">
                     <input
@@ -516,7 +516,7 @@ export function JobDetailPage({
 
               {applyError && <p className="mt-4 rounded-lg bg-[#FFF5F5] px-4 py-3 text-sm font-bold text-[#D92D20]">{applyError}</p>}
 
-              <div className="mt-6 flex justify-end gap-2 border-t border-[#E7ECF2] pt-5">
+              <div className="mt-6 flex flex-col-reverse gap-2 border-t border-[#E7ECF2] pt-5 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setIsApplyOpen(false)} className="rounded-lg border border-[#D7DDE5] px-5 py-3 text-sm font-extrabold text-[#344054] hover:bg-[#F8FAFC]">
                   취소
                 </button>
