@@ -62,13 +62,13 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<MenuPanel>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const userPage: Page = currentUser?.role === 'corporate' ? 'corporate' : currentUser?.role === 'admin' ? 'admin' : 'user-dashboard';
+  const userPage: Page = currentUser?.role === 'corporate' ? 'corporate' : 'user-dashboard';
 
   const navItems: NavItem[] = [
     { label: '전체메뉴', page: 'jobs', panel: 'all' },
     { label: '채용정보', page: 'jobs', panel: 'jobs' },
-    { label: '취업스토리', page: 'career-story' },
-    { label: '고객지원', page: 'support' },
+    { label: '관심공고', page: 'saved' },
+    { label: '지원현황', page: 'user-dashboard', authRequired: true },
   ];
 
   const goTo = (page: Page) => {
