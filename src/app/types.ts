@@ -88,6 +88,16 @@ export interface ApplicationTimelineStep {
   done: boolean;
 }
 
+export interface ApplicationFormData {
+  name: string;
+  phone: string;
+  email: string;
+  employmentType: string;
+  privacyAgreed: boolean;
+  submittedAt: string;
+  updatedAt: string;
+}
+
 export interface Application {
   id: string;
   job: Job;

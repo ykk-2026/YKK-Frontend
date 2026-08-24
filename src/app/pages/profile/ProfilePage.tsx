@@ -11,19 +11,24 @@ import {
   Lock,
   Mail,
   MapPin,
+  Pencil,
   Phone,
   Save,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 import { mockJobs } from '@/app/data/mockData';
-import type { CurrentUser, Page } from '@/app/types';
+import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
 
 interface ProfilePageProps {
   currentUser: CurrentUser | null;
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
   appliedJobIds?: Set<string>;
+  applicationForms?: Record<string, ApplicationFormData>;
   onBookmark: (id: string) => void;
+  onUpdateApplication?: (id: string, formData: ApplicationFormData) => void;
+  onDeleteApplication?: (id: string) => void;
 }
 
 type ProfileAvatar = {
@@ -145,7 +150,16 @@ const loadProfilePhoto = (userId: string) => {
   return { type: 'initial', value: '' } satisfies ProfileAvatar;
 };
 
-export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = new Set(), onBookmark }: ProfilePageProps) {
+export function ProfilePage({
+  currentUser,
+  navigate,
+  bookmarks,
+  appliedJobIds = new Set(),
+  applicationForms = {},
+  onBookmark,
+  onUpdateApplication,
+  onDeleteApplication,
+}: ProfilePageProps) {
   const initialName = currentUser?.name || '김민준';
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const userId = currentUser?.loginId || currentUser?.id || 'guest';
@@ -156,6 +170,17 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
   const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
   const [isDesiredRegionOpen, setIsDesiredRegionOpen] = useState(false);
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
+  const [editingApplicationJobId, setEditingApplicationJobId] = useState<string | null>(null);
+  const [applicationEditError, setApplicationEditError] = useState('');
+  const [applicationEditForm, setApplicationEditForm] = useState({
+    name: '',
+    phone1: '010',
+    phone2: '',
+    phone3: '',
+    email: '',
+    employmentType: '정규/계약직',
+    privacyAgreed: true,
+  });
   const [profileAvatar, setProfileAvatar] = useState<ProfileAvatar>(() => loadProfilePhoto(userId));
   const [accountForm, setAccountForm] = useState({
     loginId: currentUser?.loginId || currentUser?.id || 'minjun_kim',
@@ -199,6 +224,7 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
     .map(job => ({ ...job, savedKey: bookmarks.has(`job-${job.id}`) ? `job-${job.id}` : '' }))
     .filter(job => job.savedKey);
   const appliedJobs = mockJobs.filter(job => appliedJobIds.has(job.id));
+  const editingApplicationJob = editingApplicationJobId ? mockJobs.find(job => job.id === editingApplicationJobId) : null;
 
   const updateForm = (field: keyof typeof profileForm, value: string | boolean) => {
     setProfileForm(prev => ({ ...prev, [field]: value }));
@@ -208,6 +234,11 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
   const updateAccountForm = (field: keyof typeof accountForm, value: string) => {
     setAccountForm(prev => ({ ...prev, [field]: value }));
     setSavedMessage('');
+  };
+
+  const updateApplicationEditForm = (field: keyof typeof applicationEditForm, value: string | boolean) => {
+    setApplicationEditForm(prev => ({ ...prev, [field]: value }));
+    setApplicationEditError('');
   };
 
   const toggleWorkType = (field: (typeof workTypes)[number]['field']) => {
@@ -284,6 +315,79 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
       setIsPhotoPickerOpen(false);
     };
     reader.readAsDataURL(file);
+  };
+
+  const openApplicationEdit = (job: Job) => {
+    const savedApplication = applicationForms[job.id];
+    const phoneParts = (savedApplication?.phone || profileForm.phone || '010--').split('-');
+
+    setApplicationEditForm({
+      name: savedApplication?.name || profileForm.name,
+      phone1: phoneParts[0] || '010',
+      phone2: phoneParts[1] || '',
+      phone3: phoneParts[2] || '',
+      email: savedApplication?.email || profileForm.email,
+      employmentType: savedApplication?.employmentType || (job.category === 'PartTime' ? '아르바이트' : '정규/계약직'),
+      privacyAgreed: savedApplication?.privacyAgreed ?? true,
+    });
+    setApplicationEditError('');
+    setEditingApplicationJobId(job.id);
+  };
+
+  const closeApplicationEdit = () => {
+    setEditingApplicationJobId(null);
+    setApplicationEditError('');
+  };
+
+  const saveApplicationEdit = () => {
+    if (!editingApplicationJob || !onUpdateApplication) return;
+
+    const phoneParts = [applicationEditForm.phone1, applicationEditForm.phone2, applicationEditForm.phone3].map(value => String(value).trim());
+
+    if (!applicationEditForm.privacyAgreed) {
+      setApplicationEditError('개인정보 전달 동의가 필요합니다.');
+      return;
+    }
+
+    if (!applicationEditForm.name.trim() || /\s/.test(applicationEditForm.name)) {
+      setApplicationEditError('성명은 공백 없이 입력해 주세요.');
+      return;
+    }
+
+    if (phoneParts.some(part => !/^\d+$/.test(part)) || phoneParts[1].length < 3 || phoneParts[2].length < 4) {
+      setApplicationEditError('연락 가능한 휴대전화 번호를 정확히 입력해 주세요.');
+      return;
+    }
+
+    if (!applicationEditForm.email.trim() || !applicationEditForm.email.includes('@')) {
+      setApplicationEditError('지원 결과를 받을 이메일을 입력해 주세요.');
+      return;
+    }
+
+    const previousApplication = applicationForms[editingApplicationJob.id];
+    const now = new Date().toISOString();
+    onUpdateApplication(editingApplicationJob.id, {
+      name: applicationEditForm.name.trim(),
+      phone: phoneParts.join('-'),
+      email: applicationEditForm.email.trim(),
+      employmentType: applicationEditForm.employmentType,
+      privacyAgreed: applicationEditForm.privacyAgreed,
+      submittedAt: previousApplication?.submittedAt || now,
+      updatedAt: now,
+    });
+    setSavedMessage('지원서가 수정되었습니다.');
+    closeApplicationEdit();
+  };
+
+  const deleteApplication = () => {
+    if (!editingApplicationJob || !onDeleteApplication) return;
+
+    const confirmed = window.confirm(`${editingApplicationJob.company} ${editingApplicationJob.title} 지원서를 삭제하시겠습니까?`);
+    if (!confirmed) return;
+
+    onDeleteApplication(editingApplicationJob.id);
+    setSavedMessage('지원서가 삭제되었습니다.');
+    closeApplicationEdit();
   };
 
   const selectedWorkTypes = workTypes.filter(item => profileForm[item.field]).map(item => item.label);
@@ -363,31 +467,52 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
 
               {appliedJobs.length > 0 ? (
                 <div className="grid gap-3">
-                  {appliedJobs.map(job => (
-                    <article key={job.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="flex min-w-0 items-start gap-3 text-left">
-                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold text-white" style={{ backgroundColor: job.companyColor }}>
-                            {job.companyInitials}
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block text-sm font-bold text-[#7A8495]">{job.company}</span>
-                            <span className="mt-1 block text-lg font-extrabold text-black">{job.title}</span>
-                            <span className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-[#596273]">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F3F6] px-3 py-1">
-                                <MapPin size={13} /> {job.location}
-                              </span>
-                              <span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-[#14843C]">APPLIED</span>
+                  {appliedJobs.map(job => {
+                    const savedApplication = applicationForms[job.id];
+                    return (
+                      <article key={job.id} className="rounded-lg border border-[#E1E6EE] bg-white p-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="flex min-w-0 items-start gap-3 text-left">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold text-white" style={{ backgroundColor: job.companyColor }}>
+                              {job.companyInitials}
                             </span>
-                          </span>
-                        </button>
+                            <span className="min-w-0">
+                              <span className="block text-sm font-bold text-[#7A8495]">{job.company}</span>
+                              <span className="mt-1 block text-lg font-extrabold text-black">{job.title}</span>
+                              <span className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-[#596273]">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F3F6] px-3 py-1">
+                                  <MapPin size={13} /> {job.location}
+                                </span>
+                                <span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-[#14843C]">APPLIED</span>
+                                {savedApplication?.employmentType && (
+                                  <span className="rounded-full bg-[#EEF5FF] px-3 py-1 text-[#0D6BEA]">{savedApplication.employmentType}</span>
+                                )}
+                              </span>
+                              {savedApplication && (
+                                <span className="mt-3 block text-xs font-bold leading-5 text-[#7A8495]">
+                                  {savedApplication.name} · {savedApplication.phone} · {savedApplication.email}
+                                </span>
+                              )}
+                            </span>
+                          </button>
 
-                        <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="inline-flex h-9 items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
-                          상세 보기 <ArrowRight size={15} />
-                        </button>
-                      </div>
-                    </article>
-                  ))}
+                          <div className="flex flex-wrap gap-2 lg:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => openApplicationEdit(job)}
+                              className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 text-sm font-bold text-[#344054] hover:bg-[#F8FAFC]"
+                            >
+                              <Pencil size={15} />
+                              지원 수정
+                            </button>
+                            <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="inline-flex h-9 items-center gap-1 px-1 text-sm font-extrabold text-[#0D6BEA]">
+                              상세 보기 <ArrowRight size={15} />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-[#D7DDE5] bg-[#F8FAFC] p-8 text-center">
@@ -774,6 +899,114 @@ export function ProfilePage({ currentUser, navigate, bookmarks, appliedJobIds = 
           )}
         </section>
       </main>
+
+      {editingApplicationJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden bg-black/45 px-4 py-6">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto overflow-x-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-[#E7ECF2] px-6 py-5">
+              <div>
+                <p className="text-sm font-bold text-[#0D6BEA]">{editingApplicationJob.company}</p>
+                <h2 className="mt-1 text-xl font-extrabold text-black">지원서 수정</h2>
+                <p className="mt-1 text-sm font-semibold text-[#7A8495]">{editingApplicationJob.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeApplicationEdit}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F1F3F6] text-lg font-bold text-[#596273] hover:bg-[#E1E6EE]"
+                aria-label="지원서 수정 창 닫기"
+              >
+                x
+              </button>
+            </div>
+
+            <div className="px-6 py-6">
+              <div className="rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-bold text-[#344054]">
+                공고명: <span className="text-black">{editingApplicationJob.title}</span>
+              </div>
+
+              <div className="mt-5 divide-y divide-[#E7ECF2] border-t border-[#D7DDE5]">
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <span className="text-sm font-bold text-[#596273]">성명</span>
+                  <input
+                    value={applicationEditForm.name}
+                    onChange={event => updateApplicationEditForm('name', event.target.value)}
+                    className="h-11 w-full rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
+                  />
+                </label>
+
+                <div className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <p className="text-sm font-bold text-[#596273]">휴대전화</p>
+                  <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+                    {(['phone1', 'phone2', 'phone3'] as const).map((field, index) => (
+                      <input
+                        key={field}
+                        value={applicationEditForm[field]}
+                        onChange={event => updateApplicationEditForm(field, event.target.value.replace(/\D/g, '').slice(0, index === 0 ? 3 : 4))}
+                        className="h-11 min-w-0 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <span className="text-sm font-bold text-[#596273]">이메일</span>
+                  <input
+                    value={applicationEditForm.email}
+                    onChange={event => updateApplicationEditForm('email', event.target.value)}
+                    placeholder="email@example.com"
+                    className="h-11 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
+                  />
+                </label>
+
+                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <span className="text-sm font-bold text-[#596273]">고용형태</span>
+                  <select
+                    value={applicationEditForm.employmentType}
+                    onChange={event => updateApplicationEditForm('employmentType', event.target.value)}
+                    className="h-11 rounded border border-[#D7DDE5] bg-white px-3 text-sm font-bold text-[#344054] outline-none focus:border-[#0D6BEA]"
+                  >
+                    <option value="아르바이트">아르바이트</option>
+                    <option value="정규/계약직">정규/계약직</option>
+                    <option value="인턴">인턴</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="mt-5 flex items-start gap-2 rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-bold text-[#344054]">
+                <input
+                  type="checkbox"
+                  checked={applicationEditForm.privacyAgreed}
+                  onChange={event => updateApplicationEditForm('privacyAgreed', event.target.checked)}
+                  className="mt-1"
+                />
+                수정된 이름, 연락처, 이메일을 채용 담당자에게 전달하는 데 동의합니다.
+              </label>
+
+              {applicationEditError && <p className="mt-4 rounded-lg bg-[#FFF5F5] px-4 py-3 text-sm font-bold text-[#D92D20]">{applicationEditError}</p>}
+
+              <div className="mt-6 flex flex-col gap-3 border-t border-[#E7ECF2] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={deleteApplication}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#F2B8B5] px-5 py-3 text-sm font-extrabold text-[#D92D20] hover:bg-[#FFF5F5]"
+                >
+                  <Trash2 size={17} />
+                  지원서 삭제
+                </button>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button type="button" onClick={closeApplicationEdit} className="rounded-lg border border-[#D7DDE5] px-5 py-3 text-sm font-extrabold text-[#344054] hover:bg-[#F8FAFC]">
+                    취소
+                  </button>
+                  <button type="button" onClick={saveApplicationEdit} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] px-6 py-3 text-sm font-extrabold text-white hover:bg-[#0959C7]">
+                    <Save size={17} />
+                    수정 저장
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isPreviewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

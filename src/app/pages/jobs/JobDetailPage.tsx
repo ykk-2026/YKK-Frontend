@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { mockJobs } from '@/app/data/mockData';
-import type { CurrentUser, Page } from '@/app/types';
+import type { ApplicationFormData, CurrentUser, Page } from '@/app/types';
 
 interface JobDetailPageProps {
   jobId: string | null;
@@ -30,7 +30,7 @@ interface JobDetailPageProps {
   bookmarked: boolean;
   applied: boolean;
   onBookmark: (id: string) => void;
-  onApply: (id: string) => void;
+  onApply: (id: string, formData: ApplicationFormData) => void;
   onRequireLoginForApply: (id: string) => void;
 }
 
@@ -156,7 +156,16 @@ export function JobDetailPage({
       return;
     }
 
-    onApply(job.id);
+    const now = new Date().toISOString();
+    onApply(job.id, {
+      name: applicationForm.name.trim(),
+      phone: phoneParts.join('-'),
+      email: applicationForm.email.trim(),
+      employmentType: applicationForm.employmentType,
+      privacyAgreed: applicationForm.privacyAgreed,
+      submittedAt: now,
+      updatedAt: now,
+    });
     setSubmittedApplied(true);
     setIsApplyOpen(false);
     window.alert('지원서가 제출되었습니다.');
