@@ -7,6 +7,8 @@ export type Page =
   | 'job-detail'
   | 'saved'
   | 'applications'
+  | 'ai-recommend'
+  | 'support'
   | 'corporate';
 
 export type UserRole = 'personal' | 'corporate' | 'admin';
@@ -86,6 +88,16 @@ export interface ApplicationTimelineStep {
   step: string;
   date: string;
   done: boolean;
+}
+
+export interface ApplicationFormData {
+  name: string;
+  phone: string;
+  email: string;
+  employmentType: string;
+  privacyAgreed: boolean;
+  submittedAt: string;
+  updatedAt: string;
 }
 
 export interface Application {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
+import type { ApplicationFormData, CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
 import { mockAdminUser, mockCorporateUser, mockUser } from '@/app/data/mockData';
 import { Navbar } from '@/app/layout/Navbar';
 import { Footer } from '@/app/layout/Footer';
@@ -9,6 +9,7 @@ import { RegisterPage } from '@/app/pages/auth/RegisterPage';
 import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
+import { SupportPage } from '@/app/pages/support/SupportPage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
@@ -17,6 +18,7 @@ const autoLoginStorageKey = 'jobBridgeAutoLogin';
 const currentPageStorageKey = 'jobBridgeCurrentPage';
 const currentJobStorageKey = 'jobBridgeCurrentJob';
 const appliedJobsStorageKey = 'jobBridgeAppliedJobs';
+const applicationFormsStorageKey = 'jobBridgeApplicationForms';
 const pendingApplicationStorageKey = 'jobBridgePendingApplicationJob';
 const pageValues: Page[] = [
   'main',
@@ -27,6 +29,8 @@ const pageValues: Page[] = [
   'job-detail',
   'saved',
   'applications',
+  'ai-recommend',
+  'support',
   'corporate',
 ];
 
@@ -118,6 +122,28 @@ const saveAppliedJobIds = (jobIds: Set<string>) => {
   localStorage.setItem(appliedJobsStorageKey, JSON.stringify(Array.from(jobIds).map(normalizeJobId)));
 };
 
+const loadApplicationForms = () => {
+  if (typeof window === 'undefined') return {} as Record<string, ApplicationFormData>;
+
+  const savedForms = localStorage.getItem(applicationFormsStorageKey);
+  if (!savedForms) return {} as Record<string, ApplicationFormData>;
+
+  try {
+    const parsedForms = JSON.parse(savedForms) as Record<string, ApplicationFormData>;
+    return Object.fromEntries(
+      Object.entries(parsedForms).map(([jobId, form]) => [normalizeJobId(jobId), form]),
+    ) as Record<string, ApplicationFormData>;
+  } catch {
+    localStorage.removeItem(applicationFormsStorageKey);
+    return {} as Record<string, ApplicationFormData>;
+  }
+};
+
+const saveApplicationForms = (forms: Record<string, ApplicationFormData>) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(applicationFormsStorageKey, JSON.stringify(forms));
+};
+
 const loadPendingApplicationJobId = () => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(pendingApplicationStorageKey);
@@ -181,6 +207,7 @@ export default function App() {
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(() => loadAppliedJobIds());
+  const [applicationForms, setApplicationForms] = useState<Record<string, ApplicationFormData>>(() => loadApplicationForms());
   const [pendingApplicationJobId, setPendingApplicationJobId] = useState<string | null>(() => loadPendingApplicationJobId());
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
 
@@ -254,12 +281,56 @@ export default function App() {
     });
   };
 
-  const handleApplyJob = (id: string) => {
+  const handleApplyJob = (id: string, formData: ApplicationFormData) => {
     const normalizedJobId = normalizeJobId(id);
     setAppliedJobIds(prev => {
       const next = new Set(prev);
       next.add(normalizedJobId);
       saveAppliedJobIds(next);
+      return next;
+    });
+    setApplicationForms(prev => {
+      const next = {
+        ...prev,
+        [normalizedJobId]: {
+          ...formData,
+          submittedAt: formData.submittedAt || new Date().toISOString(),
+          updatedAt: formData.updatedAt || new Date().toISOString(),
+        },
+      };
+      saveApplicationForms(next);
+      return next;
+    });
+  };
+
+  const handleUpdateApplication = (id: string, formData: ApplicationFormData) => {
+    const normalizedJobId = normalizeJobId(id);
+    setApplicationForms(prev => {
+      const next = {
+        ...prev,
+        [normalizedJobId]: {
+          ...formData,
+          submittedAt: prev[normalizedJobId]?.submittedAt || formData.submittedAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+      saveApplicationForms(next);
+      return next;
+    });
+  };
+
+  const handleDeleteApplication = (id: string) => {
+    const normalizedJobId = normalizeJobId(id);
+    setAppliedJobIds(prev => {
+      const next = new Set(prev);
+      next.delete(normalizedJobId);
+      saveAppliedJobIds(next);
+      return next;
+    });
+    setApplicationForms(prev => {
+      const next = { ...prev };
+      delete next[normalizedJobId];
+      saveApplicationForms(next);
       return next;
     });
   };
@@ -319,13 +390,30 @@ export default function App() {
 
       case 'user-dashboard':
       case 'corporate':
-        return <ProfilePage currentUser={currentUser} navigate={navigate} bookmarks={bookmarks} appliedJobIds={appliedJobIds} onBookmark={handleBookmark} />;
+        return (
+          <ProfilePage
+            currentUser={currentUser}
+            navigate={navigate}
+            bookmarks={bookmarks}
+            appliedJobIds={appliedJobIds}
+            applicationForms={applicationForms}
+            onBookmark={handleBookmark}
+            onUpdateApplication={handleUpdateApplication}
+            onDeleteApplication={handleDeleteApplication}
+          />
+        );
 
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
+      case 'ai-recommend':
+        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+
+      case 'support':
+        return <SupportPage />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
