@@ -7,6 +7,8 @@ export type Page =
   | 'job-detail'
   | 'saved'
   | 'applications'
+  | 'ai-recommend'
+  | 'support'
   | 'corporate';
 
 export type UserRole = 'personal' | 'corporate' | 'admin';

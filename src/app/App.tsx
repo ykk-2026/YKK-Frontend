@@ -9,6 +9,7 @@ import { RegisterPage } from '@/app/pages/auth/RegisterPage';
 import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
+import { SupportPage } from '@/app/pages/support/SupportPage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
@@ -28,6 +29,8 @@ const pageValues: Page[] = [
   'job-detail',
   'saved',
   'applications',
+  'ai-recommend',
+  'support',
   'corporate',
 ];
 
@@ -403,8 +406,14 @@ export default function App() {
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
+      case 'ai-recommend':
+        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+
+      case 'support':
+        return <SupportPage />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
