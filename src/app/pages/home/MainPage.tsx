@@ -4,6 +4,7 @@ import {
   Bookmark,
   BookmarkCheck,
   BriefcaseBusiness,
+  CheckCircle2,
   ClipboardList,
   Clock3,
   FileText,
@@ -14,6 +15,7 @@ import {
   Monitor,
   ParkingSquare,
   Search,
+  ShieldCheck,
   Sparkles,
   Target,
   UserRound,
@@ -28,26 +30,26 @@ interface MainPageProps {
 }
 
 const recommendedJobs = [
-  { id: 'job-1', company: 'ABC테크', initial: 'A', color: '#53657F', title: 'Java 백엔드 개발자', location: '서울 강남구', match: 98, tags: ['정규직', '재택근무 가능'] },
-  { id: 'job-2', company: '대한소프트', initial: 'D', color: '#48A6D8', title: '웹 퍼블리셔', location: '서울 마포구', match: 88, tags: ['계약직', '유연근무'] },
-  { id: 'job-4', company: '리유', initial: 'R', color: '#4FC3A1', title: 'UI/UX 디자이너', location: '서울 영등포구', match: 95, tags: ['정규직', '시각장애 우대'] },
-  { id: 'job-10', company: '해피', initial: 'H', color: '#F5A84B', title: '고객 상담 매니저', location: '부산 해운대구', match: 92, tags: ['정규직', '청각장애 우대'] },
+  { id: 'job-1', company: 'ABC테크', initial: 'A', color: '#53657F', title: 'Java 백엔드 개발자', location: '서울 강남구', match: 98, salary: '4,000만+', tags: ['정규직', '재택근무 가능'] },
+  { id: 'job-2', company: '대한소프트', initial: 'D', color: '#48A6D8', title: '웹 퍼블리셔', location: '서울 마포구', match: 88, salary: '3,200만+', tags: ['계약직', '유연근무'] },
+  { id: 'job-4', company: '리유', initial: 'R', color: '#4FC3A1', title: 'UI/UX 디자이너', location: '서울 영등포구', match: 95, salary: '3,500만+', tags: ['정규직', '시각장애 우대'] },
+  { id: 'job-10', company: '해피', initial: 'H', color: '#F5A84B', title: '고객 상담 매니저', location: '부산 해운대구', match: 92, salary: '3,000만+', tags: ['정규직', '청각장애 우대'] },
 ];
 
 const quickActions = [
-  { label: 'AI 맞춤 추천', helper: '내게 맞는 일자리 추천', icon: Target, action: 'ai' },
-  { label: '간편 지원', helper: '이력서 없이 간편하게 지원', icon: FileText, action: 'apply' },
-  { label: '관심 공고', helper: '관심 공고를 한눈에 관리', icon: Bookmark, action: 'saved' },
-  { label: '지원 현황', helper: '지원한 공고의 진행 상황 확인', icon: BriefcaseBusiness, action: 'applications' },
-  { label: '커뮤니티', helper: '정보 공유와 합격 소통', icon: MessageCircle, action: 'support' },
+  { label: 'AI 맞춤 추천', helper: '내 프로필 기반 추천', icon: Target, action: 'ai', color: '#1F64E8' },
+  { label: '간편 지원', helper: '이력서로 빠른 지원', icon: FileText, action: 'apply', color: '#0EA5E9' },
+  { label: '관심 공고', helper: '저장한 공고 관리', icon: Bookmark, action: 'saved', color: '#7C3AED' },
+  { label: '지원 현황', helper: '진행 상태 확인', icon: BriefcaseBusiness, action: 'applications', color: '#16A34A' },
+  { label: '커뮤니티', helper: '정보 공유와 소통', icon: MessageCircle, action: 'support', color: '#F59E0B' },
 ];
 
 const accessibilityJobs = [
-  { label: '휠체어 접근 가능', icon: Accessibility, query: '휠체어' },
-  { label: '재택근무 가능', icon: Home, query: '재택근무' },
-  { label: '유연근무 가능', icon: Clock3, query: '유연근무' },
-  { label: '장애인 주차시설', icon: ParkingSquare, query: '장애인 주차' },
-  { label: '보조공학기기 지원', icon: Monitor, query: '보조기기' },
+  { label: '휠체어 접근 가능', count: '38건', icon: Accessibility, query: '휠체어' },
+  { label: '재택근무 가능', count: '24건', icon: Home, query: '재택근무' },
+  { label: '유연근무 가능', count: '19건', icon: Clock3, query: '유연근무' },
+  { label: '장애인 주차시설', count: '31건', icon: ParkingSquare, query: '장애인 주차' },
+  { label: '보조공학기기 지원', count: '12건', icon: Monitor, query: '보조기기' },
 ];
 
 const latestJobs = [
@@ -147,20 +149,20 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
         </section>
 
         <div className="mx-auto max-w-[1240px] px-6 pb-6">
-          <section className="rounded-b-[8px] border border-t-0 border-[#DDE3EA] bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <section className="rounded-b-xl border border-t-0 border-[#DDE3EA] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-end gap-3">
-                <h2 className="text-[19px] font-black text-black">AI가 추천하는 일자리</h2>
-                <p className="pb-0.5 text-[12px] font-semibold text-[#7A8495]">회원님의 프로필을 기반으로 추천했어요</p>
+                <h2 className="text-xl font-black text-black">AI가 추천하는 일자리</h2>
+                <p className="pb-0.5 text-xs font-semibold text-[#7A8495]">회원님의 프로필과 접근성 조건을 함께 반영했어요</p>
               </div>
-              <button type="button" onClick={() => navigate('ai-recommend')} className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[#1F64E8]">
+              <button type="button" onClick={() => navigate('ai-recommend')} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#EEF5FF] px-3 text-xs font-extrabold text-[#1F64E8] hover:bg-[#DCEBFF]">
                 더 많은 추천 보기 <ArrowRight size={14} />
               </button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {recommendedJobs.map(job => (
-                <article key={job.id} className="flex min-h-[148px] flex-col justify-between rounded-[8px] border border-[#E1E6EE] bg-white p-4 transition hover:border-[#B9D6FF] hover:shadow-sm">
+                <article key={job.id} className="group flex min-h-[178px] flex-col justify-between rounded-xl border border-[#E1E6EE] bg-gradient-to-b from-white to-[#F8FAFC] p-4 transition hover:-translate-y-0.5 hover:border-[#9EC5FF] hover:shadow-[0_10px_24px_rgba(31,100,232,0.12)]">
                   <div className="flex items-start justify-between gap-3">
                     <button type="button" onClick={() => navigate('job-detail', job.id)} className="flex min-w-0 gap-3 text-left">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[7px] text-lg font-black text-white" style={{ backgroundColor: job.color }}>
@@ -173,6 +175,7 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                         <span className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-[#7A8495]">
                           <MapPin size={11} /> {job.location}
                         </span>
+                        <span className="mt-2 block text-[11px] font-black text-[#1F64E8]">{job.salary}</span>
                       </span>
                     </button>
                     <button
@@ -189,49 +192,61 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                       <span key={tag} className="rounded-full bg-[#F1F4F8] px-2.5 py-1 text-[10px] font-bold text-[#344054]">{tag}</span>
                     ))}
                   </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#E7ECF2]">
+                    <div className="h-full rounded-full bg-[#1F64E8]" style={{ width: `${job.match}%` }} />
+                  </div>
                 </article>
               ))}
             </div>
           </section>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <section className="rounded-[8px] border border-[#DDE3EA] bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-              <h2 className="text-[19px] font-black text-black">일이음을 더 편리하게 이용하세요</h2>
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-black">일이음을 더 편리하게 이용하세요</h2>
+                  <p className="mt-1 text-xs font-semibold text-[#7A8495]">자주 쓰는 기능을 빠르게 실행하세요</p>
+                </div>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#1F64E8]">
+                  <Sparkles size={18} />
+                </span>
+              </div>
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
                 {quickActions.map(item => {
                   const Icon = item.icon;
                   return (
-                    <button key={item.label} type="button" onClick={() => runQuickAction(item.action)} className="min-h-[96px] rounded-[8px] px-2 py-1 text-center hover:bg-[#F7FAFF]">
-                      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-[10px] bg-[#EEF3FF] text-[#1F64E8]">
+                    <button key={item.label} type="button" onClick={() => runQuickAction(item.action)} className="min-h-[118px] rounded-xl border border-[#EDF1F6] bg-[#FBFCFE] px-3 py-4 text-center transition hover:border-[#B9D6FF] hover:bg-[#F4F8FF]">
+                      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-sm" style={{ backgroundColor: item.color }}>
                         <Icon size={23} />
                       </span>
                       <span className="mt-3 block text-[13px] font-black text-black">{item.label}</span>
-                      <span className="mt-1 block text-[10px] font-semibold leading-4 text-[#7A8495]">{item.helper}</span>
+                      <span className="mt-1 block text-[11px] font-semibold leading-4 text-[#7A8495]">{item.helper}</span>
                     </button>
                   );
                 })}
               </div>
             </section>
 
-            <section className="rounded-[8px] border border-[#DDE3EA] bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-[19px] font-black text-black">접근성 좋은 일자리</h2>
-                  <p className="mt-1 text-[11px] font-semibold text-[#7A8495]">장애 유형에 맞는 근무환경을 확인하세요</p>
+                  <h2 className="text-xl font-black text-black">접근성 좋은 일자리</h2>
+                  <p className="mt-1 text-xs font-semibold text-[#7A8495]">필요한 근무환경 조건으로 바로 찾아보세요</p>
                 </div>
-                <button type="button" onClick={() => onSearch('접근성')} className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-[#1F64E8]">
+                <button type="button" onClick={() => onSearch('접근성')} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#EAF8F3] px-3 text-xs font-extrabold text-[#14843C] hover:bg-[#DDF4EA]">
                   전체 보기 <ArrowRight size={14} />
                 </button>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
                 {accessibilityJobs.map(item => {
                   const Icon = item.icon;
                   return (
-                    <button key={item.label} type="button" onClick={() => onSearch(item.query)} className="min-h-[96px] rounded-[8px] px-2 py-1 text-center hover:bg-[#F4FBFA]">
-                      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-[10px] bg-[#EAF8F3] text-[#1B9A7E]">
+                    <button key={item.label} type="button" onClick={() => onSearch(item.query)} className="min-h-[118px] rounded-xl border border-[#E0F2EA] bg-[#F8FFFC] px-3 py-4 text-center transition hover:border-[#8DDCC2] hover:bg-[#F0FCF8]">
+                      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#DDF7ED] text-[#14843C]">
                         <Icon size={23} />
                       </span>
                       <span className="mt-3 block text-[12px] font-black leading-4 text-black">{item.label}</span>
+                      <span className="mt-2 block text-[11px] font-black text-[#14843C]">{item.count}</span>
                     </button>
                   );
                 })}
@@ -240,23 +255,23 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <section className="rounded-[8px] border border-[#DDE3EA] bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-[19px] font-black text-black">최신 채용공고</h2>
-                <button type="button" onClick={() => onSearch('')} className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[#1F64E8]">
+                <h2 className="text-xl font-black text-black">최신 채용공고</h2>
+                <button type="button" onClick={() => onSearch('')} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#EEF5FF] px-3 text-xs font-extrabold text-[#1F64E8]">
                   전체 보기 <ArrowRight size={14} />
                 </button>
               </div>
-              <div className="mb-2 flex flex-wrap gap-x-8 gap-y-2 border-b border-[#E7ECF2] pb-3 text-[12px] font-bold text-[#475467]">
+              <div className="mb-3 flex flex-wrap gap-2 border-b border-[#E7ECF2] pb-3 text-xs font-bold text-[#475467]">
                 {['전체', 'IT/개발', '사무/관리', '서비스', '디자인', '제조'].map((tab, index) => (
-                  <button key={tab} type="button" onClick={() => onSearch(index === 0 ? '' : tab)} className={index === 0 ? 'text-[#1F64E8]' : 'hover:text-[#1F64E8]'}>
+                  <button key={tab} type="button" onClick={() => onSearch(index === 0 ? '' : tab)} className={`rounded-full px-3 py-1.5 ${index === 0 ? 'bg-[#1F64E8] text-white' : 'bg-[#F1F4F8] hover:bg-[#E4EFFF] hover:text-[#1F64E8]'}`}>
                     {tab}
                   </button>
                 ))}
               </div>
-              <div className="divide-y divide-[#E7ECF2]">
+              <div className="space-y-3">
                 {latestJobs.map(job => (
-                  <article key={job.id} className="flex items-center justify-between gap-4 py-4">
+                  <article key={job.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#EDF1F6] bg-[#FBFCFE] px-4 py-3 transition hover:border-[#B9D6FF] hover:bg-white">
                     <button type="button" onClick={() => navigate('job-detail', job.id)} className="flex min-w-0 items-center gap-3 text-left">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[7px] text-lg font-black text-white" style={{ backgroundColor: job.color }}>
                         {job.company.slice(0, 1)}
@@ -269,27 +284,33 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                         </span>
                       </span>
                     </button>
-                    <span className="shrink-0 text-[12px] font-black text-[#D92D20]">{job.deadline}</span>
+                    <span className="shrink-0 rounded-full bg-[#FFF1F1] px-2.5 py-1 text-xs font-black text-[#D92D20]">{job.deadline}</span>
                   </article>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-[8px] border border-[#DDE3EA] bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-              <div className="grid gap-5 md:grid-cols-[1fr_210px]">
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
+              <div className="grid gap-5 md:grid-cols-[1fr_220px]">
                 <div>
-                  <h2 className="text-[19px] font-black text-black">공지사항</h2>
-                  <div className="mt-4 divide-y divide-[#E7ECF2]">
+                  <h2 className="text-xl font-black text-black">공지사항</h2>
+                  <div className="mt-4 space-y-3">
                     {notices.map(notice => (
-                      <button key={notice.title} type="button" onClick={() => navigate('support')} className="flex w-full items-center justify-between gap-4 py-4 text-left hover:text-[#1F64E8]">
-                        <span className="truncate text-[13px] font-bold">{notice.title}</span>
+                      <button key={notice.title} type="button" onClick={() => navigate('support')} className="flex w-full items-center justify-between gap-4 rounded-xl border border-[#EDF1F6] bg-[#FBFCFE] px-4 py-3 text-left hover:border-[#B9D6FF] hover:text-[#1F64E8]">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <CheckCircle2 size={15} className="shrink-0 text-[#1F64E8]" />
+                          <span className="truncate text-[13px] font-bold">{notice.title}</span>
+                        </span>
                         <span className="shrink-0 text-[11px] font-semibold text-[#7A8495]">{notice.date}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="rounded-[8px] bg-[#EEF5FF] p-5">
-                  <p className="text-[14px] font-black text-[#1F64E8]">일이음 이용 가이드</p>
+                <div className="rounded-xl bg-gradient-to-b from-[#EEF5FF] to-[#E5F0FF] p-5">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-[#1F64E8] shadow-sm">
+                    <ShieldCheck size={20} />
+                  </span>
+                  <p className="mt-4 text-[14px] font-black text-[#1F64E8]">일이음 이용 가이드</p>
                   <p className="mt-3 text-[13px] font-bold leading-6 text-[#344054]">
                     처음 이용하시나요?
                     <br />
@@ -300,7 +321,7 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                   <div className="mt-3 flex justify-end text-[#6D8EDB]">
                     <ClipboardList size={54} />
                   </div>
-                  <button type="button" onClick={() => navigate('support')} className="mt-1 rounded-[6px] bg-[#1F64E8] px-4 py-2 text-[12px] font-black text-white hover:bg-[#1754C8]">
+                  <button type="button" onClick={() => navigate('guide')} className="mt-1 rounded-[6px] bg-[#1F64E8] px-4 py-2 text-[12px] font-black text-white hover:bg-[#1754C8]">
                     자세히 보기
                   </button>
                 </div>
