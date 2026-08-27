@@ -39,6 +39,7 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
   const [isPasswordVerified, setIsPasswordVerified] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const finishLogin = () => {
     if (onLoginSuccess) {
@@ -72,14 +73,17 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
   };
 
   const submitLogin = () => {
+    if (isSubmitting) return;
+
     if (registeredUser) {
       if (loginId.trim() !== registeredUser.loginId.trim() || password !== registeredUser.password) {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
         return;
       }
 
+      setIsSubmitting(true);
       onLogin('personal', registeredUser, autoLogin);
-      finishLogin();
+      window.setTimeout(finishLogin, 180);
       return;
     }
 
@@ -88,8 +92,9 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
       return;
     }
 
+    setIsSubmitting(true);
     onLogin('personal', undefined, autoLogin);
-    finishLogin();
+    window.setTimeout(finishLogin, 180);
   };
 
   const findLoginIdByInfo = () => {
@@ -263,8 +268,8 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
             </div>
           </div>
 
-          <button type="button" onClick={submitLogin} className="mt-6 w-full rounded-lg bg-primary py-3.5 font-medium text-white shadow-sm hover:bg-primary/90">
-            로그인
+          <button type="button" onClick={submitLogin} disabled={isSubmitting} className="mt-6 w-full rounded-lg bg-primary py-3.5 font-medium text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-80">
+            {isSubmitting ? '로그인 중...' : '로그인'}
           </button>
           <button type="button" onClick={() => navigate('register')} className="w-full mt-4 text-sm text-muted-foreground">
             아직 계정이 없으신가요? <span className="font-semibold text-primary">회원가입</span>

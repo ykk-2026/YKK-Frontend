@@ -20,6 +20,7 @@ import {
   Target,
   UserRound,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { Page } from '@/app/types';
 
 interface MainPageProps {
@@ -53,10 +54,15 @@ const accessibilityJobs = [
 ];
 
 const latestJobs = [
-  { id: 'job-15', company: '교보문고', title: '도서 정리 및 고객 안내 알바', location: '대구 중구', type: '파트타임', deadline: 'D-7', color: '#22C55E' },
-  { id: 'job-12', company: 'XYZ 컴퍼니', title: '매장 진열 및 계산 보조 알바', location: '경기 성남시', type: '주말 알바', deadline: 'D-6', color: '#7C3AED' },
-  { id: 'job-3', company: 'LG CNS', title: '데이터 분석가', location: '서울 강서구', type: '정규직', deadline: 'D-7', color: '#A855F7' },
+  { id: 'job-15', category: '서비스', company: '교보문고', title: '도서 정리 및 고객 안내 알바', location: '대구 중구', type: '파트타임', deadline: 'D-7', color: '#22C55E' },
+  { id: 'job-12', category: '서비스', company: 'XYZ 컴퍼니', title: '매장 진열 및 계산 보조 알바', location: '경기 성남시', type: '주말 알바', deadline: 'D-6', color: '#7C3AED' },
+  { id: 'job-3', category: 'IT/개발', company: 'LG CNS', title: '데이터 분석가', location: '서울 강서구', type: '정규직', deadline: 'D-7', color: '#A855F7' },
+  { id: 'job-1', category: 'IT/개발', company: 'ABC테크', title: 'Java 백엔드 개발자', location: '서울 강남구', type: '정규직', deadline: 'D-12', color: '#53657F' },
+  { id: 'job-7', category: '사무/관리', company: '코리아오피스', title: '문서 정리 및 사무보조', location: '서울 중구', type: '계약직', deadline: 'D-5', color: '#0EA5E9' },
+  { id: 'job-4', category: '디자인', company: '리유', title: 'UI/UX 디자이너', location: '서울 영등포구', type: '정규직', deadline: 'D-9', color: '#4FC3A1' },
+  { id: 'job-13', category: '제조', company: '쿠팡풀필먼트', title: '물류센터 포장 검수 알바', location: '인천 서구', type: '단기 알바', deadline: 'D-2', color: '#DC2626' },
 ];
+const latestJobCategories = ['전체', 'IT/개발', '사무/관리', '서비스', '디자인', '제조'];
 
 const notices = [
   { title: '일이음 서비스 리뉴얼 오픈 안내', date: '2025.05.20' },
@@ -109,6 +115,9 @@ function HeroIllustration() {
 }
 
 export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPageProps) {
+  const [selectedLatestCategory, setSelectedLatestCategory] = useState('전체');
+  const displayedLatestJobs = latestJobs.filter(job => selectedLatestCategory === '전체' || job.category === selectedLatestCategory);
+
   const runQuickAction = (action: (typeof quickActions)[number]['action']) => {
     if (action === 'ai') navigate('ai-recommend');
     if (action === 'apply') onSearch('간편 지원');
@@ -263,14 +272,21 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                 </button>
               </div>
               <div className="mb-3 flex flex-wrap gap-2 border-b border-[#E7ECF2] pb-3 text-xs font-bold text-[#475467]">
-                {['전체', 'IT/개발', '사무/관리', '서비스', '디자인', '제조'].map((tab, index) => (
-                  <button key={tab} type="button" onClick={() => onSearch(index === 0 ? '' : tab)} className={`rounded-full px-3 py-1.5 ${index === 0 ? 'bg-[#1F64E8] text-white' : 'bg-[#F1F4F8] hover:bg-[#E4EFFF] hover:text-[#1F64E8]'}`}>
+                {latestJobCategories.map(tab => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setSelectedLatestCategory(tab)}
+                    className={`rounded-full px-3 py-1.5 ${
+                      selectedLatestCategory === tab ? 'bg-[#1F64E8] text-white' : 'bg-[#F1F4F8] hover:bg-[#E4EFFF] hover:text-[#1F64E8]'
+                    }`}
+                  >
                     {tab}
                   </button>
                 ))}
               </div>
               <div className="space-y-3">
-                {latestJobs.map(job => (
+                {displayedLatestJobs.map(job => (
                   <article key={job.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#EDF1F6] bg-[#FBFCFE] px-4 py-3 transition hover:border-[#B9D6FF] hover:bg-white">
                     <button type="button" onClick={() => navigate('job-detail', job.id)} className="flex min-w-0 items-center gap-3 text-left">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[7px] text-lg font-black text-white" style={{ backgroundColor: job.color }}>
