@@ -54,7 +54,7 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
           </button>
         </div>
 
-        <div className="relative mx-auto hidden w-full md:block">
+        <div className="relative mx-auto hidden w-full -translate-x-6 md:block">
           <input
             value={searchQuery}
             onChange={event => setSearchQuery(event.target.value)}

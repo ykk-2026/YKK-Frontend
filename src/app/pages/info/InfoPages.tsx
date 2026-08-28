@@ -1,5 +1,6 @@
 import {
   Accessibility,
+  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Bell,
@@ -21,7 +22,7 @@ import {
   UsersRound,
   Video,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Page } from '@/app/types';
 
 interface InfoPageProps {
@@ -96,13 +97,29 @@ const companyStats = [
 
 const companyFilters = ['전체', 'IT/개발', '서비스', '데이터', '디자인'];
 
-const communityPosts = [
-  { id: 'post-1', category: '면접후기', title: '면접 때 접근성 요청을 어떻게 전달했는지 공유합니다', author: '김민준', replies: 12, views: 124, time: '2시간 전', isNew: true },
-  { id: 'post-2', category: '정보공유', title: '재택근무 가능한 개발 직무 모아봤어요', author: '이서연', replies: 8, views: 98, time: '5시간 전', isNew: false },
-  { id: 'post-3', category: '질문', title: '이력서에 보조기기 사용 여부를 적어도 될까요?', author: '박지훈', replies: 5, views: 76, time: '1일 전', isNew: false },
-  { id: 'post-4', category: '스터디', title: '프론트엔드 포트폴리오 피드백 모임 모집', author: '최하늘', replies: 9, views: 65, time: '1일 전', isNew: false },
-  { id: 'post-5', category: '자기소개', title: 'UX 디자이너로 취업 준비 중입니다!', author: '정유진', replies: 7, views: 53, time: '2일 전', isNew: false },
-];
+interface CommunityPost {
+  id: string;
+  category: string;
+  title: string;
+  author: string;
+  content: string;
+  comments: CommunityComment[];
+  replies: number;
+  views: number;
+  time: string;
+  isNew: boolean;
+}
+
+interface CommunityComment {
+  id: string;
+  author: string;
+  content: string;
+  time: string;
+}
+
+const communityPosts: CommunityPost[] = [];
+const communityPostsStorageKey = 'ileeumCommunityPosts';
+const communityViewedPostsStorageKey = 'ileeumCommunityViewedPosts';
 
 const communityBoards = [
   { title: '취업후기', description: '지원 과정과 합격 경험을 공유합니다.', count: '47개' },
@@ -272,13 +289,12 @@ export function CompanyInfoPage({ navigate }: InfoPageProps) {
   );
 }
 
-const communityTabs = ['전체 게시글', '면접후기', '정보공유', '질문', '스터디', '자기소개'];
+const communityTabs = ['전체 게시글', '면접후기', '정보공유', '질문'];
+const writableCommunityCategories = communityTabs.slice(1);
 const categoryTone: Record<string, string> = {
   면접후기: 'bg-[#E7F8EF] text-[#14843C]',
   정보공유: 'bg-[#EEF5FF] text-[#0D6BEA]',
   질문: 'bg-[#FFF1E7] text-[#C05621]',
-  스터디: 'bg-[#F0EAFF] text-[#6D28D9]',
-  자기소개: 'bg-[#F1F4F8] text-[#344054]',
 };
 
 const communityGuideDetails = [
@@ -297,43 +313,143 @@ const communityGuideDetails = [
 ];
 
 export function CommunityPage() {
-  const [posts, setPosts] = useState(communityPosts);
+  const [posts, setPosts] = useState<CommunityPost[]>(() => {
+    if (typeof window === 'undefined') return communityPosts;
+
+    const savedPosts = localStorage.getItem(communityPostsStorageKey);
+    if (!savedPosts) return communityPosts;
+
+    try {
+      const parsedPosts = JSON.parse(savedPosts) as CommunityPost[];
+      return parsedPosts
+        .filter(post => writableCommunityCategories.includes(post.category))
+        .map(post => {
+          const comments = Array.isArray(post.comments) ? post.comments : [];
+          return {
+            ...post,
+            comments,
+            replies: comments.length,
+            views: 0,
+          };
+        });
+    } catch {
+      localStorage.removeItem(communityPostsStorageKey);
+      return communityPosts;
+    }
+  });
   const [activeTab, setActiveTab] = useState('전체 게시글');
   const [query, setQuery] = useState('');
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [viewedPostIds, setViewedPostIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+
+    const savedViewedPosts = localStorage.getItem(communityViewedPostsStorageKey);
+    if (!savedViewedPosts) return new Set();
+
+    try {
+      return new Set(JSON.parse(savedViewedPosts) as string[]);
+    } catch {
+      localStorage.removeItem(communityViewedPostsStorageKey);
+      return new Set();
+    }
+  });
   const [showWriter, setShowWriter] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [form, setForm] = useState({ category: '정보공유', title: '', author: '나', content: '' });
+  const [commentForm, setCommentForm] = useState({ author: '나', content: '' });
+
+  useEffect(() => {
+    localStorage.setItem(communityPostsStorageKey, JSON.stringify(posts));
+  }, [posts]);
+
+  useEffect(() => {
+    localStorage.setItem(communityViewedPostsStorageKey, JSON.stringify(Array.from(viewedPostIds)));
+  }, [viewedPostIds]);
 
   const filteredPosts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return posts.filter(post => {
       const matchTab = activeTab === '전체 게시글' || post.category === activeTab;
-      const matchQuery = !normalizedQuery || [post.category, post.title, post.author].join(' ').toLowerCase().includes(normalizedQuery);
+      const matchQuery = !normalizedQuery || [post.category, post.title, post.author, post.content].join(' ').toLowerCase().includes(normalizedQuery);
       return matchTab && matchQuery;
     });
   }, [activeTab, posts, query]);
+  const selectedPost = posts.find(post => post.id === selectedPostId) || null;
 
   const submitPost = () => {
-    if (!form.title.trim()) return;
+    if (!form.title.trim() || !form.content.trim()) return;
+
+    const nextPost: CommunityPost = {
+      id: `post-${Date.now()}`,
+      category: form.category,
+      title: form.title.trim(),
+      author: form.author.trim() || '나',
+      content: form.content.trim(),
+      comments: [],
+      replies: 0,
+      views: 0,
+      time: '방금 전',
+      isNew: true,
+    };
 
     setPosts(prev => [
-      {
-        id: `post-${Date.now()}`,
-        category: form.category,
-        title: form.title.trim(),
-        author: form.author.trim() || '나',
-        replies: 0,
-        views: 0,
-        time: '방금 전',
-        isNew: true,
-      },
+      nextPost,
       ...prev,
     ]);
     setForm({ category: '정보공유', title: '', author: '나', content: '' });
     setActiveTab('전체 게시글');
+    setQuery('');
     setShowWriter(false);
+  };
+
+  const openPost = (post: CommunityPost) => {
+    setSelectedPostId(post.id);
+    setCommentForm({ author: '나', content: '' });
+    if (viewedPostIds.has(post.id)) {
+      setPosts(prev => prev.map(item => (item.id === post.id ? { ...item, isNew: false } : item)));
+      return;
+    }
+
+    setViewedPostIds(prev => new Set(prev).add(post.id));
+    setPosts(prev => prev.map(item => (item.id === post.id ? { ...item, views: item.views + 1, isNew: false } : item)));
+  };
+
+  const deletePost = (postId: string) => {
+    setPosts(prev => prev.filter(post => post.id !== postId));
+    setSelectedPostId(prev => (prev === postId ? null : prev));
+    setBookmarks(prev => {
+      const next = new Set(prev);
+      next.delete(postId);
+      return next;
+    });
+  };
+
+  const submitComment = () => {
+    if (!selectedPost || !commentForm.content.trim()) return;
+
+    const nextComment: CommunityComment = {
+      id: `comment-${Date.now()}`,
+      author: commentForm.author.trim() || '나',
+      content: commentForm.content.trim(),
+      time: '방금 전',
+    };
+
+    setPosts(prev => prev.map(post => {
+      if (post.id !== selectedPost.id) return post;
+      const comments = [...post.comments, nextComment];
+      return { ...post, comments, replies: comments.length };
+    }));
+    setCommentForm({ author: '나', content: '' });
+  };
+
+  const deleteComment = (postId: string, commentId: string) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id !== postId) return post;
+      const comments = post.comments.filter(comment => comment.id !== commentId);
+      return { ...post, comments, replies: comments.length };
+    }));
   };
 
   const toggleBookmark = (postId: string) => {
@@ -373,9 +489,9 @@ export function CommunityPage() {
           <aside className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
             <h2 className="flex items-center gap-2 text-lg font-black text-black"><UsersRound size={20} className="text-[#14843C]" /> 이번 주 활동</h2>
             <div className="mt-5 space-y-4 text-sm font-bold text-[#344054]">
-              <p className="flex items-center gap-3"><FileText size={17} className="text-[#0D6BEA]" /> 새 게시글 24개</p>
-              <p className="flex items-center gap-3"><BadgeCheck size={17} className="text-[#0D6BEA]" /> 취업 후기 7개</p>
-              <p className="flex items-center gap-3"><MessageCircle size={17} className="text-[#0D6BEA]" /> 답변 완료 질문 18개</p>
+              <p className="flex items-center gap-3"><FileText size={17} className="text-[#0D6BEA]" /> 등록 게시글 {posts.length}개</p>
+              <p className="flex items-center gap-3"><BadgeCheck size={17} className="text-[#0D6BEA]" /> 저장 게시글 {bookmarks.size}개</p>
+              <p className="flex items-center gap-3"><MessageCircle size={17} className="text-[#0D6BEA]" /> 새 게시글 {posts.filter(post => post.isNew).length}개</p>
             </div>
           </aside>
         </div>
@@ -388,7 +504,10 @@ export function CommunityPage() {
                   <button
                     type="button"
                     key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      setSelectedPostId(null);
+                    }}
                     className={`relative h-10 text-sm font-black ${activeTab === tab ? 'text-[#0D6BEA]' : 'text-black hover:text-[#0D6BEA]'}`}
                   >
                     {tab}
@@ -416,7 +535,7 @@ export function CommunityPage() {
               <div className="border-b border-[#E7ECF2] bg-[#F8FAFC] px-6 py-4">
                 <div className="grid gap-3 md:grid-cols-[130px_1fr_120px]">
                   <select value={form.category} onChange={event => setForm(prev => ({ ...prev, category: event.target.value }))} className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-bold outline-none">
-                    {communityTabs.slice(1).map(tab => <option key={tab}>{tab}</option>)}
+                    {writableCommunityCategories.map(tab => <option key={tab}>{tab}</option>)}
                   </select>
                   <input value={form.title} onChange={event => setForm(prev => ({ ...prev, title: event.target.value }))} placeholder="제목을 입력하세요" className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-semibold outline-none" />
                   <input value={form.author} onChange={event => setForm(prev => ({ ...prev, author: event.target.value }))} placeholder="작성자" className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-semibold outline-none" />
@@ -424,48 +543,124 @@ export function CommunityPage() {
                 <textarea value={form.content} onChange={event => setForm(prev => ({ ...prev, content: event.target.value }))} placeholder="내용을 입력하세요" className="mt-3 min-h-20 w-full rounded-lg border border-[#D7DDE5] bg-white px-3 py-3 text-sm font-semibold outline-none" />
                 <div className="mt-3 flex justify-end gap-2">
                   <button type="button" onClick={() => setShowWriter(false)} className="h-9 rounded-lg border border-[#D7DDE5] px-4 text-sm font-bold text-[#344054]">취소</button>
-                  <button type="button" onClick={submitPost} className="h-9 rounded-lg bg-[#0D6BEA] px-4 text-sm font-black text-white">등록</button>
+                  <button type="button" onClick={submitPost} disabled={!form.title.trim() || !form.content.trim()} className="h-9 rounded-lg bg-[#0D6BEA] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">등록</button>
                 </div>
               </div>
             )}
 
-            <div className="divide-y divide-[#E7ECF2]">
-              {filteredPosts.map(post => (
-                <article key={post.id} className="flex items-center justify-between gap-4 px-6 py-5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[post.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{post.category}</span>
-                      {post.isNew && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[9px] font-black text-white">N</span>}
-                    </div>
-                    <h3 className="mt-3 truncate text-base font-black text-black">{post.title}</h3>
-                    <p className="mt-2 text-sm font-semibold text-[#7A8495]">{post.author} · 댓글 {post.replies} · 조회 {post.views} · {post.time}</p>
-                  </div>
-                  <button type="button" onClick={() => toggleBookmark(post.id)} aria-label="게시글 저장" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-[#F8FAFC] ${bookmarks.has(post.id) ? 'text-[#0D6BEA]' : 'text-[#111827]'}`}>
-                    <Bookmark size={19} fill={bookmarks.has(post.id) ? 'currentColor' : 'none'} />
-                  </button>
-                </article>
-              ))}
-              {filteredPosts.length === 0 && (
-                <div className="px-6 py-14 text-center text-sm font-bold text-[#718096]">검색 결과가 없습니다.</div>
-              )}
-            </div>
+            {selectedPost ? (
+              <div className="px-6 py-5">
+                <button type="button" onClick={() => setSelectedPostId(null)} className="mb-5 inline-flex items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold text-[#344054] hover:bg-[#F8FAFC]">
+                  <ArrowLeft size={16} />
+                  목록으로
+                </button>
 
-            <div className="flex items-center justify-center gap-5 border-t border-[#E7ECF2] px-6 py-5 text-sm font-bold">
-              <button type="button" className="text-[#8A94A6]">‹</button>
-              {[1, 2, 3, 4, 5].map(page => (
-                <button key={page} type="button" className={`flex h-8 w-8 items-center justify-center rounded-lg ${page === 1 ? 'bg-[#0D6BEA] text-white' : 'text-black hover:bg-[#F1F4F8]'}`}>{page}</button>
-              ))}
-              <span>...</span>
-              <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#F1F4F8]">20</button>
-              <button type="button" className="text-black">›</button>
-            </div>
+                <article>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[selectedPost.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{selectedPost.category}</span>
+                    {selectedPost.isNew && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[9px] font-black text-white">N</span>}
+                    <span className="text-xs font-bold text-[#7A8495]">{selectedPost.author} · 댓글 {selectedPost.replies} · 조회 {selectedPost.views} · {selectedPost.time}</span>
+                  </div>
+                  <h2 className="mt-4 text-2xl font-black leading-8 text-black">{selectedPost.title}</h2>
+                  <div className="mt-5 rounded-lg bg-[#F8FAFC] px-5 py-5">
+                    <p className="text-sm font-black text-black">소개글</p>
+                    <p className="mt-3 min-h-[96px] whitespace-pre-line text-sm font-semibold leading-7 text-[#344054]">
+                      {selectedPost.content}
+                    </p>
+                  </div>
+                </article>
+
+                <section className="mt-6 border-t border-[#E7ECF2] pt-5">
+                  <h3 className="flex items-center gap-2 text-lg font-black text-black">
+                    <MessageCircle size={19} />
+                    댓글 {selectedPost.comments.length}
+                  </h3>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-[120px_1fr_auto]">
+                    <input
+                      value={commentForm.author}
+                      onChange={event => setCommentForm(prev => ({ ...prev, author: event.target.value }))}
+                      placeholder="작성자"
+                      className="h-11 rounded-lg border border-[#D7DDE5] px-3 text-sm font-semibold outline-none focus:border-[#0D6BEA]"
+                    />
+                    <input
+                      value={commentForm.content}
+                      onChange={event => setCommentForm(prev => ({ ...prev, content: event.target.value }))}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') submitComment();
+                      }}
+                      placeholder="댓글을 입력하세요"
+                      className="h-11 rounded-lg border border-[#D7DDE5] px-3 text-sm font-semibold outline-none focus:border-[#0D6BEA]"
+                    />
+                    <button type="button" onClick={submitComment} disabled={!commentForm.content.trim()} className="h-11 rounded-lg bg-[#0D6BEA] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">
+                      등록
+                    </button>
+                  </div>
+
+                  <div className="mt-4 divide-y divide-[#E7ECF2] rounded-lg border border-[#E7ECF2] bg-white">
+                    {selectedPost.comments.map(comment => (
+                      <article key={comment.id} className="flex items-start justify-between gap-4 px-4 py-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-black">{comment.author}</p>
+                          <p className="mt-1 whitespace-pre-line text-sm font-semibold leading-6 text-[#344054]">{comment.content}</p>
+                          <p className="mt-2 text-xs font-bold text-[#8A94A6]">{comment.time}</p>
+                        </div>
+                        <button type="button" onClick={() => deleteComment(selectedPost.id, comment.id)} className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
+                          삭제
+                        </button>
+                      </article>
+                    ))}
+                    {selectedPost.comments.length === 0 && (
+                      <div className="px-4 py-8 text-center text-sm font-bold text-[#718096]">첫 댓글을 작성해 주세요.</div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-[#E7ECF2]">
+                  {filteredPosts.map(post => (
+                    <article key={post.id} className="flex items-center justify-between gap-4 px-6 py-5">
+                      <button type="button" onClick={() => openPost(post)} className="min-w-0 flex-1 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[post.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{post.category}</span>
+                          {post.isNew && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[9px] font-black text-white">N</span>}
+                        </div>
+                        <h3 className="mt-3 truncate text-base font-black text-black">{post.title}</h3>
+                        <p className="mt-2 text-sm font-semibold text-[#7A8495]">{post.author} · 댓글 {post.replies} · 조회 {post.views} · {post.time}</p>
+                      </button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button type="button" onClick={() => toggleBookmark(post.id)} aria-label="게시글 저장" className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[#F8FAFC] ${bookmarks.has(post.id) ? 'text-[#0D6BEA]' : 'text-[#111827]'}`}>
+                          <Bookmark size={19} fill={bookmarks.has(post.id) ? 'currentColor' : 'none'} />
+                        </button>
+                        <button type="button" onClick={() => deletePost(post.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
+                          삭제
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                  {filteredPosts.length === 0 && (
+                    <div className="px-6 py-14 text-center">
+                      <p className="text-base font-black text-black">등록된 게시글이 없습니다.</p>
+                      <p className="mt-2 text-sm font-bold text-[#718096]">글쓰기를 눌러 첫 게시글을 작성해 주세요.</p>
+                    </div>
+                  )}
+                </div>
+
+                {filteredPosts.length > 0 && (
+                  <div className="flex items-center justify-center border-t border-[#E7ECF2] px-6 py-5 text-sm font-bold text-[#7A8495]">
+                    총 {filteredPosts.length}개 게시글
+                  </div>
+                )}
+              </>
+            )}
           </section>
 
           <aside className="space-y-5">
             <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
               <h2 className="flex items-center gap-2 text-lg font-black text-black"><Star size={20} className="text-[#FF6B00]" fill="currentColor" /> 인기 주제</h2>
               <div className="mt-5 flex flex-wrap gap-2">
-                {['#면접후기', '#재택근무', '#보조공학', '#자기소개서', '#스터디'].map(topic => (
+                {['#면접후기', '#재택근무', '#보조공학', '#질문'].map(topic => (
                   <button type="button" key={topic} onClick={() => setQuery(topic.replace('#', ''))} className="rounded-lg bg-[#EEF5FF] px-3 py-2 text-sm font-black text-[#0D6BEA] hover:bg-[#DCEBFF]">
                     {topic}
                   </button>
