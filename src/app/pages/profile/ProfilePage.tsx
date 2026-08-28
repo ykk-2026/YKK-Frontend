@@ -5,6 +5,7 @@ import {
   BookmarkCheck,
   Briefcase,
   Camera,
+  Check,
   Clock3,
   Eye,
   EyeOff,
@@ -26,6 +27,7 @@ interface ProfilePageProps {
   bookmarks: Set<string>;
   appliedJobIds?: Set<string>;
   applicationForms?: Record<string, ApplicationFormData>;
+  initialMenu?: string;
   onBookmark: (id: string) => void;
   onUpdateApplication?: (id: string, formData: ApplicationFormData) => void;
   onDeleteApplication?: (id: string) => void;
@@ -73,6 +75,15 @@ const workTypes = [
   { label: '유연근무', field: 'flexiblePreferred' as const },
   { label: '하이브리드', field: 'hybridPreferred' as const },
   { label: '출퇴근 근무', field: 'onsitePreferred' as const },
+];
+
+const workEnvironmentOptions = [
+  { label: '휠체어 접근 필요', field: 'wheelchairRequired' as const },
+  { label: '장애인 화장실 필요', field: 'accessibleRestroomRequired' as const },
+  { label: '장애인 주차시설 필요', field: 'disabledParkingRequired' as const },
+  { label: '재택근무 선호', field: 'remotePreferred' as const },
+  { label: '유연근무 선호', field: 'flexiblePreferred' as const },
+  { label: '보조공학기기 필요', field: 'assistiveDeviceRequired' as const },
 ];
 
 const salaryPresets = ['3000', '4000', '5000', '6000', '10000'];
@@ -156,6 +167,7 @@ export function ProfilePage({
   bookmarks,
   appliedJobIds = new Set(),
   applicationForms = {},
+  initialMenu = '내 프로필',
   onBookmark,
   onUpdateApplication,
   onDeleteApplication,
@@ -164,7 +176,7 @@ export function ProfilePage({
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const userId = currentUser?.loginId || currentUser?.id || 'guest';
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const [activeMenu, setActiveMenu] = useState('내 프로필');
+  const [activeMenu, setActiveMenu] = useState(initialMenu);
   const [savedMessage, setSavedMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
@@ -203,10 +215,14 @@ export function ProfilePage({
     careerType: 'ANY',
     careerYears: '0',
     minSalary: '',
-    remotePreferred: false,
-    flexiblePreferred: false,
+    remotePreferred: Boolean(currentUser?.remotePreferred),
+    flexiblePreferred: Boolean(currentUser?.flexiblePreferred),
     hybridPreferred: false,
     onsitePreferred: false,
+    wheelchairRequired: Boolean(currentUser?.wheelchairRequired),
+    accessibleRestroomRequired: Boolean(currentUser?.accessibleRestroomRequired),
+    disabledParkingRequired: Boolean(currentUser?.disabledParkingRequired),
+    assistiveDeviceRequired: Boolean(currentUser?.assistiveDeviceRequired),
     contactTimeStart: '09:00',
     contactTimeEnd: '18:00',
     contactMethod: 'PHONE',
@@ -217,6 +233,10 @@ export function ProfilePage({
   useEffect(() => {
     setProfileAvatar(loadProfilePhoto(userId));
   }, [userId]);
+
+  useEffect(() => {
+    setActiveMenu(initialMenu);
+  }, [initialMenu]);
 
   const avatarInitial = (profileForm.name.trim() || initialName).slice(0, 1);
   const selectedDefaultProfile = defaultProfileOptions.find(option => option.id === profileAvatar.value) || defaultProfileOptions[0];
@@ -282,7 +302,7 @@ export function ProfilePage({
       return;
     }
 
-    setSavedMessage('스키마에 맞는 프로필 정보가 저장되었습니다.');
+    setSavedMessage('프로필 정보가 저장되었습니다.');
     window.alert('프로필 정보가 저장되었습니다.');
   };
 
@@ -436,7 +456,6 @@ export function ProfilePage({
               <div>
                 <p className="text-sm font-bold text-[#0D6BEA]">{activeMenu}</p>
                 <h1 className="mt-1 text-2xl font-extrabold text-black">프로필 관리</h1>
-                <p className="mt-2 text-sm font-semibold text-[#7A8495]">제공된 MariaDB 스키마 기준으로 저장 가능한 정보만 관리합니다.</p>
               </div>
               {activeMenu === '내 프로필' && (
                 <div className="flex gap-2">
@@ -458,7 +477,6 @@ export function ProfilePage({
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-lg font-extrabold text-black">지원 현황</h2>
-                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">job_application 테이블의 지원 상태에 해당하는 화면입니다.</p>
                 </div>
                 <button type="button" onClick={() => navigate('jobs')} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
                   공고 더 보기 <ArrowRight size={15} />
@@ -529,7 +547,6 @@ export function ProfilePage({
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-lg font-extrabold text-black">관심 공고</h2>
-                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">interest_job 테이블에 저장될 공고 목록입니다.</p>
                 </div>
                 <button type="button" onClick={() => navigate('jobs')} className="inline-flex items-center gap-1 text-sm font-extrabold text-[#0D6BEA]">
                   공고 더 보기 <ArrowRight size={15} />
@@ -583,7 +600,6 @@ export function ProfilePage({
             <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
               <div className="mb-5">
                 <h2 className="text-lg font-extrabold text-black">계정 설정</h2>
-                <p className="mt-1 text-sm font-semibold text-[#7A8495]">member 테이블의 기본 회원 정보입니다.</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -627,7 +643,6 @@ export function ProfilePage({
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-extrabold">회원 기본 정보</h2>
-                    <p className="mt-1 text-sm font-semibold text-[#7A8495]">member 테이블에 저장되는 필수 정보입니다.</p>
                   </div>
                   <button type="button" onClick={() => setIsPhotoPickerOpen(prev => !prev)} className="inline-flex items-center gap-2 rounded-lg border border-[#D7DDE5] px-3 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
                     <Camera size={16} />
@@ -808,7 +823,6 @@ export function ProfilePage({
                         만원 이상
                       </span>
                     </div>
-                    <p className="mt-2 text-xs font-semibold text-[#7A8495]">DB의 min_salary는 만원 단위입니다. 예: 4,000만원 이상, 10,000만원 이상</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {salaryPresets.map(salary => (
                         <button
@@ -826,22 +840,47 @@ export function ProfilePage({
                   </label>
                 </div>
 
-                <div className="mt-5">
-                  <p className="mb-2 text-sm font-bold">선호 근무 방식</p>
-                  <div className="flex flex-wrap gap-2">
-                    {workTypes.map(workType => (
-                      <button
-                        type="button"
-                        key={workType.field}
-                        onClick={() => toggleWorkType(workType.field)}
-                        className={`rounded-full px-4 py-2 text-sm font-bold ${
-                          profileForm[workType.field] ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F3F6] text-black'
-                        }`}
-                      >
-                        {workType.label}
-                      </button>
-                    ))}
-                  </div>
+              </section>
+
+              <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+                <div className="mb-5">
+                  <h2 className="text-lg font-extrabold">희망 근무환경 및 편의지원</h2>
+                  <p className="mt-1 text-sm font-semibold text-[#7A8495]">취업 시 필요하거나 선호하는 근무환경을 선택해주세요.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {workEnvironmentOptions.map(option => {
+                    const inputId = `profile-${option.field}`;
+                    const checked = profileForm[option.field];
+
+                    return (
+                      <div key={option.field} className="relative">
+                        <input
+                          id={inputId}
+                          name={option.field}
+                          type="checkbox"
+                          checked={checked}
+                          onChange={event => updateForm(option.field, event.target.checked)}
+                          className="peer sr-only"
+                        />
+                        <label
+                          htmlFor={inputId}
+                          className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-sm font-bold transition ${
+                            checked ? 'border-[#0D6BEA] bg-[#EEF5FF] text-[#0D6BEA]' : 'border-[#DCEAF3] bg-white text-[#344054] hover:bg-[#F8FAFC]'
+                          } peer-focus-visible:ring-4 peer-focus-visible:ring-[#0D6BEA]/15`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                              checked ? 'border-[#0D6BEA] bg-[#0D6BEA] text-white' : 'border-[#B8C2CC] bg-white text-transparent'
+                            }`}
+                          >
+                            {checked && <Check size={14} strokeWidth={3} />}
+                          </span>
+                          <span>{option.label}</span>
+                        </label>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
 

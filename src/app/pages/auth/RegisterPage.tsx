@@ -1,4 +1,4 @@
-import { ArrowLeft, ClipboardList, Eye, EyeOff, ShieldCheck, Target } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { BrandLogo } from '@/app/components/BrandLogo';
 import type { Page, RegisterFormData } from '@/app/types';
@@ -133,46 +133,6 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
 
   return (
     <div className="flex min-h-screen items-stretch justify-center bg-[#F3F7FF]">
-      <aside className="hidden w-[360px] flex-col justify-between border-r border-[#DCEAF3] bg-gradient-to-b from-white to-[#EAF4FF] px-8 py-10 lg:flex">
-        <div>
-          <button type="button" onClick={() => navigate('main')} className="mb-12 flex items-center gap-2 font-bold text-foreground">
-            <BrandLogo compact />
-          </button>
-
-          <h1 className="text-3xl font-bold leading-tight text-foreground">
-            당신의 가능성을
-            <br />
-            <span className="text-primary">일할 기회로</span>
-          </h1>
-          <p className="mt-6 text-sm leading-6 text-muted-foreground">
-            역량과 접근성 조건에 맞는 일자리를 추천하고, 지원 과정을 쉽게 관리할 수 있도록 도와드립니다.
-          </p>
-
-          <div className="mt-12 space-y-7">
-            {[
-              { title: '맞춤형 추천', desc: '입력한 조건에 맞는 채용 공고를 추천합니다.', icon: Target },
-              { title: '간편한 지원', desc: '프로필을 기반으로 빠르게 지원할 수 있습니다.', icon: ClipboardList },
-              { title: '안전한 관리', desc: '개인정보와 지원 현황을 안정적으로 관리합니다.', icon: ShieldCheck },
-            ].map(item => {
-              const Icon = item.icon;
-              return (
-                <div key={item.title} className="flex gap-4">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#DDEBFF] text-primary">
-                    <Icon size={20} />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-foreground">{item.title}</p>
-                    <p className="mt-1 text-sm leading-5 text-muted-foreground">{item.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="h-28 rounded-t-[80px] bg-[#CFE8FF] opacity-70" />
-      </aside>
-
       <main className="w-full max-w-4xl bg-white px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-3xl">
           <button
@@ -184,7 +144,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
             뒤로가기
           </button>
 
-          <button type="button" onClick={() => navigate('main')} className="mb-8 flex items-center gap-2 font-bold text-foreground lg:hidden">
+          <button type="button" onClick={() => navigate('main')} className="mb-8 flex items-center gap-2 font-bold text-foreground">
             <BrandLogo compact />
           </button>
 
