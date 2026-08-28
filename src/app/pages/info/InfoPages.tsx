@@ -32,51 +32,69 @@ const companies = [
   {
     name: 'Samsung SDS',
     field: '클라우드 · SI',
-    description: '클라우드 기반 엔터프라이즈 솔루션을 개발하며 재택근무와 유연근무를 함께 운영합니다.',
-    tags: ['재택근무', '엘리베이터', '장애인 주차'],
+    location: '서울 송파구',
+    scale: '대기업',
+    description: '클라우드와 엔터프라이즈 솔루션 직무를 중심으로 재택근무, 유연근무, 사무공간 접근성 지원을 함께 운영합니다.',
+    tags: ['재택근무', '유연근무', '장애인 주차'],
     openings: 3,
     hiring: ['Java 백엔드 개발자', '시스템 운영 엔지니어'],
     accessibility: ['휠체어 이동 동선', '장애인 주차구역', '높낮이 조절 책상'],
+    support: ['화상 면접 가능', '근무시간 조정', '보조공학기기 상담'],
+    score: 96,
     color: '#1B6EF3',
   },
   {
     name: 'Kakao',
     field: '플랫폼 서비스',
-    description: '플랫폼 서비스 운영 직무를 중심으로 하이브리드 근무와 보조공학기기 지원 제도를 제공합니다.',
-    tags: ['하이브리드', '보조기기', '청각지원'],
+    location: '경기 성남시',
+    scale: '대기업',
+    description: '플랫폼 개발과 서비스 운영 직무에서 하이브리드 근무, 문자 안내, 보조공학기기 구매 지원 제도를 제공합니다.',
+    tags: ['하이브리드', '보조기기', '문자 안내'],
     openings: 2,
     hiring: ['프론트엔드 개발자', '서비스 운영 매니저'],
     accessibility: ['화상 면접', '문자 안내', '보조기기 구매 지원'],
+    support: ['청각장애 지원', '원격 협업 도구', '면접 방식 선택'],
+    score: 94,
     color: '#F59E0B',
   },
   {
     name: 'LG CNS',
     field: 'AI · 데이터',
-    description: '데이터 분석과 AI 프로젝트 직무 채용을 진행하며 이동 편의시설과 건강검진을 지원합니다.',
-    tags: ['정규직', '건강검진', '서울권'],
+    location: '서울 강서구',
+    scale: '대기업',
+    description: '데이터 분석과 AI 프로젝트 직무 채용을 진행하며 이동 편의시설, 건강검진, 근무시간 조정을 지원합니다.',
+    tags: ['정규직', '건강검진', '근무시간 조정'],
     openings: 1,
     hiring: ['데이터 분석가'],
     accessibility: ['엘리베이터', '장애인 화장실', '근무시간 조정'],
+    support: ['건강검진 지원', '사무공간 접근성 확인', '멘토 배정'],
+    score: 91,
     color: '#8B5CF6',
   },
   {
     name: 'Naver',
     field: '검색 · 커머스',
-    description: '서비스 기획, 운영, 디자인 직무에서 접근성 검토 절차와 원격 협업 환경을 갖추고 있습니다.',
-    tags: ['서비스기획', '원격협업', '접근성 검토'],
+    location: '경기 성남시',
+    scale: '대기업',
+    description: '서비스 기획, 운영, 디자인 직무에서 접근성 검토 절차와 원격 협업 환경, 회의 자막 지원을 제공합니다.',
+    tags: ['서비스기획', '원격협업', '회의 자막'],
     openings: 4,
     hiring: ['서비스 기획자', '콘텐츠 운영 담당자'],
     accessibility: ['재택 병행', '셔틀버스', '회의 자막 지원'],
+    support: ['원격근무 병행', '접근성 리뷰 참여', '셔틀버스'],
+    score: 95,
     color: '#10B981',
   },
 ];
 
 const companyStats = [
-  { label: '채용 중 기업', value: '24곳' },
-  { label: '접근성 확인 공고', value: '86건' },
-  { label: '재택/유연근무', value: '41건' },
-  { label: '보조기기 지원', value: '18건' },
+  { label: '검증 기업', value: '24곳', helper: '접근성 항목 확인 완료' },
+  { label: '진행 공고', value: '86건', helper: '장애친화 조건 포함' },
+  { label: '유연근무', value: '41건', helper: '재택·하이브리드 포함' },
+  { label: '지원 제도', value: '18건', helper: '보조기기·면접 편의' },
 ];
+
+const companyFilters = ['전체', 'IT/개발', '서비스', '데이터', '디자인'];
 
 const communityPosts = [
   { id: 'post-1', category: '면접후기', title: '면접 때 접근성 요청을 어떻게 전달했는지 공유합니다', author: '김민준', replies: 12, views: 124, time: '2시간 전', isNew: true },
@@ -109,55 +127,125 @@ const guideFaqs = [
 ];
 
 export function CompanyInfoPage({ navigate }: InfoPageProps) {
+  const [activeFilter, setActiveFilter] = useState('전체');
+  const filteredCompanies = companies.filter(company => {
+    if (activeFilter === '전체') return true;
+    const target = [company.field, company.description, ...company.hiring, ...company.tags].join(' ');
+    return target.includes(activeFilter.replace('IT/개발', '개발'));
+  });
+
   return (
     <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
-      <main className="mx-auto max-w-[1240px] px-6 py-6">
-        <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
-          <span className="rounded-full bg-[#E4EFFF] px-4 py-1.5 text-xs font-extrabold text-[#0D6BEA]">기업 정보</span>
-          <h1 className="mt-4 text-3xl font-black text-black">장애친화 기업을 한눈에 확인하세요</h1>
-          <p className="mt-2 text-sm font-semibold text-[#596273]">채용 중인 기업의 근무환경, 접근성 지원, 진행 중인 공고를 기업별로 정리했습니다.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+      <main className="mx-auto max-w-[1240px] px-5 py-6 sm:px-6">
+        <section className="overflow-hidden rounded-xl border border-[#DDE3EA] bg-white shadow-sm">
+          <div className="grid gap-6 bg-[#EEF5FF] p-6 lg:grid-cols-[1fr_300px] lg:items-center">
+            <div>
+              <span className="rounded-full bg-white px-4 py-1.5 text-xs font-extrabold text-[#0D6BEA]">기업 정보</span>
+              <h1 className="mt-4 text-3xl font-black leading-tight text-black">장애친화 기업 정보를 비교하세요</h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#596273]">
+                채용 중인 기업의 근무형태, 접근성 시설, 면접 편의, 지원 제도를 공고와 함께 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="rounded-lg border border-[#D7E6FF] bg-white p-4">
+              <p className="text-sm font-black text-black">확인 기준</p>
+              <div className="mt-3 space-y-2 text-xs font-bold text-[#596273]">
+                <p className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[#14843C]" /> 이동·출입 접근성</p>
+                <p className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[#14843C]" /> 보조공학기기 지원</p>
+                <p className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[#14843C]" /> 면접 및 근무 편의</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 border-t border-[#DDE8F8] p-5 sm:grid-cols-4">
             {companyStats.map(item => (
               <div key={item.label} className="rounded-lg bg-[#F8FAFC] px-4 py-3">
                 <p className="text-xs font-bold text-[#718096]">{item.label}</p>
                 <p className="mt-1 text-xl font-black text-black">{item.value}</p>
+                <p className="mt-1 text-[11px] font-semibold text-[#8A94A6]">{item.helper}</p>
               </div>
             ))}
           </div>
         </section>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-          <section className="grid gap-4 md:grid-cols-2">
-            {companies.map(company => (
-              <article key={company.name} className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-black text-white" style={{ backgroundColor: company.color }}>
-                    {company.name.slice(0, 1)}
-                  </span>
-                  <div>
-                    <h2 className="text-lg font-black text-black">{company.name}</h2>
-                    <p className="mt-1 text-sm font-bold text-[#596273]">{company.field}</p>
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#DDE3EA] bg-white px-5 py-4 shadow-sm">
+              <div>
+                <h2 className="text-lg font-black text-black">기업별 상세 정보</h2>
+                <p className="mt-1 text-xs font-bold text-[#7A8495]">필터를 누르면 이 페이지 안에서 바로 바뀝니다.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {companyFilters.map(filter => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setActiveFilter(filter)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                      activeFilter === filter ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F4F8] text-[#344054] hover:bg-[#E4EFFF] hover:text-[#0D6BEA]'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {filteredCompanies.map(company => (
+                <article key={company.name} className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm transition hover:border-[#B9D6FF] hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-black text-white" style={{ backgroundColor: company.color }}>
+                        {company.name.slice(0, 1)}
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-lg font-black text-black">{company.name}</h2>
+                        <p className="mt-1 text-sm font-bold text-[#596273]">{company.field}</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[#E7F8EF] px-3 py-1 text-xs font-black text-[#14843C]">접근성 {company.score}%</span>
                   </div>
-                </div>
-                <p className="mt-4 text-sm font-semibold leading-6 text-[#344054]">{company.description}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {company.tags.map(tag => (
-                    <span key={tag} className="rounded-full bg-[#F1F4F8] px-3 py-1 text-xs font-extrabold text-[#344054]">{tag}</span>
-                  ))}
-                </div>
-                <div className="mt-4 border-t border-[#E7ECF2] pt-4">
-                  <p className="text-xs font-black text-[#718096]">채용 직무</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {company.hiring.map(role => (
-                      <span key={role} className="rounded-full bg-[#EEF5FF] px-3 py-1 text-xs font-extrabold text-[#0D6BEA]">{role}</span>
+
+                  <p className="mt-4 text-sm font-semibold leading-6 text-[#344054]">{company.description}</p>
+
+                  <div className="mt-4 grid gap-2 text-xs font-bold text-[#596273] sm:grid-cols-2">
+                    <p className="rounded-lg bg-[#F8FAFC] px-3 py-2"><span className="text-[#8A94A6]">위치</span><br />{company.location}</p>
+                    <p className="rounded-lg bg-[#F8FAFC] px-3 py-2"><span className="text-[#8A94A6]">규모</span><br />{company.scale}</p>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {company.tags.map(tag => (
+                      <span key={tag} className="rounded-full bg-[#F1F4F8] px-3 py-1 text-xs font-extrabold text-[#344054]">{tag}</span>
                     ))}
                   </div>
-                </div>
-                <button type="button" onClick={() => navigate('jobs')} className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 text-sm font-extrabold text-white hover:bg-[#0959C7]">
-                  채용공고 {company.openings}건 보기 <ArrowRight size={16} />
-                </button>
-              </article>
-            ))}
+
+                  <div className="mt-4 border-t border-[#E7ECF2] pt-4">
+                    <p className="text-xs font-black text-[#718096]">채용 직무</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {company.hiring.map(role => (
+                        <span key={role} className="rounded-full bg-[#EEF5FF] px-3 py-1 text-xs font-extrabold text-[#0D6BEA]">{role}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-[#E7ECF2] pt-4">
+                    <p className="text-xs font-black text-[#718096]">지원 항목</p>
+                    <div className="mt-3 grid gap-2">
+                      {company.support.map(item => (
+                        <p key={item} className="flex items-center gap-2 text-xs font-bold text-[#344054]">
+                          <CheckCircle2 size={14} className="text-[#14843C]" />
+                          {item}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button type="button" onClick={() => navigate('jobs')} className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 text-sm font-extrabold text-white hover:bg-[#0959C7]">
+                    채용공고 {company.openings}건 보기 <ArrowRight size={16} />
+                  </button>
+                </article>
+              ))}
+            </div>
           </section>
 
           <aside className="space-y-4">

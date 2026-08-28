@@ -42,7 +42,7 @@ const quickActions = [
   { label: '간편 지원', helper: '이력서로 빠른 지원', icon: FileText, action: 'apply', color: '#0EA5E9' },
   { label: '관심 공고', helper: '저장한 공고 관리', icon: Bookmark, action: 'saved', color: '#7C3AED' },
   { label: '지원 현황', helper: '진행 상태 확인', icon: BriefcaseBusiness, action: 'applications', color: '#16A34A' },
-  { label: '커뮤니티', helper: '정보 공유와 소통', icon: MessageCircle, action: 'support', color: '#F59E0B' },
+  { label: '커뮤니티', helper: '정보 공유와 소통', icon: MessageCircle, action: 'community', color: '#F59E0B' },
 ];
 
 const accessibilityJobs = [
@@ -62,7 +62,7 @@ const latestJobs = [
   { id: 'job-4', category: '디자인', company: '리유', title: 'UI/UX 디자이너', location: '서울 영등포구', type: '정규직', deadline: 'D-9', color: '#4FC3A1' },
   { id: 'job-13', category: '제조', company: '쿠팡풀필먼트', title: '물류센터 포장 검수 알바', location: '인천 서구', type: '단기 알바', deadline: 'D-2', color: '#DC2626' },
 ];
-const latestJobCategories = ['전체', 'IT/개발', '사무/관리', '서비스', '디자인', '제조'];
+const latestJobCategories = ['IT/개발', '사무/관리', '서비스', '디자인', '제조'];
 
 const notices = [
   { title: '일이음 서비스 리뉴얼 오픈 안내', date: '2025.05.20' },
@@ -115,15 +115,15 @@ function HeroIllustration() {
 }
 
 export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPageProps) {
-  const [selectedLatestCategory, setSelectedLatestCategory] = useState('전체');
+  const [selectedLatestCategory, setSelectedLatestCategory] = useState('IT/개발');
   const displayedLatestJobs = latestJobs.filter(job => selectedLatestCategory === '전체' || job.category === selectedLatestCategory);
 
   const runQuickAction = (action: (typeof quickActions)[number]['action']) => {
     if (action === 'ai') navigate('ai-recommend');
-    if (action === 'apply') onSearch('간편 지원');
+    if (action === 'apply') onSearch('');
     if (action === 'saved') navigate('saved');
-    if (action === 'applications') navigate('user-dashboard');
-    if (action === 'support') navigate('support');
+    if (action === 'applications') navigate('applications');
+    if (action === 'community') navigate('community');
   };
 
   return (

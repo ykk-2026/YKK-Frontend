@@ -394,6 +394,7 @@ export default function App() {
 
       case 'user-dashboard':
       case 'corporate':
+      case 'applications':
         return (
           <ProfilePage
             currentUser={currentUser}
@@ -401,6 +402,7 @@ export default function App() {
             bookmarks={bookmarks}
             appliedJobIds={appliedJobIds}
             applicationForms={applicationForms}
+            initialMenu={currentPage === 'applications' ? '지원 현황' : '내 프로필'}
             onBookmark={handleBookmark}
             onUpdateApplication={handleUpdateApplication}
             onDeleteApplication={handleDeleteApplication}
@@ -449,7 +451,7 @@ export default function App() {
         {renderPage()}
       </main>
 
-      {showNavFooter && currentPage !== 'user-dashboard' && currentPage !== 'corporate' && (
+      {showNavFooter && currentPage !== 'user-dashboard' && currentPage !== 'corporate' && currentPage !== 'applications' && (
         <Footer navigate={navigate} />
       )}
     </div>

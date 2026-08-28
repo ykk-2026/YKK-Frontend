@@ -26,6 +26,7 @@ interface ProfilePageProps {
   bookmarks: Set<string>;
   appliedJobIds?: Set<string>;
   applicationForms?: Record<string, ApplicationFormData>;
+  initialMenu?: string;
   onBookmark: (id: string) => void;
   onUpdateApplication?: (id: string, formData: ApplicationFormData) => void;
   onDeleteApplication?: (id: string) => void;
@@ -156,6 +157,7 @@ export function ProfilePage({
   bookmarks,
   appliedJobIds = new Set(),
   applicationForms = {},
+  initialMenu = '내 프로필',
   onBookmark,
   onUpdateApplication,
   onDeleteApplication,
@@ -164,7 +166,7 @@ export function ProfilePage({
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const userId = currentUser?.loginId || currentUser?.id || 'guest';
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const [activeMenu, setActiveMenu] = useState('내 프로필');
+  const [activeMenu, setActiveMenu] = useState(initialMenu);
   const [savedMessage, setSavedMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
@@ -217,6 +219,10 @@ export function ProfilePage({
   useEffect(() => {
     setProfileAvatar(loadProfilePhoto(userId));
   }, [userId]);
+
+  useEffect(() => {
+    setActiveMenu(initialMenu);
+  }, [initialMenu]);
 
   const avatarInitial = (profileForm.name.trim() || initialName).slice(0, 1);
   const selectedDefaultProfile = defaultProfileOptions.find(option => option.id === profileAvatar.value) || defaultProfileOptions[0];
