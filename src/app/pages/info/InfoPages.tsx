@@ -10,6 +10,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
+  Flag,
   FileText,
   HeartHandshake,
   MessageCircle,
@@ -97,29 +98,70 @@ const companyStats = [
 
 const companyFilters = ['전체', 'IT/개발', '서비스', '데이터', '디자인'];
 
+type CommunityCategory = 'FREE' | 'JOB_INFO' | 'QUESTION' | 'REVIEW' | 'TIP' | 'INFO';
+type CommunityPostStatus = 'ACTIVE' | 'DELETED' | 'HIDDEN';
+type CommunityCommentStatus = 'ACTIVE' | 'DELETED';
+type CommunityReportReason = 'SPAM' | 'ABUSE' | 'FALSE_INFO' | 'ADVERTISEMENT' | 'ETC';
+type CommunityReportStatus = 'PENDING' | 'RESOLVED' | 'REJECTED';
+
+interface CommunityAttachment {
+  id: string;
+  postId: string;
+  originalName: string;
+  storedName?: string;
+  filePath: string;
+  fileType?: string;
+  fileSize?: number;
+  createdAt: string;
+}
+
+interface CommunityReport {
+  id: string;
+  postId: string;
+  reporterMemberId: string;
+  reason: CommunityReportReason;
+  detail?: string;
+  status: CommunityReportStatus;
+  createdAt: string;
+}
+
 interface CommunityPost {
   id: string;
-  category: string;
+  memberId: string;
+  category: CommunityCategory;
   title: string;
   author: string;
   content: string;
   comments: CommunityComment[];
+  attachments: CommunityAttachment[];
+  reports: CommunityReport[];
   replies: number;
   views: number;
+  viewCount: number;
+  likeCount: number;
+  status: CommunityPostStatus;
   time: string;
+  createdAt: string;
+  updatedAt: string;
   isNew: boolean;
 }
 
 interface CommunityComment {
   id: string;
+  postId: string;
+  memberId: string;
   author: string;
   content: string;
+  status: CommunityCommentStatus;
   time: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const communityPosts: CommunityPost[] = [];
 const communityPostsStorageKey = 'ileeumCommunityPosts';
 const communityViewedPostsStorageKey = 'ileeumCommunityViewedPosts';
+const communityReportedCommentsStorageKey = 'ileeumCommunityReportedComments';
 
 const communityBoards = [
   { title: '취업후기', description: '지원 과정과 합격 경험을 공유합니다.', count: '47개' },
@@ -289,12 +331,24 @@ export function CompanyInfoPage({ navigate }: InfoPageProps) {
   );
 }
 
-const communityTabs = ['전체 게시글', '면접후기', '정보공유', '질문'];
-const writableCommunityCategories = communityTabs.slice(1);
-const categoryTone: Record<string, string> = {
-  면접후기: 'bg-[#E7F8EF] text-[#14843C]',
-  정보공유: 'bg-[#EEF5FF] text-[#0D6BEA]',
-  질문: 'bg-[#FFF1E7] text-[#C05621]',
+const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'FREE', 'JOB_INFO', 'QUESTION', 'REVIEW', 'TIP', 'INFO'];
+const writableCommunityCategories: CommunityCategory[] = ['FREE', 'JOB_INFO', 'QUESTION', 'REVIEW', 'TIP', 'INFO'];
+const communityCategoryLabel: Record<'ALL' | CommunityCategory, string> = {
+  ALL: '전체 게시글',
+  FREE: '자유',
+  JOB_INFO: '채용정보',
+  QUESTION: '질문',
+  REVIEW: '후기',
+  TIP: '꿀팁',
+  INFO: '정보',
+};
+const categoryTone: Record<CommunityCategory, string> = {
+  FREE: 'bg-[#F1F4F8] text-[#344054]',
+  JOB_INFO: 'bg-[#EEF5FF] text-[#0D6BEA]',
+  QUESTION: 'bg-[#FFF1E7] text-[#C05621]',
+  REVIEW: 'bg-[#F5EDFF] text-[#7C3AED]',
+  TIP: 'bg-[#E7F8EF] text-[#14843C]',
+  INFO: 'bg-[#E0F2FE] text-[#0369A1]',
 };
 
 const communityGuideDetails = [
@@ -312,6 +366,64 @@ const communityGuideDetails = [
   },
 ];
 
+const legacyCommunityCategoryMap: Record<string, CommunityCategory> = {
+  면접후기: 'REVIEW',
+  정보공유: 'INFO',
+  질문: 'QUESTION',
+  자유: 'FREE',
+  채용정보: 'JOB_INFO',
+  꿀팁: 'TIP',
+  정보: 'INFO',
+};
+
+const normalizeCommunityCategory = (category: string): CommunityCategory => {
+  if (writableCommunityCategories.includes(category as CommunityCategory)) return category as CommunityCategory;
+  return legacyCommunityCategoryMap[category] || 'FREE';
+};
+
+const getCommunityTimestamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+const normalizeCommunityComment = (comment: Partial<CommunityComment>, postId: string): CommunityComment => ({
+  id: comment.id || `comment-${Date.now()}`,
+  postId: comment.postId || postId,
+  memberId: comment.memberId || '999',
+  author: comment.author || '나',
+  content: comment.content || '',
+  status: comment.status || 'ACTIVE',
+  time: comment.time || comment.createdAt || '방금 전',
+  createdAt: comment.createdAt || comment.time || getCommunityTimestamp(),
+  updatedAt: comment.updatedAt || comment.createdAt || getCommunityTimestamp(),
+});
+
+const normalizeCommunityPost = (post: Partial<CommunityPost>): CommunityPost => {
+  const id = post.id || `post-${Date.now()}`;
+  const createdAt = post.createdAt || post.time || getCommunityTimestamp();
+  const comments = Array.isArray(post.comments) ? post.comments.map(comment => normalizeCommunityComment(comment, id)) : [];
+
+  return {
+    id,
+    memberId: post.memberId || '999',
+    category: normalizeCommunityCategory(post.category || 'FREE'),
+    title: post.title || '',
+    author: post.author || '나',
+    content: post.content || '',
+    comments,
+    attachments: Array.isArray(post.attachments) ? post.attachments : [],
+    reports: Array.isArray(post.reports) ? post.reports : [],
+    replies: comments.filter(comment => comment.status === 'ACTIVE').length,
+    views: post.views ?? post.viewCount ?? 0,
+    viewCount: post.viewCount ?? post.views ?? 0,
+    likeCount: post.likeCount ?? 0,
+    status: post.status || 'ACTIVE',
+    time: post.time || createdAt,
+    createdAt,
+    updatedAt: post.updatedAt || createdAt,
+    isNew: Boolean(post.isNew),
+  };
+};
+
+const hasReportedCommunityPost = (post: CommunityPost) => post.reports.some(report => report.reporterMemberId === '999');
+
 export function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>(() => {
     if (typeof window === 'undefined') return communityPosts;
@@ -322,24 +434,28 @@ export function CommunityPage() {
     try {
       const parsedPosts = JSON.parse(savedPosts) as CommunityPost[];
       return parsedPosts
-        .filter(post => writableCommunityCategories.includes(post.category))
-        .map(post => {
-          const comments = Array.isArray(post.comments) ? post.comments : [];
-          return {
-            ...post,
-            comments,
-            replies: comments.length,
-            views: 0,
-          };
-        });
+        .map(normalizeCommunityPost);
     } catch {
       localStorage.removeItem(communityPostsStorageKey);
       return communityPosts;
     }
   });
-  const [activeTab, setActiveTab] = useState('전체 게시글');
+  const [activeTab, setActiveTab] = useState<'ALL' | CommunityCategory>('ALL');
   const [query, setQuery] = useState('');
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [reportedCommentIds, setReportedCommentIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+
+    const savedReportedComments = localStorage.getItem(communityReportedCommentsStorageKey);
+    if (!savedReportedComments) return new Set();
+
+    try {
+      return new Set(JSON.parse(savedReportedComments) as string[]);
+    } catch {
+      localStorage.removeItem(communityReportedCommentsStorageKey);
+      return new Set();
+    }
+  });
   const [viewedPostIds, setViewedPostIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
 
@@ -356,7 +472,7 @@ export function CommunityPage() {
   const [showWriter, setShowWriter] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [form, setForm] = useState({ category: '정보공유', title: '', author: '나', content: '' });
+  const [form, setForm] = useState<{ category: CommunityCategory; title: string; author: string; content: string }>({ category: 'FREE', title: '', author: '나', content: '' });
   const [commentForm, setCommentForm] = useState({ author: '나', content: '' });
 
   useEffect(() => {
@@ -367,30 +483,44 @@ export function CommunityPage() {
     localStorage.setItem(communityViewedPostsStorageKey, JSON.stringify(Array.from(viewedPostIds)));
   }, [viewedPostIds]);
 
+  useEffect(() => {
+    localStorage.setItem(communityReportedCommentsStorageKey, JSON.stringify(Array.from(reportedCommentIds)));
+  }, [reportedCommentIds]);
+
   const filteredPosts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return posts.filter(post => {
-      const matchTab = activeTab === '전체 게시글' || post.category === activeTab;
-      const matchQuery = !normalizedQuery || [post.category, post.title, post.author, post.content].join(' ').toLowerCase().includes(normalizedQuery);
+      if (post.status !== 'ACTIVE') return false;
+      const matchTab = activeTab === 'ALL' || post.category === activeTab;
+      const matchQuery = !normalizedQuery || [communityCategoryLabel[post.category], post.category, post.title, post.author, post.content].join(' ').toLowerCase().includes(normalizedQuery);
       return matchTab && matchQuery;
     });
   }, [activeTab, posts, query]);
-  const selectedPost = posts.find(post => post.id === selectedPostId) || null;
+  const selectedPost = posts.find(post => post.id === selectedPostId && post.status === 'ACTIVE') || null;
 
   const submitPost = () => {
     if (!form.title.trim() || !form.content.trim()) return;
 
+    const now = getCommunityTimestamp();
     const nextPost: CommunityPost = {
       id: `post-${Date.now()}`,
+      memberId: '999',
       category: form.category,
       title: form.title.trim(),
       author: form.author.trim() || '나',
       content: form.content.trim(),
       comments: [],
+      attachments: [],
+      reports: [],
       replies: 0,
       views: 0,
+      viewCount: 0,
+      likeCount: 0,
+      status: 'ACTIVE',
       time: '방금 전',
+      createdAt: now,
+      updatedAt: now,
       isNew: true,
     };
 
@@ -398,8 +528,8 @@ export function CommunityPage() {
       nextPost,
       ...prev,
     ]);
-    setForm({ category: '정보공유', title: '', author: '나', content: '' });
-    setActiveTab('전체 게시글');
+    setForm({ category: 'FREE', title: '', author: '나', content: '' });
+    setActiveTab('ALL');
     setQuery('');
     setShowWriter(false);
   };
@@ -413,11 +543,11 @@ export function CommunityPage() {
     }
 
     setViewedPostIds(prev => new Set(prev).add(post.id));
-    setPosts(prev => prev.map(item => (item.id === post.id ? { ...item, views: item.views + 1, isNew: false } : item)));
+    setPosts(prev => prev.map(item => (item.id === post.id ? { ...item, views: item.views + 1, viewCount: item.viewCount + 1, isNew: false } : item)));
   };
 
   const deletePost = (postId: string) => {
-    setPosts(prev => prev.filter(post => post.id !== postId));
+    setPosts(prev => prev.map(post => (post.id === postId ? { ...post, status: 'DELETED', updatedAt: getCommunityTimestamp() } : post)));
     setSelectedPostId(prev => (prev === postId ? null : prev));
     setBookmarks(prev => {
       const next = new Set(prev);
@@ -431,15 +561,20 @@ export function CommunityPage() {
 
     const nextComment: CommunityComment = {
       id: `comment-${Date.now()}`,
+      postId: selectedPost.id,
+      memberId: '999',
       author: commentForm.author.trim() || '나',
       content: commentForm.content.trim(),
+      status: 'ACTIVE',
       time: '방금 전',
+      createdAt: getCommunityTimestamp(),
+      updatedAt: getCommunityTimestamp(),
     };
 
     setPosts(prev => prev.map(post => {
       if (post.id !== selectedPost.id) return post;
       const comments = [...post.comments, nextComment];
-      return { ...post, comments, replies: comments.length };
+      return { ...post, comments, replies: comments.filter(comment => comment.status === 'ACTIVE').length, updatedAt: getCommunityTimestamp() };
     }));
     setCommentForm({ author: '나', content: '' });
   };
@@ -447,8 +582,35 @@ export function CommunityPage() {
   const deleteComment = (postId: string, commentId: string) => {
     setPosts(prev => prev.map(post => {
       if (post.id !== postId) return post;
-      const comments = post.comments.filter(comment => comment.id !== commentId);
-      return { ...post, comments, replies: comments.length };
+      const comments = post.comments.map(comment => (comment.id === commentId ? { ...comment, status: 'DELETED' as const, updatedAt: getCommunityTimestamp() } : comment));
+      return { ...post, comments, replies: comments.filter(comment => comment.status === 'ACTIVE').length, updatedAt: getCommunityTimestamp() };
+    }));
+  };
+
+  const reportComment = (commentId: string) => {
+    setReportedCommentIds(prev => {
+      if (prev.has(commentId)) return prev;
+
+      const next = new Set(prev);
+      next.add(commentId);
+      return next;
+    });
+  };
+
+  const reportPost = (postId: string) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id !== postId || hasReportedCommunityPost(post)) return post;
+
+      const report: CommunityReport = {
+        id: `report-${Date.now()}`,
+        postId,
+        reporterMemberId: '999',
+        reason: 'ETC',
+        status: 'PENDING',
+        createdAt: getCommunityTimestamp(),
+      };
+
+      return { ...post, reports: [...post.reports, report] };
     }));
   };
 
@@ -489,7 +651,7 @@ export function CommunityPage() {
           <aside className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
             <h2 className="flex items-center gap-2 text-lg font-black text-black"><UsersRound size={20} className="text-[#14843C]" /> 이번 주 활동</h2>
             <div className="mt-5 space-y-4 text-sm font-bold text-[#344054]">
-              <p className="flex items-center gap-3"><FileText size={17} className="text-[#0D6BEA]" /> 등록 게시글 {posts.length}개</p>
+              <p className="flex items-center gap-3"><FileText size={17} className="text-[#0D6BEA]" /> 등록 게시글 {posts.filter(post => post.status === 'ACTIVE').length}개</p>
               <p className="flex items-center gap-3"><BadgeCheck size={17} className="text-[#0D6BEA]" /> 저장 게시글 {bookmarks.size}개</p>
               <p className="flex items-center gap-3"><MessageCircle size={17} className="text-[#0D6BEA]" /> 새 게시글 {posts.filter(post => post.isNew).length}개</p>
             </div>
@@ -510,7 +672,7 @@ export function CommunityPage() {
                     }}
                     className={`relative h-10 text-sm font-black ${activeTab === tab ? 'text-[#0D6BEA]' : 'text-black hover:text-[#0D6BEA]'}`}
                   >
-                    {tab}
+                    {communityCategoryLabel[tab]}
                     {activeTab === tab && <span className="absolute -bottom-4 left-0 right-0 h-[3px] rounded-full bg-[#0D6BEA]" />}
                   </button>
                 ))}
@@ -534,8 +696,8 @@ export function CommunityPage() {
             {showWriter && (
               <div className="border-b border-[#E7ECF2] bg-[#F8FAFC] px-6 py-4">
                 <div className="grid gap-3 md:grid-cols-[130px_1fr_120px]">
-                  <select value={form.category} onChange={event => setForm(prev => ({ ...prev, category: event.target.value }))} className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-bold outline-none">
-                    {writableCommunityCategories.map(tab => <option key={tab}>{tab}</option>)}
+                  <select value={form.category} onChange={event => setForm(prev => ({ ...prev, category: event.target.value as CommunityCategory }))} className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-bold outline-none">
+                    {writableCommunityCategories.map(tab => <option key={tab} value={tab}>{communityCategoryLabel[tab]}</option>)}
                   </select>
                   <input value={form.title} onChange={event => setForm(prev => ({ ...prev, title: event.target.value }))} placeholder="제목을 입력하세요" className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-semibold outline-none" />
                   <input value={form.author} onChange={event => setForm(prev => ({ ...prev, author: event.target.value }))} placeholder="작성자" className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-semibold outline-none" />
@@ -557,7 +719,7 @@ export function CommunityPage() {
 
                 <article>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[selectedPost.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{selectedPost.category}</span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[selectedPost.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{communityCategoryLabel[selectedPost.category]}</span>
                     {selectedPost.isNew && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[9px] font-black text-white">N</span>}
                     <span className="text-xs font-bold text-[#7A8495]">{selectedPost.author} · 댓글 {selectedPost.replies} · 조회 {selectedPost.views} · {selectedPost.time}</span>
                   </div>
@@ -568,12 +730,23 @@ export function CommunityPage() {
                       {selectedPost.content}
                     </p>
                   </div>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => reportPost(selectedPost.id)}
+                      disabled={hasReportedCommunityPost(selectedPost)}
+                      className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#FFD8B5] px-3 text-xs font-bold text-[#C05621] hover:bg-[#FFF7ED] disabled:cursor-not-allowed disabled:border-[#E5E7EB] disabled:text-[#9CA3AF] disabled:hover:bg-transparent"
+                    >
+                      <Flag size={13} />
+                      {hasReportedCommunityPost(selectedPost) ? '게시글 신고완료' : '게시글 신고'}
+                    </button>
+                  </div>
                 </article>
 
                 <section className="mt-6 border-t border-[#E7ECF2] pt-5">
                   <h3 className="flex items-center gap-2 text-lg font-black text-black">
                     <MessageCircle size={19} />
-                    댓글 {selectedPost.comments.length}
+                    댓글 {selectedPost.comments.filter(comment => comment.status === 'ACTIVE').length}
                   </h3>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-[120px_1fr_auto]">
@@ -598,19 +771,30 @@ export function CommunityPage() {
                   </div>
 
                   <div className="mt-4 divide-y divide-[#E7ECF2] rounded-lg border border-[#E7ECF2] bg-white">
-                    {selectedPost.comments.map(comment => (
+                    {selectedPost.comments.filter(comment => comment.status === 'ACTIVE').map(comment => (
                       <article key={comment.id} className="flex items-start justify-between gap-4 px-4 py-4">
                         <div className="min-w-0">
                           <p className="text-sm font-black text-black">{comment.author}</p>
                           <p className="mt-1 whitespace-pre-line text-sm font-semibold leading-6 text-[#344054]">{comment.content}</p>
                           <p className="mt-2 text-xs font-bold text-[#8A94A6]">{comment.time}</p>
                         </div>
-                        <button type="button" onClick={() => deleteComment(selectedPost.id, comment.id)} className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => reportComment(comment.id)}
+                            disabled={reportedCommentIds.has(comment.id)}
+                            className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-[#C05621] hover:bg-[#FFF7ED] disabled:cursor-not-allowed disabled:text-[#9CA3AF] disabled:hover:bg-transparent"
+                          >
+                            <Flag size={13} />
+                            {reportedCommentIds.has(comment.id) ? '신고완료' : '신고'}
+                          </button>
+                          <button type="button" onClick={() => deleteComment(selectedPost.id, comment.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
                           삭제
-                        </button>
+                          </button>
+                        </div>
                       </article>
                     ))}
-                    {selectedPost.comments.length === 0 && (
+                    {selectedPost.comments.filter(comment => comment.status === 'ACTIVE').length === 0 && (
                       <div className="px-4 py-8 text-center text-sm font-bold text-[#718096]">첫 댓글을 작성해 주세요.</div>
                     )}
                   </div>
@@ -623,7 +807,7 @@ export function CommunityPage() {
                     <article key={post.id} className="flex items-center justify-between gap-4 px-6 py-5">
                       <button type="button" onClick={() => openPost(post)} className="min-w-0 flex-1 text-left">
                         <div className="flex items-center gap-2">
-                          <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[post.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{post.category}</span>
+                          <span className={`rounded-full px-3 py-1 text-xs font-black ${categoryTone[post.category] || 'bg-[#F1F4F8] text-[#344054]'}`}>{communityCategoryLabel[post.category]}</span>
                           {post.isNew && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[9px] font-black text-white">N</span>}
                         </div>
                         <h3 className="mt-3 truncate text-base font-black text-black">{post.title}</h3>
