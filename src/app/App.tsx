@@ -206,7 +206,7 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
 export default function App() {
   const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(() => loadRegisteredUser());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser));
-  const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || (getAutoLoggedInUser(registeredUser) ? 'user-dashboard' : 'main'));
+  const [currentPage, setCurrentPage] = useState<Page>('main');
   const [currentJobId, setCurrentJobId] = useState<string | null>(() => loadCurrentJobId());
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
