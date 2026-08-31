@@ -98,7 +98,7 @@ const companyStats = [
 
 const companyFilters = ['전체', 'IT/개발', '서비스', '데이터', '디자인'];
 
-type CommunityCategory = 'FREE' | 'JOB_INFO' | 'QUESTION' | 'REVIEW' | 'TIP' | 'INFO';
+type CommunityCategory = 'TIP' | 'QUESTION' | 'INFO' | 'FREE';
 type CommunityPostStatus = 'ACTIVE' | 'DELETED' | 'HIDDEN';
 type CommunityCommentStatus = 'ACTIVE' | 'DELETED';
 type CommunityReportReason = 'SPAM' | 'ABUSE' | 'FALSE_INFO' | 'ADVERTISEMENT' | 'ETC';
@@ -108,7 +108,7 @@ interface CommunityAttachment {
   id: string;
   postId: string;
   originalName: string;
-  storedName?: string;
+  storedName: string;
   filePath: string;
   fileType?: string;
   fileSize?: number;
@@ -331,24 +331,20 @@ export function CompanyInfoPage({ navigate }: InfoPageProps) {
   );
 }
 
-const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'FREE', 'JOB_INFO', 'QUESTION', 'REVIEW', 'TIP', 'INFO'];
-const writableCommunityCategories: CommunityCategory[] = ['FREE', 'JOB_INFO', 'QUESTION', 'REVIEW', 'TIP', 'INFO'];
+const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'TIP', 'QUESTION', 'INFO', 'FREE'];
+const writableCommunityCategories: CommunityCategory[] = ['TIP', 'QUESTION', 'INFO', 'FREE'];
 const communityCategoryLabel: Record<'ALL' | CommunityCategory, string> = {
   ALL: '전체 게시글',
-  FREE: '자유',
-  JOB_INFO: '채용정보',
-  QUESTION: '질문',
-  REVIEW: '후기',
   TIP: '꿀팁',
+  QUESTION: '질문',
   INFO: '정보',
+  FREE: '자유',
 };
 const categoryTone: Record<CommunityCategory, string> = {
-  FREE: 'bg-[#F1F4F8] text-[#344054]',
-  JOB_INFO: 'bg-[#EEF5FF] text-[#0D6BEA]',
-  QUESTION: 'bg-[#FFF1E7] text-[#C05621]',
-  REVIEW: 'bg-[#F5EDFF] text-[#7C3AED]',
   TIP: 'bg-[#E7F8EF] text-[#14843C]',
-  INFO: 'bg-[#E0F2FE] text-[#0369A1]',
+  QUESTION: 'bg-[#FFF1E7] text-[#C05621]',
+  INFO: 'bg-[#EEF5FF] text-[#0D6BEA]',
+  FREE: 'bg-[#F1F4F8] text-[#344054]',
 };
 
 const communityGuideDetails = [
@@ -367,11 +363,11 @@ const communityGuideDetails = [
 ];
 
 const legacyCommunityCategoryMap: Record<string, CommunityCategory> = {
-  면접후기: 'REVIEW',
+  면접후기: 'TIP',
   정보공유: 'INFO',
   질문: 'QUESTION',
   자유: 'FREE',
-  채용정보: 'JOB_INFO',
+  채용정보: 'INFO',
   꿀팁: 'TIP',
   정보: 'INFO',
 };
@@ -395,10 +391,26 @@ const normalizeCommunityComment = (comment: Partial<CommunityComment>, postId: s
   updatedAt: comment.updatedAt || comment.createdAt || getCommunityTimestamp(),
 });
 
+const normalizeCommunityAttachment = (attachment: Partial<CommunityAttachment>, postId: string): CommunityAttachment => {
+  const originalName = attachment.originalName || 'attachment';
+
+  return {
+    id: attachment.id || `attachment-${Date.now()}`,
+    postId: attachment.postId || postId,
+    originalName,
+    storedName: attachment.storedName || `${postId}-${originalName}`,
+    filePath: attachment.filePath || `/uploads/community/${postId}-${originalName}`,
+    fileType: attachment.fileType,
+    fileSize: attachment.fileSize,
+    createdAt: attachment.createdAt || getCommunityTimestamp(),
+  };
+};
+
 const normalizeCommunityPost = (post: Partial<CommunityPost>): CommunityPost => {
   const id = post.id || `post-${Date.now()}`;
   const createdAt = post.createdAt || post.time || getCommunityTimestamp();
   const comments = Array.isArray(post.comments) ? post.comments.map(comment => normalizeCommunityComment(comment, id)) : [];
+  const attachments = Array.isArray(post.attachments) ? post.attachments.map(attachment => normalizeCommunityAttachment(attachment, id)) : [];
 
   return {
     id,
@@ -408,7 +420,7 @@ const normalizeCommunityPost = (post: Partial<CommunityPost>): CommunityPost => 
     author: post.author || '나',
     content: post.content || '',
     comments,
-    attachments: Array.isArray(post.attachments) ? post.attachments : [],
+    attachments,
     reports: Array.isArray(post.reports) ? post.reports : [],
     replies: comments.filter(comment => comment.status === 'ACTIVE').length,
     views: post.views ?? post.viewCount ?? 0,
