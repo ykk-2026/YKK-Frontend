@@ -48,6 +48,16 @@ export interface RegisterFormData {
   preferredRole: string;
 }
 
+export interface CorporateRegisterFormData {
+  loginId: string;
+  password: string;
+  companyName: string;
+  businessNumber: string;
+  managerName: string;
+  email: string;
+  phone: string;
+}
+
 export interface Job {
   id: string;
   company: string;
