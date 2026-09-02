@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
-  Bell,
   BookOpenCheck,
   Bookmark,
   CalendarDays,
@@ -14,7 +13,6 @@ import {
   MessageCircle,
   Search,
   ShieldCheck,
-  Sparkles,
   Star,
   UsersRound,
   Video,
@@ -26,7 +24,7 @@ interface InfoPageProps {
   navigate: (page: Page) => void;
 }
 
-type CommunityCategory = 'TIP' | 'QUESTION' | 'INFO' | 'FREE';
+type CommunityCategory = 'QUESTION' | 'INFO';
 type CommunityPostStatus = 'ACTIVE' | 'DELETED' | 'HIDDEN';
 type CommunityCommentStatus = 'ACTIVE' | 'DELETED';
 type CommunityReportReason = 'SPAM' | 'ABUSE' | 'FALSE_INFO' | 'ADVERTISEMENT' | 'ETC';
@@ -100,7 +98,7 @@ const communityBoards = [
 
 const guideSteps = [
   { title: '프로필 작성', description: '희망 직무, 지역, 근무조건, 필요한 접근성 정보를 입력합니다.', icon: FileText },
-  { title: 'AI 추천 확인', description: '프로필과 공고 조건을 비교한 맞춤 추천 일자리를 확인합니다.', icon: Sparkles },
+  { title: '맞춤 공고 확인', description: '프로필과 공고 조건을 비교해 잘 맞는 일자리를 확인합니다.', icon: BadgeCheck },
   { title: '공고 비교', description: '연봉, 근무형태, 접근성 시설, 지원 제도를 공고별로 비교합니다.', icon: Search },
   { title: '간편 지원', description: '관심 공고를 저장하고 준비된 이력 정보로 빠르게 지원합니다.', icon: ClipboardCheck },
   { title: '면접 준비', description: '화상 면접, 접근성 요청, 제출 서류를 미리 점검합니다.', icon: Video },
@@ -113,20 +111,16 @@ const guideFaqs = [
   { question: '관심 공고는 어디서 확인하나요?', answer: '상단 메뉴의 프로필 또는 지원 현황에서 저장한 공고와 지원한 공고를 함께 확인할 수 있습니다.' },
 ];
 
-const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'TIP', 'QUESTION', 'INFO', 'FREE'];
-const writableCommunityCategories: CommunityCategory[] = ['TIP', 'QUESTION', 'INFO', 'FREE'];
+const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'QUESTION', 'INFO'];
+const writableCommunityCategories: CommunityCategory[] = ['QUESTION', 'INFO'];
 const communityCategoryLabel: Record<'ALL' | CommunityCategory, string> = {
   ALL: '전체 게시글',
-  TIP: '꿀팁',
   QUESTION: '질문',
   INFO: '정보',
-  FREE: '자유',
 };
 const categoryTone: Record<CommunityCategory, string> = {
-  TIP: 'bg-[#E7F8EF] text-[#14843C]',
   QUESTION: 'bg-[#FFF1E7] text-[#C05621]',
   INFO: 'bg-[#EEF5FF] text-[#0D6BEA]',
-  FREE: 'bg-[#F1F4F8] text-[#344054]',
 };
 
 const communityGuideDetails = [
@@ -145,18 +139,15 @@ const communityGuideDetails = [
 ];
 
 const legacyCommunityCategoryMap: Record<string, CommunityCategory> = {
-  면접후기: 'TIP',
   정보공유: 'INFO',
   질문: 'QUESTION',
-  자유: 'FREE',
   채용정보: 'INFO',
-  꿀팁: 'TIP',
   정보: 'INFO',
 };
 
 const normalizeCommunityCategory = (category: string): CommunityCategory => {
   if (writableCommunityCategories.includes(category as CommunityCategory)) return category as CommunityCategory;
-  return legacyCommunityCategoryMap[category] || 'FREE';
+  return legacyCommunityCategoryMap[category] || 'INFO';
 };
 
 const getCommunityTimestamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ');
@@ -197,7 +188,7 @@ const normalizeCommunityPost = (post: Partial<CommunityPost>): CommunityPost => 
   return {
     id,
     memberId: post.memberId || '999',
-    category: normalizeCommunityCategory(post.category || 'FREE'),
+    category: normalizeCommunityCategory(post.category || 'INFO'),
     title: post.title || '',
     author: post.author || '나',
     content: post.content || '',
@@ -266,7 +257,7 @@ export function CommunityPage() {
   const [showWriter, setShowWriter] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [form, setForm] = useState<{ category: CommunityCategory; title: string; author: string; content: string }>({ category: 'FREE', title: '', author: '나', content: '' });
+  const [form, setForm] = useState<{ category: CommunityCategory; title: string; author: string; content: string }>({ category: 'INFO', title: '', author: '나', content: '' });
   const [commentForm, setCommentForm] = useState({ author: '나', content: '' });
 
   useEffect(() => {
@@ -322,7 +313,7 @@ export function CommunityPage() {
       nextPost,
       ...prev,
     ]);
-    setForm({ category: 'FREE', title: '', author: '나', content: '' });
+    setForm({ category: 'INFO', title: '', author: '나', content: '' });
     setActiveTab('ALL');
     setQuery('');
     setShowWriter(false);
@@ -647,6 +638,18 @@ export function CommunityPage() {
             </section>
 
             <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-black text-black"><BookOpenCheck size={20} className="text-[#14843C]" /> 자주 묻는 질문</h2>
+              <div className="mt-4 divide-y divide-[#E7ECF2]">
+                {guideFaqs.map(item => (
+                  <article key={item.question} className="py-4 first:pt-0 last:pb-0">
+                    <h3 className="text-sm font-black text-black">{item.question}</h3>
+                    <p className="mt-2 text-xs font-semibold leading-5 text-[#596273]">{item.answer}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
               <h2 className="flex items-center gap-2 text-lg font-black text-black"><ShieldCheck size={20} className="text-[#0EA5E9]" /> 커뮤니티 가이드</h2>
               <div className="mt-5 space-y-4 text-sm font-semibold leading-6 text-[#344054]">
                 {[
@@ -693,59 +696,58 @@ export function CommunityPage() {
 
 export function GuidePage({ navigate }: InfoPageProps) {
   return (
-    <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
-      <main className="mx-auto max-w-[1240px] px-6 py-6">
-        <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
-          <span className="rounded-full bg-[#FFF4E5] px-4 py-1.5 text-xs font-extrabold text-[#B45309]">이용안내</span>
-          <h1 className="mt-4 text-3xl font-black text-black">일이음 이용 흐름을 안내합니다</h1>
-          <p className="mt-2 text-sm font-semibold text-[#596273]">회원가입부터 추천 공고 확인, 지원 관리까지 필요한 과정을 단계별로 확인하세요.</p>
+    <div className="min-h-screen bg-[#F3F6FA] text-[#111827]">
+      <main className="mx-auto max-w-[1180px] px-6 py-8">
+        <section className="border-b border-[#D8E0EA] pb-7">
+          <span className="text-sm font-black text-[#0D6BEA]">이용안내</span>
+          <h1 className="mt-3 text-[32px] font-black leading-tight text-black">처음 이용할 때 필요한 순서만 정리했어요</h1>
+          <p className="mt-3 max-w-[720px] text-sm font-semibold leading-6 text-[#596273]">
+            프로필을 채우고, 조건에 맞는 공고를 확인한 뒤 지원 현황까지 이어지는 기본 흐름입니다.
+          </p>
         </section>
 
-        <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {guideSteps.map((step, index) => {
-            const Icon = step.icon;
-            return (
-              <article key={step.title} className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0D6BEA]">
-                  <Icon size={23} />
-                </span>
-                <p className="mt-4 text-xs font-black text-[#0D6BEA]">STEP {index + 1}</p>
-                <h2 className="mt-1 text-lg font-black text-black">{step.title}</h2>
-                <p className="mt-3 text-sm font-semibold leading-6 text-[#596273]">{step.description}</p>
-              </article>
-            );
-          })}
-        </section>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
-          <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-            <h2 className="flex items-center gap-2 text-lg font-black text-black"><ShieldCheck size={20} /> 자주 쓰는 기능</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <button type="button" onClick={() => navigate('jobs')} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-4 py-4 text-left text-sm font-extrabold hover:bg-[#EEF5FF]">
-                <span className="flex items-center gap-2"><Search size={18} /> 채용정보 검색</span>
-                <ArrowRight size={16} />
-              </button>
-              <button type="button" onClick={() => navigate('ai-recommend')} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-4 py-4 text-left text-sm font-extrabold hover:bg-[#EEF5FF]">
-                <span className="flex items-center gap-2"><Star size={18} /> AI 추천 보기</span>
-                <ArrowRight size={16} />
-              </button>
-              <button type="button" onClick={() => navigate('user-dashboard')} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-4 py-4 text-left text-sm font-extrabold hover:bg-[#EEF5FF]">
-                <span className="flex items-center gap-2"><Bell size={18} /> 지원 현황 관리</span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
+          <section className="rounded-xl border border-[#DDE3EA] bg-white px-6 py-2 shadow-sm">
+            {guideSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <article key={step.title} className="grid gap-4 border-b border-[#E7ECF2] py-6 last:border-b-0 sm:grid-cols-[72px_1fr]">
+                  <div className="flex items-start gap-3 sm:block">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0D6BEA]">
+                      <Icon size={21} />
+                    </span>
+                    <span className="mt-3 block text-xs font-black text-[#0D6BEA] sm:text-center">STEP {index + 1}</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-black">{step.title}</h2>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-[#596273]">{step.description}</p>
+                  </div>
+                </article>
+              );
+            })}
           </section>
 
-          <aside className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-            <h2 className="flex items-center gap-2 text-lg font-black text-black"><BookOpenCheck size={20} /> 자주 묻는 질문</h2>
-            <div className="mt-4 space-y-4">
-              {guideFaqs.map(item => (
-                <article key={item.question} className="border-b border-[#E7ECF2] pb-4 last:border-b-0 last:pb-0">
-                  <h3 className="text-sm font-black text-black">{item.question}</h3>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[#596273]">{item.answer}</p>
-                </article>
-              ))}
-            </div>
+          <aside className="space-y-4">
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-black text-black"><HeartHandshake size={20} className="text-[#14843C]" /> 준비 전 확인</h2>
+              <div className="mt-4 space-y-3 text-sm font-semibold leading-6 text-[#344054]">
+                {['희망 직무와 근무 지역', '필요한 접근성 시설', '지원 가능한 근무 형태'].map(item => (
+                  <p key={item} className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#20B26B]" /> {item}</p>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-black text-black"><CalendarDays size={20} className="text-[#0D6BEA]" /> 다음 행동</h2>
+              <div className="mt-4 grid gap-2">
+                <button type="button" onClick={() => navigate('jobs')} className="flex h-11 items-center justify-between rounded-lg bg-[#F8FAFC] px-3 text-sm font-black text-black hover:bg-[#EEF5FF]">
+                  공고 보러가기 <ArrowRight size={16} />
+                </button>
+                <button type="button" onClick={() => navigate('community')} className="flex h-11 items-center justify-between rounded-lg bg-[#F8FAFC] px-3 text-sm font-black text-black hover:bg-[#EEF5FF]">
+                  커뮤니티 질문하기 <ArrowRight size={16} />
+                </button>
+              </div>
+            </section>
           </aside>
         </div>
       </main>

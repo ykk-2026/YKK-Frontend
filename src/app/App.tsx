@@ -424,7 +424,7 @@ export default function App() {
         return <GuidePage navigate={navigate} />;
 
       case 'support':
-        return <SupportPage />;
+        return <SupportPage currentUser={currentUser} />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
