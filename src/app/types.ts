@@ -8,7 +8,6 @@ export type Page =
   | 'saved'
   | 'applications'
   | 'ai-recommend'
-  | 'company-info'
   | 'community'
   | 'guide'
   | 'support'
@@ -47,6 +46,16 @@ export interface RegisterFormData {
   currentRegion?: string;
   gender: string;
   preferredRole: string;
+}
+
+export interface CorporateRegisterFormData {
+  loginId: string;
+  password: string;
+  companyName: string;
+  businessNumber: string;
+  managerName: string;
+  email: string;
+  phone: string;
 }
 
 export interface Job {

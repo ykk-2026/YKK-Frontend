@@ -1,18 +1,20 @@
 import { ArrowLeft, Eye, EyeOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { BrandLogo } from '@/app/components/BrandLogo';
-import type { Page, RegisterFormData, UserRole } from '@/app/types';
+import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from '@/app/types';
 
 interface LoginPageProps {
   navigate: (page: Page) => void;
-  onLogin: (role: UserRole, formData?: RegisterFormData, keepLoggedIn?: boolean) => void;
-  onLoginSuccess?: () => void;
+  onLogin: (role: UserRole, formData?: RegisterFormData | CorporateRegisterFormData, keepLoggedIn?: boolean) => void;
+  onLoginSuccess?: (role: UserRole) => void;
   registeredUser: RegisterFormData | null;
+  registeredCorporateUser: CorporateRegisterFormData | null;
   onBack: () => void;
   onResetPassword: (newPassword: string) => void;
 }
 
 type FindMode = 'id' | 'password' | null;
+type LoginMode = 'personal' | 'corporate';
 
 const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
 
@@ -25,7 +27,8 @@ const formatPhoneNumber = (value: string) => {
 
 const isPhoneLike = (value: string) => /^\d|^-?\d/.test(value.replace(/\s/g, ''));
 
-export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, onBack, onResetPassword }: LoginPageProps) {
+export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, registeredCorporateUser, onBack, onResetPassword }: LoginPageProps) {
+  const [loginMode, setLoginMode] = useState<LoginMode>('personal');
   const [showPw, setShowPw] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
@@ -41,13 +44,13 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const finishLogin = () => {
+  const finishLogin = (role: UserRole) => {
     if (onLoginSuccess) {
-      onLoginSuccess();
+      onLoginSuccess(role);
       return;
     }
 
-    navigate('main');
+    navigate(role === 'corporate' ? 'corporate' : 'main');
   };
 
   const closeFindModal = () => {
@@ -75,6 +78,25 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
   const submitLogin = () => {
     if (isSubmitting) return;
 
+    if (loginMode === 'corporate') {
+      if (registeredCorporateUser && loginId.trim() === registeredCorporateUser.loginId.trim() && password === registeredCorporateUser.password) {
+        setIsSubmitting(true);
+        onLogin('corporate', registeredCorporateUser, autoLogin);
+        window.setTimeout(() => finishLogin('corporate'), 180);
+        return;
+      }
+
+      if (loginId.trim() !== 'company' || password !== 'company123') {
+        setError(registeredCorporateUser ? '기업 아이디 또는 비밀번호가 올바르지 않습니다.' : '기업 데모 계정은 아이디 company, 비밀번호 company123으로 로그인할 수 있습니다.');
+        return;
+      }
+
+      setIsSubmitting(true);
+      onLogin('corporate', undefined, autoLogin);
+      window.setTimeout(() => finishLogin('corporate'), 180);
+      return;
+    }
+
     if (registeredUser) {
       if (loginId.trim() !== registeredUser.loginId.trim() || password !== registeredUser.password) {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
@@ -83,7 +105,7 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
 
       setIsSubmitting(true);
       onLogin('personal', registeredUser, autoLogin);
-      window.setTimeout(finishLogin, 180);
+      window.setTimeout(() => finishLogin('personal'), 180);
       return;
     }
 
@@ -94,7 +116,7 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
 
     setIsSubmitting(true);
     onLogin('personal', undefined, autoLogin);
-    window.setTimeout(finishLogin, 180);
+    window.setTimeout(() => finishLogin('personal'), 180);
   };
 
   const findLoginIdByInfo = () => {
@@ -197,7 +219,34 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, o
           </div>
 
           <div className="mb-7">
-            <h2 className="text-center text-xl font-bold text-foreground">개인회원 로그인</h2>
+            <div className="grid grid-cols-2 rounded-lg border border-border bg-muted/30 p-1">
+              {([
+                { id: 'personal', label: '개인회원' },
+                { id: 'corporate', label: '기업회원' },
+              ] as const).map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setLoginMode(item.id);
+                    setLoginId('');
+                    setPassword('');
+                    setError('');
+                  }}
+                  className={`rounded-md px-3 py-2.5 text-sm font-bold transition ${
+                    loginMode === item.id ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <h2 className="mt-5 text-center text-xl font-bold text-foreground">
+              {loginMode === 'corporate' ? '기업회원 로그인' : '개인회원 로그인'}
+            </h2>
+            <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
+              {loginMode === 'corporate' ? '데모: company / company123' : '데모: demo / password'}
+            </p>
             <div className="mt-4 h-px bg-border" />
           </div>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ApplicationFormData, CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
+import type { ApplicationFormData, CorporateRegisterFormData, CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
 import { mockAdminUser, mockCorporateUser, mockUser } from '@/app/data/mockData';
 import { Navbar } from '@/app/layout/Navbar';
 import { Footer } from '@/app/layout/Footer';
@@ -10,11 +10,13 @@ import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
 import { SupportPage } from '@/app/pages/support/SupportPage';
-import { CommunityPage, CompanyInfoPage, GuidePage } from '@/app/pages/info/InfoPages';
+import { CommunityPage, GuidePage } from '@/app/pages/info/InfoPages';
+import { CorporatePage } from '@/app/pages/corporate/CorporatePage';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
 const registeredUserStorageKey = 'jobBridgeRegisteredUser';
+const registeredCorporateUserStorageKey = 'jobBridgeRegisteredCorporateUser';
 const autoLoginStorageKey = 'jobBridgeAutoLogin';
 const currentPageStorageKey = 'jobBridgeCurrentPage';
 const currentJobStorageKey = 'jobBridgeCurrentJob';
@@ -31,7 +33,6 @@ const pageValues: Page[] = [
   'saved',
   'applications',
   'ai-recommend',
-  'company-info',
   'community',
   'guide',
   'support',
@@ -53,6 +54,20 @@ const loadRegisteredUser = (): RegisterFormData | null => {
     return JSON.parse(savedUser) as RegisterFormData;
   } catch {
     localStorage.removeItem(registeredUserStorageKey);
+    return null;
+  }
+};
+
+const loadRegisteredCorporateUser = (): CorporateRegisterFormData | null => {
+  if (typeof window === 'undefined') return null;
+
+  const savedUser = localStorage.getItem(registeredCorporateUserStorageKey);
+  if (!savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser) as CorporateRegisterFormData;
+  } catch {
+    localStorage.removeItem(registeredCorporateUserStorageKey);
     return null;
   }
 };
@@ -177,13 +192,26 @@ const createUserFromForm = (role: UserRole, formData: RegisterFormData): Current
   preferredRole: formData.preferredRole,
 });
 
+const createCorporateUserFromForm = (formData: CorporateRegisterFormData): CurrentUser => ({
+  role: 'corporate',
+  name: `${formData.companyName.trim()} 채용담당자`,
+  id: formData.loginId.trim() || 'corporate_user',
+  avatar: (formData.companyName.trim() || 'C').slice(0, 1),
+  loginId: formData.loginId,
+  email: formData.email,
+  phone: formData.phone,
+});
+
 const getMockUserByRole = (role: UserRole): CurrentUser => {
   if (role === 'corporate') return mockCorporateUser;
   if (role === 'admin') return mockAdminUser;
   return mockUser;
 };
 
-const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUser | null => {
+const getAutoLoggedInUser = (
+  registeredUser: RegisterFormData | null,
+  registeredCorporateUser: CorporateRegisterFormData | null,
+): CurrentUser | null => {
   const session = loadAutoLoginSession();
   if (!session) return null;
 
@@ -196,6 +224,10 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
   }
 
   if (session.role === 'corporate' || session.role === 'admin') {
+    if (session.role === 'corporate' && session.loginId && registeredCorporateUser?.loginId.trim() === session.loginId) {
+      return createCorporateUserFromForm(registeredCorporateUser);
+    }
+
     return getMockUserByRole(session.role);
   }
 
@@ -205,8 +237,9 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
 
 export default function App() {
   const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(() => loadRegisteredUser());
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser));
-  const [currentPage, setCurrentPage] = useState<Page>('main');
+  const [registeredCorporateUser, setRegisteredCorporateUser] = useState<CorporateRegisterFormData | null>(() => loadRegisteredCorporateUser());
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser, registeredCorporateUser));
+  const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || 'main');
   const [currentJobId, setCurrentJobId] = useState<string | null>(() => loadCurrentJobId());
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
@@ -236,9 +269,17 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRegister = (formData: RegisterFormData) => {
-    setRegisteredUser(formData);
-    localStorage.setItem(registeredUserStorageKey, JSON.stringify(formData));
+  const handleRegister = (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData) => {
+    if (role === 'corporate') {
+      const corporateForm = formData as CorporateRegisterFormData;
+      setRegisteredCorporateUser(corporateForm);
+      localStorage.setItem(registeredCorporateUserStorageKey, JSON.stringify(corporateForm));
+      return;
+    }
+
+    const personalForm = formData as RegisterFormData;
+    setRegisteredUser(personalForm);
+    localStorage.setItem(registeredUserStorageKey, JSON.stringify(personalForm));
   };
 
   const handleResetPassword = (newPassword: string) => {
@@ -251,10 +292,24 @@ export default function App() {
     });
   };
 
-  const handleLogin = (role: UserRole, formData?: RegisterFormData, keepLoggedIn = false) => {
-    if (formData) {
-      saveAutoLoginSession({ role, loginId: formData.loginId.trim() });
-      setCurrentUser(createUserFromForm(role, formData));
+  const handleLogin = (role: UserRole, formData?: RegisterFormData | CorporateRegisterFormData, keepLoggedIn = false) => {
+    if (formData && role === 'personal') {
+      const personalForm = formData as RegisterFormData;
+      saveAutoLoginSession({ role, loginId: personalForm.loginId.trim() });
+      setCurrentUser(createUserFromForm(role, personalForm));
+      return;
+    }
+
+    if (formData && role === 'corporate') {
+      const corporateForm = formData as CorporateRegisterFormData;
+      saveAutoLoginSession({ role, loginId: corporateForm.loginId.trim() });
+      setCurrentUser(createCorporateUserFromForm(corporateForm));
+      return;
+    }
+
+    if (role === 'corporate' && registeredCorporateUser) {
+      saveAutoLoginSession({ role, loginId: registeredCorporateUser.loginId.trim() });
+      setCurrentUser(createCorporateUserFromForm(registeredCorporateUser));
       return;
     }
 
@@ -346,12 +401,19 @@ export default function App() {
     navigate('login', `job-${normalizedJobId}`);
   };
 
-  const handleLoginSuccess = () => {
-    if (pendingApplicationJobId) {
+  const handleLoginSuccess = (role: UserRole) => {
+    if (role === 'personal' && pendingApplicationJobId) {
       const normalizedJobId = pendingApplicationJobId.replace(/^job-/, '');
       setPendingApplicationJobId(null);
       clearPendingApplicationJobId();
       navigate('job-detail', `job-${normalizedJobId}`);
+      return;
+    }
+
+    if (role === 'corporate') {
+      setPendingApplicationJobId(null);
+      clearPendingApplicationJobId();
+      navigate('corporate');
       return;
     }
 
@@ -371,7 +433,7 @@ export default function App() {
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
 
       case 'login':
-        return <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
+        return <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} registeredCorporateUser={registeredCorporateUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
 
       case 'register':
         return <RegisterPage navigate={navigate} onRegister={handleRegister} onBack={handleBack} />;
@@ -393,7 +455,6 @@ export default function App() {
       }
 
       case 'user-dashboard':
-      case 'corporate':
       case 'applications':
         return (
           <ProfilePage
@@ -409,6 +470,16 @@ export default function App() {
           />
         );
 
+      case 'corporate':
+        return (
+          <CorporatePage
+            currentUser={currentUser}
+            navigate={navigate}
+            appliedJobIds={appliedJobIds}
+            applicationForms={applicationForms}
+          />
+        );
+
       case 'jobs':
         return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
@@ -418,9 +489,6 @@ export default function App() {
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
-      case 'company-info':
-        return <CompanyInfoPage navigate={navigate} />;
-
       case 'community':
         return <CommunityPage />;
 
@@ -428,7 +496,7 @@ export default function App() {
         return <GuidePage navigate={navigate} />;
 
       case 'support':
-        return <SupportPage />;
+        return <SupportPage currentUser={currentUser} />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;

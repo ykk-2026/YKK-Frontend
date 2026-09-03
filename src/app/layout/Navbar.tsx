@@ -1,4 +1,4 @@
-import { Bell, LogOut, Menu, Search, UserRound, X } from 'lucide-react';
+import { LogOut, Menu, Search, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
 import { BrandLogo } from '@/app/components/BrandLogo';
 import type { CurrentUser, Page } from '@/app/types';
@@ -20,9 +20,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: '채용정보', page: 'jobs' },
   { label: 'AI 추천일자리', page: 'ai-recommend', badge: 'NEW' },
-  { label: '기업 정보', page: 'company-info' },
   { label: '커뮤니티', page: 'community' },
   { label: '이용안내', page: 'guide' },
+  { label: '고객센터', page: 'support' },
 ];
 
 export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch }: NavbarProps) {
@@ -75,9 +75,6 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
         </div>
 
         <div className="hidden items-center gap-5 md:flex">
-          <button type="button" aria-label="알림" className="flex h-9 w-9 items-center justify-center rounded-md text-[#111827] hover:bg-[#F5F7FA]">
-            <Bell size={18} />
-          </button>
           {currentUser ? (
             <>
               <button type="button" onClick={() => goTo(userPage)} className="text-[13px] font-bold text-[#111827] hover:text-[#1F64E8]">

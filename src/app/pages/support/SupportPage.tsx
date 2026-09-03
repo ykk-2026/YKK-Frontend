@@ -1,38 +1,115 @@
-import { CheckCircle2, ChevronDown, HelpCircle, Mail, MapPin, MessageSquareText, Phone, Search, Send } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  FileQuestion,
+  Inbox,
+  Mail,
+  MapPin,
+  MessageSquareText,
+  Phone,
+  Search,
+  Send,
+  Trash2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { CurrentUser } from '@/app/types';
+
+interface SupportPageProps {
+  currentUser?: CurrentUser | null;
+}
+
+type InquiryStatus = '접수' | '답변 완료';
+
+interface Inquiry {
+  id: string;
+  type: string;
+  name: string;
+  email: string;
+  message: string;
+  status: InquiryStatus;
+  createdAt: string;
+  answer?: string;
+}
+
+const supportInquiryStorageKey = 'ileeumSupportInquiries';
 
 const faqItems = [
   {
     category: '지원',
     question: '공고 지원 후 어디서 확인하나요?',
-    answer: '로그인 후 프로필의 지원관리에서 지원 완료 공고와 진행 상태를 확인할 수 있습니다.',
+    answer: '로그인 후 프로필의 지원 현황에서 지원 완료 공고와 진행 상태를 확인할 수 있습니다.',
   },
   {
     category: '계정',
     question: '기업회원은 채용 관리를 어디서 하나요?',
-    answer: '기업회원으로 로그인한 뒤 프로필 메뉴에서 등록 공고와 지원자 관리를 확인할 수 있습니다.',
+    answer: '기업회원으로 로그인하면 프로필 메뉴에서 등록 공고와 지원자 관리를 확인할 수 있습니다.',
   },
   {
     category: '접근성',
     question: '접근성 정보가 미확인인 경우 어떻게 하나요?',
-    answer: '공고 상세의 안심번호 문의 또는 고객지원 문의를 통해 담당자 확인을 요청할 수 있습니다.',
+    answer: '공고 상세의 안심번호 문의 또는 고객센터 1:1 문의로 담당자 확인을 요청할 수 있습니다.',
   },
   {
     category: '알바',
     question: '알바 공고에서 꼭 확인해야 할 정보는 무엇인가요?',
     answer: '시급 또는 일급, 근무시간, 휴게시간, 근로계약서 작성 여부, 임금 지급일을 확인하세요.',
   },
+  {
+    category: '신고',
+    question: '허위 공고나 불편한 게시글은 어떻게 신고하나요?',
+    answer: '공고 상세 또는 커뮤니티 게시글의 신고 기능을 이용하거나, 고객센터 문의 유형을 신고/오류로 선택해 접수하세요.',
+  },
 ];
 
-const categories = ['전체', '지원', '계정', '접근성', '알바'];
+const categories = ['전체', '지원', '계정', '접근성', '알바', '신고'];
+const inquiryTypes = ['지원 문의', '계정 문의', '접근성 정보 문의', '기업회원 문의', '신고/오류'];
 
-export function SupportPage() {
+const quickHelpItems = [
+  { title: '지원 결과 확인', description: '지원 현황에서 공고별 진행 상태를 확인하세요.', category: '지원' },
+  { title: '로그인 문제', description: '계정 정보를 확인하고 계속 안 되면 문의를 남겨주세요.', category: '계정' },
+  { title: '접근성 확인 요청', description: '시설 정보가 부족한 공고는 확인 요청을 접수할 수 있습니다.', category: '접근성' },
+];
+
+const getTimestamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+const normalizeInquiry = (inquiry: Partial<Inquiry>): Inquiry => ({
+  id: inquiry.id || `inquiry-${Date.now()}`,
+  type: inquiry.type || '지원 문의',
+  name: inquiry.name || '',
+  email: inquiry.email || '',
+  message: inquiry.message || '',
+  status: inquiry.status || '접수',
+  createdAt: inquiry.createdAt || getTimestamp(),
+  answer: inquiry.answer,
+});
+
+export function SupportPage({ currentUser }: SupportPageProps) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('전체');
-  const [openedFaqId, setOpenedFaqId] = useState(faqItems[0].question);
-  const [form, setForm] = useState({ type: '지원 문의', name: '', email: '', message: '' });
-  const [submitted, setSubmitted] = useState(false);
+  const [openedFaqId, setOpenedFaqId] = useState('');
+  const [form, setForm] = useState({
+    type: '지원 문의',
+    name: currentUser?.name || '',
+    email: currentUser?.email || '',
+    message: '',
+  });
+  const [submittedId, setSubmittedId] = useState('');
   const [error, setError] = useState('');
+  const [inquiries, setInquiries] = useState<Inquiry[]>(() => {
+    if (typeof window === 'undefined') return [];
+
+    const savedInquiries = localStorage.getItem(supportInquiryStorageKey);
+    if (!savedInquiries) return [];
+
+    try {
+      return (JSON.parse(savedInquiries) as Inquiry[]).map(normalizeInquiry);
+    } catch {
+      localStorage.removeItem(supportInquiryStorageKey);
+      return [];
+    }
+  });
 
   const filteredFaqs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -45,30 +122,70 @@ export function SupportPage() {
     });
   }, [category, query]);
 
+  const updateInquiries = (nextInquiries: Inquiry[]) => {
+    setInquiries(nextInquiries);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(supportInquiryStorageKey, JSON.stringify(nextInquiries));
+    }
+  };
+
   const updateForm = (field: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setError('');
-    setSubmitted(false);
+    setSubmittedId('');
   };
 
   const submitInquiry = () => {
-    if (!form.name.trim() || !form.email.includes('@') || form.message.trim().length < 10) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!form.name.trim() || !emailPattern.test(form.email.trim()) || form.message.trim().length < 10) {
       setError('이름, 이메일, 문의 내용을 정확히 입력해 주세요. 문의 내용은 10자 이상이어야 합니다.');
       return;
     }
 
-    setSubmitted(true);
+    const nextInquiry: Inquiry = {
+      id: `inquiry-${Date.now()}`,
+      type: form.type,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      message: form.message.trim(),
+      status: '접수',
+      createdAt: getTimestamp(),
+    };
+
+    updateInquiries([nextInquiry, ...inquiries]);
+    setSubmittedId(nextInquiry.id);
     setError('');
     setForm(prev => ({ ...prev, message: '' }));
+  };
+
+  const completeInquiry = (inquiryId: string) => {
+    updateInquiries(inquiries.map(inquiry => (
+      inquiry.id === inquiryId
+        ? { ...inquiry, status: '답변 완료', answer: '담당자가 문의 내용을 확인했습니다.' }
+        : inquiry
+    )));
+  };
+
+  const removeInquiry = (inquiryId: string) => {
+    updateInquiries(inquiries.filter(inquiry => inquiry.id !== inquiryId));
+  };
+
+  const applyQuickHelp = (nextCategory: string) => {
+    setCategory(nextCategory);
+    setQuery('');
+    setOpenedFaqId('');
   };
 
   return (
     <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
       <main className="mx-auto max-w-[1256px] px-5 py-6 sm:px-8">
-        <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-          <span className="rounded-full bg-[#E4EFFF] px-4 py-1.5 text-xs font-extrabold text-[#0D6BEA]">고객센터</span>
-          <h1 className="mt-3 text-3xl font-extrabold text-black">고객지원</h1>
-          <p className="mt-2 text-sm font-semibold text-[#596273]">채용정보와 지원 과정에서 필요한 도움을 빠르게 확인하세요.</p>
+        <section className="border-b border-[#D8E0EA] pb-6">
+          <span className="text-sm font-black text-[#0D6BEA]">고객센터</span>
+          <h1 className="mt-3 text-[32px] font-black leading-tight text-black">필요한 도움을 바로 찾고 문의하세요</h1>
+          <p className="mt-3 max-w-[720px] text-sm font-semibold leading-6 text-[#596273]">
+            공고 지원, 계정, 접근성 정보, 신고 요청을 한 곳에서 확인하고 1:1 문의 내역을 관리할 수 있습니다.
+          </p>
 
           <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto]">
             <div className="relative">
@@ -86,7 +203,7 @@ export function SupportPage() {
                   type="button"
                   key={item}
                   onClick={() => setCategory(item)}
-                  className={`h-12 rounded-lg px-4 text-sm font-extrabold ${category === item ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F3F6] text-[#344054] hover:bg-[#E4EFFF]'}`}
+                  className={`h-12 rounded-lg px-4 text-sm font-extrabold ${category === item ? 'bg-[#0D6BEA] text-white' : 'bg-white text-[#344054] hover:bg-[#E4EFFF]'}`}
                 >
                   {item}
                 </button>
@@ -95,10 +212,24 @@ export function SupportPage() {
           </div>
         </section>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
+        <section className="mt-5 grid gap-3 md:grid-cols-3">
+          {quickHelpItems.map(item => (
+            <button
+              type="button"
+              key={item.title}
+              onClick={() => applyQuickHelp(item.category)}
+              className="rounded-xl border border-[#DDE3EA] bg-white p-4 text-left shadow-sm hover:border-[#B9D6FF] hover:bg-[#F8FBFF]"
+            >
+              <span className="text-sm font-black text-black">{item.title}</span>
+              <span className="mt-2 block text-xs font-semibold leading-5 text-[#596273]">{item.description}</span>
+            </button>
+          ))}
+        </section>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_380px]">
           <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
             <h2 className="flex items-center gap-2 text-lg font-extrabold text-black">
-              <HelpCircle size={20} />
+              <FileQuestion size={20} />
               자주 묻는 질문
             </h2>
             <div className="mt-4 divide-y divide-[#E7ECF2]">
@@ -118,6 +249,12 @@ export function SupportPage() {
                   {openedFaqId === item.question && <p className="mt-3 rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-semibold leading-7 text-[#344054]">{item.answer}</p>}
                 </div>
               ))}
+              {filteredFaqs.length === 0 && (
+                <div className="py-12 text-center">
+                  <AlertCircle size={24} className="mx-auto text-[#8A94A6]" />
+                  <p className="mt-3 text-sm font-bold text-[#596273]">검색 결과가 없습니다. 1:1 문의로 접수해 주세요.</p>
+                </div>
+              )}
             </div>
           </section>
 
@@ -129,17 +266,14 @@ export function SupportPage() {
               </h2>
               <div className="mt-4 grid gap-3">
                 <select value={form.type} onChange={event => updateForm('type', event.target.value)} className="h-11 rounded-lg border border-[#D7DDE5] bg-white px-3 text-sm font-bold outline-none">
-                  <option>지원 문의</option>
-                  <option>기업회원 문의</option>
-                  <option>접근성 정보 문의</option>
-                  <option>계정 문의</option>
+                  {inquiryTypes.map(type => <option key={type}>{type}</option>)}
                 </select>
                 <input value={form.name} onChange={event => updateForm('name', event.target.value)} placeholder="이름" className="h-11 rounded-lg border border-[#D7DDE5] px-3 text-sm font-semibold outline-none" />
                 <input value={form.email} onChange={event => updateForm('email', event.target.value)} placeholder="이메일" className="h-11 rounded-lg border border-[#D7DDE5] px-3 text-sm font-semibold outline-none" />
                 <textarea value={form.message} onChange={event => updateForm('message', event.target.value)} placeholder="문의 내용을 입력해 주세요." className="min-h-28 rounded-lg border border-[#D7DDE5] px-3 py-3 text-sm font-semibold outline-none" />
               </div>
               {error && <p className="mt-3 rounded-lg bg-[#FFF5F5] px-3 py-2 text-sm font-bold text-[#D92D20]">{error}</p>}
-              {submitted && (
+              {submittedId && (
                 <p className="mt-3 flex items-center gap-2 rounded-lg bg-[#E7F8EF] px-3 py-2 text-sm font-bold text-[#14843C]">
                   <CheckCircle2 size={16} /> 문의가 접수되었습니다.
                 </p>
@@ -151,11 +285,50 @@ export function SupportPage() {
             </section>
 
             <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-extrabold text-black">
+                <Inbox size={20} />
+                문의 내역
+              </h2>
+              <div className="mt-4 space-y-3">
+                {inquiries.map(inquiry => (
+                  <article key={inquiry.id} className="rounded-lg border border-[#E7ECF2] bg-[#FBFCFE] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-black">{inquiry.type}</p>
+                        <p className="mt-1 truncate text-xs font-semibold text-[#596273]">{inquiry.message}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${inquiry.status === '답변 완료' ? 'bg-[#E7F8EF] text-[#14843C]' : 'bg-[#FFF4E5] text-[#B45309]'}`}>
+                        {inquiry.status}
+                      </span>
+                    </div>
+                    <p className="mt-3 flex items-center gap-1 text-xs font-bold text-[#8A94A6]"><Clock3 size={13} /> {inquiry.createdAt}</p>
+                    {inquiry.answer && <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-semibold leading-5 text-[#344054]">{inquiry.answer}</p>}
+                    <div className="mt-3 flex justify-end gap-2">
+                      {inquiry.status !== '답변 완료' && (
+                        <button type="button" onClick={() => completeInquiry(inquiry.id)} className="h-8 rounded-lg bg-[#EAF8F3] px-3 text-xs font-black text-[#14843C] hover:bg-[#DDF4EA]">
+                          답변 확인 처리
+                        </button>
+                      )}
+                      <button type="button" onClick={() => removeInquiry(inquiry.id)} aria-label="문의 삭제" className="flex h-8 w-8 items-center justify-center rounded-lg text-[#D92D20] hover:bg-[#FFF1F1]">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+                {inquiries.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-[#D7DDE5] px-4 py-8 text-center text-sm font-bold text-[#718096]">
+                    접수된 문의가 없습니다.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
               <h2 className="text-lg font-extrabold text-black">연락처</h2>
               <div className="mt-4 space-y-3 text-sm font-bold text-[#596273]">
                 <p className="flex items-center gap-2"><Phone size={16} /> 1588-0000</p>
-                <p className="flex items-center gap-2"><Mail size={16} /> help@ileeum.ai</p>
-                <p className="flex items-center gap-2"><MapPin size={16} /> 서울, 대한민국</p>
+                <p className="flex items-center gap-2"><Mail size={16} /> help@ileeum.kr</p>
+                <p className="flex items-center gap-2"><MapPin size={16} /> 평일 09:00-18:00 운영</p>
               </div>
             </section>
           </aside>
