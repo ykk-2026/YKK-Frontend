@@ -12,7 +12,7 @@ import {
   Phone,
   Search,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { CurrentUser } from '@/app/types';
 
 interface SupportPageProps {
@@ -63,87 +63,15 @@ const quickMenus = [
   },
 ];
 
-const faqItems: FaqItem[] = [
-  {
-    id: 'resume-preview',
-    category: '지원',
-    question: '내 이력서가 실제로 기업에게 어떻게 보이는지 알고 싶어요.',
-    answer: '마이페이지의 프로필 미리보기를 통해 기업에 전달되는 기본 정보를 확인할 수 있습니다. 지원 시에는 이름, 연락처, 이메일, 희망 고용형태 등 지원서에 입력한 정보가 함께 전달됩니다.',
-  },
-  {
-    id: 'personal-job-post',
-    category: '지원',
-    question: '개인회원으로는 채용공고를 등록할 수 없나요?',
-    answer: '채용공고 등록과 지원자 관리는 기업회원 계정에서만 가능합니다. 개인회원은 채용정보 조회, 관심공고 저장, 입사지원, 지원 현황 확인 기능을 사용할 수 있습니다.',
-  },
-  {
-    id: 'apply-again',
-    category: '지원',
-    question: '이미 지원한 기업에 지원을 취소하고 다시 지원할 수 있나요?',
-    answer: '지원 현황에서 지원서를 삭제한 뒤 같은 공고에 다시 지원할 수 있습니다. 다만 기업이 이미 전형을 진행 중인 경우에는 취소 전 채용 담당자에게 확인하는 것이 좋습니다.',
-  },
-  {
-    id: 'view-status',
-    category: '지원',
-    question: '온라인 지원 후 기업이 내 이력서를 봤는지 알 수 있나요?',
-    answer: '지원 현황에서 지원 완료, 서류 검토, 면접 등 전형 상태를 확인할 수 있습니다. 기업이 상태를 변경하면 지원 현황에 반영됩니다.',
-  },
-  {
-    id: 'withdraw',
-    category: '계정',
-    question: '회원탈퇴는 어디에서 하나요?',
-    answer: '마이페이지의 계정 설정 메뉴에서 회원탈퇴를 진행할 수 있습니다. 탈퇴 시 저장된 프로필, 관심공고, 지원 내역이 함께 삭제될 수 있으니 필요한 정보는 미리 확인해 주세요.',
-  },
-  {
-    id: 'private-resume',
-    category: '계정',
-    question: '이력서 비공개 상태에서 지원하면 기업이 이력서를 볼 수 있나요?',
-    answer: '프로필을 비공개로 설정해도 직접 지원한 공고의 기업 담당자는 지원 검토에 필요한 정보를 확인할 수 있습니다. 공개 설정은 기업의 일반 검색 노출 여부에 적용됩니다.',
-  },
-  {
-    id: 'login-fail',
-    category: '계정',
-    question: '아이디 또는 비밀번호가 맞는데 로그인이 되지 않습니다.',
-    answer: '입력한 아이디의 공백, 대소문자, 브라우저 자동완성 값을 먼저 확인해 주세요. 계속 문제가 있으면 비밀번호 찾기를 진행하거나 고객센터로 문의해 주세요.',
-  },
-  {
-    id: 'accessibility-info',
-    category: '접근성',
-    question: '공고의 접근성 정보는 어디에서 확인하나요?',
-    answer: '채용공고 상세 페이지에서 엘리베이터, 장애인 주차, 휠체어 접근, 장애인 화장실 등 편의시설 정보를 확인할 수 있습니다.',
-  },
-  {
-    id: 'wrong-accessibility',
-    category: '접근성',
-    question: '접근성 정보가 실제와 다르면 어떻게 하나요?',
-    answer: '공고 상세의 기업 문의 또는 고객센터 문의를 통해 정보 정정을 요청할 수 있습니다. 확인된 정보는 공고에 반영되도록 처리됩니다.',
-  },
-  {
-    id: 'ai-recommend',
-    category: '서비스',
-    question: 'AI 추천일자리는 어떤 기준으로 보여주나요?',
-    answer: '프로필의 희망 직무, 근무 지역, 고용형태, 접근성 조건, 경력 정보를 바탕으로 적합도가 높은 공고를 우선 추천합니다.',
-  },
-  {
-    id: 'saved-jobs',
-    category: '서비스',
-    question: '관심 공고는 어디에서 다시 볼 수 있나요?',
-    answer: '상단 메뉴 또는 마이페이지의 관심 공고 메뉴에서 저장한 공고를 다시 확인할 수 있습니다.',
-  },
-  {
-    id: 'report',
-    category: '기타',
-    question: '허위 공고나 부적절한 게시글은 어떻게 신고하나요?',
-    answer: '공고 상세 또는 커뮤니티 게시글에서 신고할 수 있습니다. 신고된 내용은 운영 기준에 따라 검토 후 조치됩니다.',
-  },
-];
-
-const topFaqIds = ['resume-preview', 'apply-again', 'view-status', 'private-resume', 'accessibility-info'];
+// FAQ 예시 문구는 제거했다. 실제 백엔드 FAQ API가 연결되면 이 배열을 응답 데이터로 대체하면 된다.
+const faqItems: FaqItem[] = [];
 
 export function SupportPage({ currentUser }: SupportPageProps) {
+  const faqSectionRef = useRef<HTMLElement>(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<FaqCategory>('전체');
-  const [openedFaqId, setOpenedFaqId] = useState('resume-preview');
+  const [openedFaqId, setOpenedFaqId] = useState('');
+  const [showAllFaqs, setShowAllFaqs] = useState(false);
 
   const filteredFaqs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -156,17 +84,7 @@ export function SupportPage({ currentUser }: SupportPageProps) {
     });
   }, [category, query]);
 
-  const topFaqs = topFaqIds
-    .map(id => faqItems.find(item => item.id === id))
-    .filter((item): item is FaqItem => Boolean(item));
-
-  const openFaq = (faq: FaqItem) => {
-    setCategory('전체');
-    setOpenedFaqId(faq.id);
-    window.setTimeout(() => {
-      document.getElementById(`faq-${faq.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 0);
-  };
+  const visibleFaqs = showAllFaqs ? filteredFaqs : filteredFaqs.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-[#F5F8FF] text-[#111827]">
@@ -215,6 +133,7 @@ export function SupportPage({ currentUser }: SupportPageProps) {
                 onClick={() => {
                   setCategory(item.category);
                   setOpenedFaqId('');
+                  setShowAllFaqs(false);
                 }}
                 className="rounded-lg border border-[#DDE7F5] bg-white p-4 text-left shadow-sm transition hover:border-[#1769E8] hover:bg-[#F8FBFF]"
               >
@@ -229,7 +148,7 @@ export function SupportPage({ currentUser }: SupportPageProps) {
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]">
-          <section className="rounded-lg border border-[#DDE7F5] bg-white p-5 shadow-sm sm:p-6">
+          <section ref={faqSectionRef} className="rounded-lg border border-[#DDE7F5] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="flex items-center gap-2 text-2xl font-black text-[#0B1F44]">
                 <FileQuestion size={24} className="text-[#1769E8]" />
@@ -243,6 +162,7 @@ export function SupportPage({ currentUser }: SupportPageProps) {
                     onClick={() => {
                       setCategory(item);
                       setOpenedFaqId('');
+                      setShowAllFaqs(false);
                     }}
                     className={`h-10 rounded-lg px-4 text-sm font-extrabold ${
                       category === item
@@ -257,7 +177,7 @@ export function SupportPage({ currentUser }: SupportPageProps) {
             </div>
 
             <div className="mt-5 divide-y divide-[#E7EDF6]">
-              {filteredFaqs.map(item => {
+              {visibleFaqs.map(item => {
                 const opened = openedFaqId === item.id;
 
                 return (
@@ -286,45 +206,16 @@ export function SupportPage({ currentUser }: SupportPageProps) {
                 );
               })}
 
-              {filteredFaqs.length === 0 && (
+              {visibleFaqs.length === 0 && (
                 <div className="py-16 text-center">
                   <HelpCircle size={34} className="mx-auto text-[#98A2B3]" />
-                  <p className="mt-4 text-base font-bold text-[#667085]">검색 결과가 없습니다.</p>
+                  <p className="mt-4 text-base font-bold text-[#667085]">등록된 질문이 없습니다.</p>
                 </div>
               )}
             </div>
           </section>
 
           <aside className="space-y-5">
-            <section className="rounded-lg border border-[#DDE7F5] bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-black text-[#0B1F44]">자주 묻는 질문 TOP 5</h2>
-                <button
-                  type="button"
-                  onClick={() => setCategory('전체')}
-                  className="inline-flex items-center gap-1 text-sm font-extrabold text-[#1769E8]"
-                >
-                  더보기 <ArrowRight size={15} />
-                </button>
-              </div>
-              <ol className="mt-4 space-y-3">
-                {topFaqs.map((item, index) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => openFaq(item)}
-                      className="flex w-full gap-3 rounded-lg border border-[#E7EDF6] px-3 py-3 text-left hover:border-[#1769E8] hover:bg-[#F8FBFF]"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1769E8] text-sm font-black text-white">
-                        {index + 1}
-                      </span>
-                      <span className="text-sm font-extrabold leading-6 text-[#24324A]">{item.question}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
             <section className="rounded-lg border border-[#DDE7F5] bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black text-[#0B1F44]">고객센터 안내</h2>
               <div className="mt-4 space-y-3 text-base font-bold text-[#344054]">
