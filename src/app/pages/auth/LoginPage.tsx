@@ -86,8 +86,8 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, r
         return;
       }
 
-      if (loginId.trim() !== 'company' || password !== 'company123') {
-        setError(registeredCorporateUser ? '기업 아이디 또는 비밀번호가 올바르지 않습니다.' : '기업 데모 계정은 아이디 company, 비밀번호 company123으로 로그인할 수 있습니다.');
+      if (loginId.trim() !== 'company01' || password !== 'company123') {
+        setError(registeredCorporateUser ? '기업 아이디 또는 비밀번호가 올바르지 않습니다.' : '기업 데모 계정은 아이디 company01, 비밀번호 company123으로 로그인할 수 있습니다.');
         return;
       }
 
@@ -245,7 +245,7 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, r
               {loginMode === 'corporate' ? '기업회원 로그인' : '개인회원 로그인'}
             </h2>
             <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
-              {loginMode === 'corporate' ? '데모: company / company123' : '데모: demo / password'}
+              {loginMode === 'corporate' ? '데모: company01 / company123' : '데모: demo / password'}
             </p>
             <div className="mt-4 h-px bg-border" />
           </div>

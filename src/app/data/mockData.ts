@@ -296,6 +296,8 @@ export const mockJobs: Job[] = [
 
 export const mockUser: CurrentUser = {
   role: 'personal',
+  memberRole: 'JOB_SEEKER',
+  status: 'ACTIVE',
   name: '김민준',
   id: 'minjun_kim',
   disability: '지체장애',
@@ -306,10 +308,31 @@ export const mockCorporateUser: CurrentUser = {
   role: 'corporate',
   name: 'Samsung SDS 채용담당자',
   id: 'samsung_sds_hr',
+  loginId: 'company01',
+  email: 'company01@example.com',
+  phone: '010-1234-5678',
+  memberRole: 'COMPANY',
+  status: 'ACTIVE',
+  companyProfile: {
+    companyName: 'Samsung SDS',
+    businessNumber: '123-45-67890',
+    representativeName: '홍길동',
+    industry: 'IT / 소프트웨어',
+    companyAddress: '서울특별시 강남구 테헤란로',
+    companyDetailAddress: '101호',
+    companyPhone: '02-1234-5678',
+    websiteUrl: 'https://example.com',
+    companyDescription: '장애인과 비장애인이 함께 성장할 수 있는 근무환경을 제공하는 기업입니다.',
+    employeeCount: 100,
+    establishedDate: '2020-01-01',
+    verificationStatus: 'APPROVED',
+  },
 };
 
 export const mockAdminUser: CurrentUser = {
   role: 'admin',
+  memberRole: 'ADMIN',
+  status: 'ACTIVE',
   name: '관리자',
   id: 'admin',
 };
