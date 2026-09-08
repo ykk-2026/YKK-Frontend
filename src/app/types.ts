@@ -14,6 +14,18 @@ export type Page =
   | 'corporate';
 
 export type UserRole = 'personal' | 'corporate' | 'admin';
+export type MemberRole = 'JOB_SEEKER' | 'COMPANY' | 'ADMIN';
+export type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+export type CompanyVerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type JobApplicationStatus =
+  | 'APPLIED'
+  | 'REVIEWING'
+  | 'DOCUMENT_PASSED'
+  | 'INTERVIEW'
+  | 'FINAL_REVIEW'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'CANCELED';
 
 export interface CurrentUser {
   role: UserRole;
@@ -34,6 +46,9 @@ export interface CurrentUser {
   accessibleRestroomRequired?: boolean;
   disabledParkingRequired?: boolean;
   assistiveDeviceRequired?: boolean;
+  memberRole?: MemberRole;
+  status?: MemberStatus;
+  companyProfile?: CompanyProfileData;
 }
 
 export interface RegisterFormData {
@@ -51,11 +66,40 @@ export interface RegisterFormData {
 export interface CorporateRegisterFormData {
   loginId: string;
   password: string;
-  companyName: string;
-  businessNumber: string;
   managerName: string;
+  memberName?: string;
+  birthDate?: string;
+  gender?: '' | 'MALE' | 'FEMALE' | 'OTHER';
   email: string;
   phone: string;
+  companyName: string;
+  businessNumber: string;
+  representativeName: string;
+  industry?: string;
+  companyAddress: string;
+  companyDetailAddress?: string;
+  companyPhone?: string;
+  websiteUrl?: string;
+  companyDescription?: string;
+  employeeCount?: string;
+  establishedDate?: string;
+  verificationStatus?: CompanyVerificationStatus;
+}
+
+export interface CompanyProfileData {
+  companyName: string;
+  businessNumber: string;
+  representativeName: string;
+  industry?: string;
+  companyAddress: string;
+  companyDetailAddress?: string;
+  companyPhone?: string;
+  websiteUrl?: string;
+  logoUrl?: string;
+  companyDescription?: string;
+  employeeCount?: number;
+  establishedDate?: string;
+  verificationStatus: CompanyVerificationStatus;
 }
 
 export interface Job {
@@ -114,6 +158,12 @@ export interface ApplicationFormData {
   email: string;
   employmentType: string;
   privacyAgreed: boolean;
+  applicationStatus?: JobApplicationStatus;
+  coverLetter?: string;
+  interviewAt?: string;
+  managerMemo?: string;
+  rejectionReason?: string;
+  resultAt?: string;
   submittedAt: string;
   updatedAt: string;
 }

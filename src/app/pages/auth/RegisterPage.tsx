@@ -25,14 +25,27 @@ const initialForm: RegisterFormData = {
 const initialCorporateForm: CorporateRegisterFormData = {
   loginId: '',
   password: '',
-  companyName: '',
-  businessNumber: '',
   managerName: '',
+  memberName: '',
+  birthDate: '',
+  gender: '',
   email: '',
   phone: '',
+  companyName: '',
+  businessNumber: '',
+  representativeName: '',
+  industry: '',
+  companyAddress: '',
+  companyDetailAddress: '',
+  companyPhone: '',
+  websiteUrl: '',
+  companyDescription: '',
+  employeeCount: '',
+  establishedDate: '',
+  verificationStatus: 'PENDING',
 };
 
-const reservedIds = ['admin', 'demo', 'test', 'user', 'jobbridge', 'minjun_kim', 'company'];
+const reservedIds = ['admin', 'demo', 'test', 'user', 'jobbridge', 'minjun_kim', 'company', 'company01'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
 const phonePattern = /^010-\d{4}-\d{4}$/;
@@ -197,6 +210,16 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
         loginId: corporateForm.loginId.trim().toLowerCase(),
         companyName: corporateForm.companyName.trim(),
         managerName: corporateForm.managerName.trim(),
+        representativeName: corporateForm.representativeName.trim() || corporateForm.managerName.trim(),
+        industry: corporateForm.industry?.trim(),
+        companyAddress: corporateForm.companyAddress.trim() || '미입력',
+        companyDetailAddress: corporateForm.companyDetailAddress?.trim(),
+        companyPhone: corporateForm.companyPhone?.trim(),
+        websiteUrl: corporateForm.websiteUrl?.trim(),
+        companyDescription: corporateForm.companyDescription?.trim(),
+        employeeCount: corporateForm.employeeCount?.trim(),
+        establishedDate: corporateForm.establishedDate?.trim(),
+        verificationStatus: 'PENDING',
         email: corporateForm.email.trim(),
         phone: corporateForm.phone,
       });

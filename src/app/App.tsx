@@ -180,6 +180,8 @@ const clearPendingApplicationJobId = () => {
 
 const createUserFromForm = (role: UserRole, formData: RegisterFormData): CurrentUser => ({
   role,
+  memberRole: role === 'admin' ? 'ADMIN' : 'JOB_SEEKER',
+  status: 'ACTIVE',
   name: formData.name.trim() || '구직자',
   id: formData.loginId.trim() || 'new_user',
   avatar: (formData.name.trim() || '회').slice(0, 1),
@@ -194,12 +196,28 @@ const createUserFromForm = (role: UserRole, formData: RegisterFormData): Current
 
 const createCorporateUserFromForm = (formData: CorporateRegisterFormData): CurrentUser => ({
   role: 'corporate',
+  memberRole: 'COMPANY',
+  status: 'ACTIVE',
   name: `${formData.companyName.trim()} 채용담당자`,
   id: formData.loginId.trim() || 'corporate_user',
   avatar: (formData.companyName.trim() || 'C').slice(0, 1),
   loginId: formData.loginId,
   email: formData.email,
   phone: formData.phone,
+  companyProfile: {
+    companyName: formData.companyName,
+    businessNumber: formData.businessNumber,
+    representativeName: formData.representativeName || formData.managerName,
+    industry: formData.industry,
+    companyAddress: formData.companyAddress || '',
+    companyDetailAddress: formData.companyDetailAddress,
+    companyPhone: formData.companyPhone,
+    websiteUrl: formData.websiteUrl,
+    companyDescription: formData.companyDescription,
+    employeeCount: formData.employeeCount ? Number(formData.employeeCount) : undefined,
+    establishedDate: formData.establishedDate,
+    verificationStatus: formData.verificationStatus || 'PENDING',
+  },
 });
 
 const getMockUserByRole = (role: UserRole): CurrentUser => {
@@ -353,6 +371,7 @@ export default function App() {
         ...prev,
         [normalizedJobId]: {
           ...formData,
+          applicationStatus: formData.applicationStatus || 'APPLIED',
           submittedAt: formData.submittedAt || new Date().toISOString(),
           updatedAt: formData.updatedAt || new Date().toISOString(),
         },
@@ -369,6 +388,7 @@ export default function App() {
         ...prev,
         [normalizedJobId]: {
           ...formData,
+          applicationStatus: formData.applicationStatus || prev[normalizedJobId]?.applicationStatus || 'APPLIED',
           submittedAt: prev[normalizedJobId]?.submittedAt || formData.submittedAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
