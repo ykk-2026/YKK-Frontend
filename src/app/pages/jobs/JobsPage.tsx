@@ -415,7 +415,6 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
                   <Sparkles size={20} className="text-[#F59E0B]" />
                   AI 맞춤 추천
                 </h2>
-                <button type="button" onClick={showMatchedJobs} className="text-xs font-extrabold text-[#1267E8]">더보기 →</button>
               </div>
               <p className="mb-4 text-xs font-bold text-[#667085]">지원님을 위한 추천 직무예요!</p>
               <div className="space-y-3">
@@ -444,7 +443,6 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
                   <MapPin size={20} />
                   지역별 채용공고
                 </h2>
-                <button type="button" onClick={() => setActiveRegion('전체')} className="text-xs font-extrabold text-[#1267E8]">더보기 →</button>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {regions.map(region => (
