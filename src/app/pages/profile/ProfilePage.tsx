@@ -19,8 +19,8 @@ import {
   UserRound,
 } from 'lucide-react';
 import { mockJobs } from '@/app/data/mockData';
-import { loadJobSeekerProfile, saveJobSeekerProfile } from '@/app/profileStorage';
 import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
+import { getProfile, saveProfile, type ApiJobSeekerProfile } from '@/app/api/profileApi';
 
 interface ProfilePageProps {
   currentUser: CurrentUser | null;
@@ -30,6 +30,7 @@ interface ProfilePageProps {
   applicationForms?: Record<string, ApplicationFormData>;
   initialMenu?: string;
   onBookmark: (id: string) => void;
+  onProfileSaved?: (profile: ApiJobSeekerProfile) => void;
   onUpdateApplication?: (id: string, formData: ApplicationFormData) => void;
   onDeleteApplication?: (id: string) => void;
 }
@@ -88,18 +89,6 @@ const workEnvironmentOptions = [
 ];
 
 const salaryPresets = ['3000', '4000', '5000', '6000', '10000'];
-const desiredJobExamples = [
-  '백엔드 개발자',
-  '프론트엔드 개발자',
-  '데이터 분석가',
-  '웹 서비스 기획자',
-  'UI/UX 디자이너',
-  'IT 서비스 운영',
-  '사무보조',
-  '고객상담',
-  '바리스타',
-  '매장관리',
-];
 const maxIntroLength = 500;
 const profilePhotoStoragePrefix = 'jobBridgeProfilePhoto';
 const maxProfilePhotoSize = 3 * 1024 * 1024;
@@ -150,19 +139,40 @@ const formatSalaryInput = (value: string) => {
   return Number(digits).toLocaleString('ko-KR');
 };
 
-const formatSalaryLabel = (value: string) => {
-  const salary = Number(value.replace(/\D/g, ''));
-  if (!salary) return '';
-  if (salary >= 10000 && salary % 10000 === 0) return `${salary / 10000}억원`;
-  if (salary >= 10000) {
-    const eok = Math.floor(salary / 10000);
-    const remainder = salary % 10000;
-    return `${eok}억 ${remainder.toLocaleString('ko-KR')}만원`;
-  }
-  return `${salary.toLocaleString('ko-KR')}만원`;
+const formatCareerYears = (value: string) => value.replace(/\D/g, '').slice(0, 2);
+
+const toNumberOrNull = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  return digits ? Number(digits) : null;
 };
 
-const formatCareerYears = (value: string) => value.replace(/\D/g, '').slice(0, 2);
+const toProfileFormValues = (profile: ApiJobSeekerProfile) => ({
+  name: profile.name || '',
+  birthDate: profile.birthDate || '',
+  gender: profile.gender || 'OTHER',
+  email: profile.email || '',
+  phone: profile.phone || '',
+  residenceRegion: profile.residenceRegion || '',
+  desiredJob: profile.desiredJob || '',
+  desiredRegion: profile.desiredRegion || '',
+  employmentType: profile.employmentType || 'ANY',
+  careerType: profile.careerType || 'ANY',
+  careerYears: String(profile.careerYears ?? 0),
+  minSalary: profile.minSalary ? Number(profile.minSalary).toLocaleString('ko-KR') : '',
+  remotePreferred: Boolean(profile.remotePreferred),
+  flexiblePreferred: Boolean(profile.flexiblePreferred),
+  hybridPreferred: Boolean(profile.hybridPreferred),
+  onsitePreferred: Boolean(profile.onsitePreferred),
+  wheelchairRequired: Boolean(profile.wheelchairRequired),
+  accessibleRestroomRequired: Boolean(profile.accessibleRestroomRequired),
+  disabledParkingRequired: Boolean(profile.disabledParkingRequired),
+  assistiveDeviceRequired: Boolean(profile.assistiveDeviceRequired),
+  contactTimeStart: profile.contactTimeStart || '09:00',
+  contactTimeEnd: profile.contactTimeEnd || '18:00',
+  contactMethod: profile.contactMethod || 'PHONE',
+  introduction: profile.introduction || '',
+  profilePublic: profile.profilePublic ?? true,
+});
 
 const loadProfilePhoto = (userId: string) => {
   if (typeof window === 'undefined') return { type: 'initial', value: '' } satisfies ProfileAvatar;
@@ -194,19 +204,19 @@ export function ProfilePage({
   applicationForms = {},
   initialMenu = '내 프로필',
   onBookmark,
+  onProfileSaved,
   onUpdateApplication,
   onDeleteApplication,
 }: ProfilePageProps) {
   const initialName = currentUser?.name || '김민준';
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const userId = currentUser?.loginId || currentUser?.id || 'guest';
-  const savedProfile = loadJobSeekerProfile(userId);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [activeMenu, setActiveMenu] = useState(initialMenu);
   const [savedMessage, setSavedMessage] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
-  const [isDesiredJobOpen, setIsDesiredJobOpen] = useState(false);
   const [isDesiredRegionOpen, setIsDesiredRegionOpen] = useState(false);
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [editingApplicationJobId, setEditingApplicationJobId] = useState<string | null>(null);
@@ -255,8 +265,33 @@ export function ProfilePage({
     contactMethod: 'PHONE',
     introduction: '',
     profilePublic: true,
-    ...savedProfile,
   });
+
+  useEffect(() => {
+    if (!currentUser?.id || currentUser.role !== 'personal') return;
+
+    let cancelled = false;
+    getProfile(currentUser.id)
+      .then(profile => {
+        if (cancelled) return;
+        const nextProfile = toProfileFormValues(profile);
+        setProfileForm(nextProfile);
+        setAccountForm(prev => ({
+          ...prev,
+          email: nextProfile.email,
+          phone: nextProfile.phone,
+        }));
+      })
+      .catch(error => {
+        if (!cancelled) {
+          setSavedMessage(error instanceof Error ? error.message : '프로필 정보를 불러오지 못했습니다.');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, currentUser?.role]);
 
   useEffect(() => {
     setProfileAvatar(loadProfilePhoto(userId));
@@ -265,7 +300,6 @@ export function ProfilePage({
   useEffect(() => {
     setActiveMenu(initialMenu);
   }, [initialMenu]);
-
   const avatarInitial = (profileForm.name.trim() || initialName).slice(0, 1);
   const selectedDefaultProfile = defaultProfileOptions.find(option => option.id === profileAvatar.value) || defaultProfileOptions[0];
   const savedJobs = mockJobs
@@ -324,20 +358,70 @@ export function ProfilePage({
     );
   };
 
+  const handlePersistProfile = async () => {
+    if (profileForm.contactTimeStart && profileForm.contactTimeEnd && profileForm.contactTimeStart >= profileForm.contactTimeEnd) {
+      window.alert('연락 가능 시작시간은 종료시간보다 빨라야 합니다.');
+      return;
+    }
+
+    if (!currentUser?.id || currentUser.role !== 'personal') {
+      window.alert('로그인한 개인회원만 프로필을 저장할 수 있습니다.');
+      return;
+    }
+
+    const payload: ApiJobSeekerProfile = {
+      memberId: Number(currentUser.id),
+      name: profileForm.name.trim(),
+      birthDate: profileForm.birthDate,
+      gender: profileForm.gender,
+      email: profileForm.email.trim(),
+      phone: profileForm.phone.trim(),
+      residenceRegion: profileForm.residenceRegion,
+      desiredJob: profileForm.desiredJob.trim(),
+      desiredRegion: profileForm.desiredRegion,
+      employmentType: profileForm.employmentType,
+      careerType: profileForm.careerType,
+      careerYears: toNumberOrNull(profileForm.careerYears),
+      minSalary: toNumberOrNull(profileForm.minSalary),
+      remotePreferred: profileForm.remotePreferred,
+      flexiblePreferred: profileForm.flexiblePreferred,
+      wheelchairRequired: profileForm.wheelchairRequired,
+      accessibleRestroomRequired: profileForm.accessibleRestroomRequired,
+      disabledParkingRequired: profileForm.disabledParkingRequired,
+      assistiveDeviceRequired: profileForm.assistiveDeviceRequired,
+      hybridPreferred: profileForm.hybridPreferred,
+      onsitePreferred: profileForm.onsitePreferred,
+      contactTimeStart: profileForm.contactTimeStart,
+      contactTimeEnd: profileForm.contactTimeEnd,
+      contactMethod: profileForm.contactMethod,
+      introduction: profileForm.introduction,
+      profilePublic: profileForm.profilePublic,
+    };
+
+    setIsSavingProfile(true);
+    setSavedMessage('');
+    try {
+      await saveProfile(currentUser.id, payload);
+      onProfileSaved?.(payload);
+      setSavedMessage('프로필이 변경되었습니다.');
+      window.alert('프로필이 변경되었습니다.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '프로필 변경에 실패했습니다.';
+      setSavedMessage(message);
+      window.alert(message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const handleSave = () => {
     if (profileForm.contactTimeStart && profileForm.contactTimeEnd && profileForm.contactTimeStart >= profileForm.contactTimeEnd) {
       window.alert('연락 가능 시작시간은 종료시간보다 빨라야 합니다.');
       return;
     }
 
-    try {
-      saveJobSeekerProfile(userId, profileForm);
-      setSavedMessage('프로필 정보가 저장되었습니다.');
-      window.alert('프로필 정보가 저장되었습니다.');
-    } catch {
-      setSavedMessage('');
-      window.alert('프로필 정보를 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
-    }
+    setSavedMessage('프로필 정보가 저장되었습니다.');
+    window.alert('프로필 정보가 저장되었습니다.');
   };
 
   const saveAccountSettings = () => {
@@ -445,7 +529,6 @@ export function ProfilePage({
   };
 
   const selectedWorkTypes = workTypes.filter(item => profileForm[item.field]).map(item => item.label);
-
   return (
     <div className="min-h-screen bg-[#F3F7FF] text-[#111827]">
       <main className="mx-auto grid max-w-[1256px] gap-5 px-5 py-5 sm:px-8 lg:grid-cols-[260px_1fr]">
@@ -496,7 +579,7 @@ export function ProfilePage({
                   <button type="button" onClick={() => setIsPreviewOpen(true)} className="rounded-lg border border-[#D7DDE5] px-4 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
                     미리보기
                   </button>
-                  <button type="button" onClick={handleSave} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7]">
+                  <button type="button" onClick={handlePersistProfile} disabled={isSavingProfile} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7] disabled:cursor-not-allowed disabled:opacity-60">
                     <Save size={16} />
                     저장
                   </button>
@@ -797,55 +880,9 @@ export function ProfilePage({
               <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
                 <h2 className="mb-5 text-lg font-extrabold">구직 조건</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="relative block">
+                  <label className="block">
                     <span className="mb-2 block text-sm font-bold">희망 직무</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsDesiredJobOpen(prev => !prev)}
-                      className="flex w-full items-center justify-between rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-left text-sm font-bold text-[#111827] focus:border-[#0D6BEA] focus:outline-none focus:ring-4 focus:ring-[#0D6BEA]/15"
-                    >
-                      <span className={profileForm.desiredJob ? 'text-[#111827]' : 'text-[#98A2B3]'}>
-                        {profileForm.desiredJob || '예: 백엔드 개발자'}
-                      </span>
-                      <span className="text-[#7A8495]">⌄</span>
-                    </button>
-                    {isDesiredJobOpen && (
-                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-[#DCEAF3] bg-white shadow-lg">
-                        {desiredJobExamples.map(job => (
-                          <button
-                            type="button"
-                            key={job}
-                            onClick={() => {
-                              updateForm('desiredJob', job);
-                              setIsDesiredJobOpen(false);
-                            }}
-                            className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-[#F4F8FC] ${
-                              profileForm.desiredJob === job ? 'bg-[#E4EFFF] font-bold text-[#0D6BEA]' : 'text-[#111827]'
-                            }`}
-                          >
-                            {job}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateForm('desiredJob', '');
-                            setIsDesiredJobOpen(false);
-                          }}
-                          className="block w-full border-t border-[#EEF2F6] px-3 py-2.5 text-left text-sm font-bold text-[#667085] hover:bg-[#F4F8FC]"
-                        >
-                          직접 입력하려면 선택 해제
-                        </button>
-                      </div>
-                    )}
-                    {!profileForm.desiredJob && (
-                      <input
-                        className="mt-2 w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm"
-                        value={profileForm.desiredJob}
-                        onChange={event => updateForm('desiredJob', event.target.value)}
-                        placeholder="목록에 없으면 직접 입력"
-                      />
-                    )}
+                    <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.desiredJob} onChange={event => updateForm('desiredJob', event.target.value)} placeholder="예: 백엔드 개발자" />
                   </label>
                   <label className="relative block">
                     <span className="mb-2 block text-sm font-bold">희망 근무지역</span>
@@ -890,7 +927,7 @@ export function ProfilePage({
                     <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.careerYears} onChange={event => updateForm('careerYears', formatCareerYears(event.target.value))} inputMode="numeric" placeholder="예: 3" />
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-bold">희망 최소 연봉</span>
+                    <span className="mb-2 block text-sm font-bold">희망 최소 연봉 <span className="text-[#7A8495]">(만원)</span></span>
                     <div className="relative">
                       <input
                         className="w-full rounded-lg border border-[#DCEAF3] py-3 pl-3 pr-24 text-sm font-bold outline-none focus:ring-4 focus:ring-[#0D6BEA]/15"
@@ -913,7 +950,7 @@ export function ProfilePage({
                             profileForm.minSalary === Number(salary).toLocaleString('ko-KR') ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F3F6] text-[#344054] hover:bg-[#E4EFFF]'
                           }`}
                         >
-                          {formatSalaryLabel(salary)}
+                          {Number(salary).toLocaleString('ko-KR')}만원
                         </button>
                       ))}
                     </div>
@@ -1150,7 +1187,7 @@ export function ProfilePage({
               <p><b>현재 거주지역</b> {profileForm.residenceRegion}</p>
               <p><b>희망 근무지역</b> {profileForm.desiredRegion}</p>
               <p><b>경력</b> {careerTypeOptions.find(option => option.value === profileForm.careerType)?.label} / {profileForm.careerYears || 0}년</p>
-              <p><b>희망 최소 연봉</b> {profileForm.minSalary ? `${formatSalaryLabel(profileForm.minSalary)} 이상` : '미입력'}</p>
+              <p><b>희망 최소 연봉</b> {profileForm.minSalary ? `${profileForm.minSalary}만원 이상` : '미입력'}</p>
               <p><b>근무 방식</b> {selectedWorkTypes.length > 0 ? selectedWorkTypes.join(', ') : '미선택'}</p>
               <p><b>연락 가능 시간</b> {profileForm.contactTimeStart} ~ {profileForm.contactTimeEnd}</p>
               <p><b>선호 연락 방식</b> {contactMethodOptions.find(option => option.value === profileForm.contactMethod)?.label}</p>

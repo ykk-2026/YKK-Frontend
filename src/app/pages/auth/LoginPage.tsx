@@ -5,7 +5,12 @@ import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from
 
 interface LoginPageProps {
   navigate: (page: Page) => void;
-  onLogin: (role: UserRole, formData?: RegisterFormData | CorporateRegisterFormData, keepLoggedIn?: boolean) => void;
+  onLogin: (
+    role: UserRole,
+    formData?: RegisterFormData | CorporateRegisterFormData,
+    keepLoggedIn?: boolean,
+    credentials?: { loginId: string; password: string },
+  ) => Promise<void>;
   onLoginSuccess?: (role: UserRole) => void;
   registeredUser: RegisterFormData | null;
   registeredCorporateUser: CorporateRegisterFormData | null;
@@ -75,8 +80,26 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, r
     setNewPasswordConfirm('');
   };
 
-  const submitLogin = () => {
+  const submitLogin = async () => {
     if (isSubmitting) return;
+
+    if (loginMode === 'personal') {
+      if (!loginId.trim() || !password) {
+        setError('아이디와 비밀번호를 입력해 주세요.');
+        return;
+      }
+
+      setIsSubmitting(true);
+      setError('');
+      try {
+        await onLogin('personal', undefined, autoLogin, { loginId: loginId.trim(), password });
+        window.setTimeout(() => finishLogin('personal'), 180);
+      } catch (loginError) {
+        setError(loginError instanceof Error ? loginError.message : '로그인에 실패했습니다.');
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     if (loginMode === 'corporate') {
       if (registeredCorporateUser && loginId.trim() === registeredCorporateUser.loginId.trim() && password === registeredCorporateUser.password) {
