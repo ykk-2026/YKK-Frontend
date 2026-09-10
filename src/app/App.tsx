@@ -477,6 +477,10 @@ export default function App() {
 
       case 'user-dashboard':
       case 'applications':
+        if (!currentUser) {
+          return <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} registeredCorporateUser={registeredCorporateUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
+        }
+
         return (
           <ProfilePage
             currentUser={currentUser}

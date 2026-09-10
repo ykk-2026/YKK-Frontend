@@ -297,6 +297,9 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
     setRefreshKey(prev => prev + 1);
     setCalculationKey(prev => prev + 1);
   };
+  const goToProfile = () => {
+    navigate(currentUser ? 'user-dashboard' : 'login');
+  };
 
   return (
     <div className="min-h-screen bg-[#F3F8FF] text-[#101828]">
@@ -326,11 +329,11 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate('user-dashboard')}
+                  onClick={goToProfile}
                   className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#C8D7EA] bg-white px-4 text-sm font-extrabold text-[#344054] hover:bg-[#F7FAFE]"
                 >
                   <UserRound size={16} />
-                  프로필 수정
+                  {currentUser ? '프로필 수정' : '로그인하기'}
                 </button>
               </div>
               {lastCalculatedAt && (
@@ -380,10 +383,10 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
               <p className="text-base font-black text-[#081B45]">맞춤 추천을 받으려면 먼저 프로필을 작성해주세요.</p>
               <button
                 type="button"
-                onClick={() => navigate('user-dashboard')}
+                onClick={goToProfile}
                 className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0D6BEA] px-5 text-sm font-extrabold text-white hover:bg-[#0959C7]"
               >
-                프로필 작성하기 <ArrowRight size={17} />
+                {currentUser ? '프로필 작성하기' : '로그인하고 프로필 작성하기'} <ArrowRight size={17} />
               </button>
             </div>
           )}
