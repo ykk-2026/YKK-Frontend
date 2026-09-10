@@ -19,6 +19,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { mockJobs } from '@/app/data/mockData';
+import { loadJobSeekerProfile, saveJobSeekerProfile } from '@/app/profileStorage';
 import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
 
 interface ProfilePageProps {
@@ -175,6 +176,7 @@ export function ProfilePage({
   const initialName = currentUser?.name || '김민준';
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const userId = currentUser?.loginId || currentUser?.id || 'guest';
+  const savedProfile = loadJobSeekerProfile(userId);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [activeMenu, setActiveMenu] = useState(initialMenu);
   const [savedMessage, setSavedMessage] = useState('');
@@ -228,6 +230,7 @@ export function ProfilePage({
     contactMethod: 'PHONE',
     introduction: '',
     profilePublic: true,
+    ...savedProfile,
   });
 
   useEffect(() => {
@@ -302,8 +305,14 @@ export function ProfilePage({
       return;
     }
 
-    setSavedMessage('프로필 정보가 저장되었습니다.');
-    window.alert('프로필 정보가 저장되었습니다.');
+    try {
+      saveJobSeekerProfile(userId, profileForm);
+      setSavedMessage('프로필 정보가 저장되었습니다.');
+      window.alert('프로필 정보가 저장되었습니다.');
+    } catch {
+      setSavedMessage('');
+      window.alert('프로필 정보를 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
+    }
   };
 
   const saveAccountSettings = () => {

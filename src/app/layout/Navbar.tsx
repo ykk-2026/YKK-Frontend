@@ -47,14 +47,14 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E5EAF0] bg-white">
-      <div className="mx-auto grid h-[66px] max-w-[1240px] grid-cols-[auto_minmax(280px,460px)_auto] items-center gap-8 px-6 max-md:grid-cols-[1fr_auto]">
+      <div className="mx-auto grid h-[66px] max-w-[1240px] grid-cols-[auto_minmax(280px,460px)_minmax(180px,auto)] items-center gap-8 px-6 max-md:grid-cols-[1fr_auto]">
         <div className="flex min-w-0 items-center">
           <button type="button" onClick={() => goTo('main')} className="shrink-0" aria-label="메인으로 이동">
             <BrandLogo compact />
           </button>
         </div>
 
-        <div className="relative mx-auto hidden w-full -translate-x-6 md:block">
+        <div className="relative mx-auto hidden w-full md:block">
           <input
             value={searchQuery}
             onChange={event => setSearchQuery(event.target.value)}
@@ -74,7 +74,7 @@ export function Navbar({ currentPage, navigate, currentUser, onLogout, onSearch 
           </button>
         </div>
 
-        <div className="hidden items-center gap-5 md:flex">
+        <div className="hidden items-center justify-self-end gap-5 md:flex">
           {currentUser ? (
             <>
               <button type="button" onClick={() => goTo(userPage)} className="text-[13px] font-bold text-[#111827] hover:text-[#1F64E8]">

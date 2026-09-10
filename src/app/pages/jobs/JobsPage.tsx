@@ -308,12 +308,6 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
                 <div className="absolute bottom-4 right-42 h-20 w-36 -skew-x-6 rounded-lg bg-[#334155] shadow-lg" />
                 <div className="absolute bottom-2 right-1 h-16 w-16 rounded-full border-[8px] border-[#3B82F6] bg-white" />
                 <div className="absolute bottom-2 right-58 h-16 w-16 rounded-full border-[8px] border-[#3B82F6] bg-white" />
-                <div className="absolute bottom-26 right-2 space-y-2 rounded-lg bg-white/80 p-3 text-xs font-extrabold text-[#1267E8] shadow-sm">
-                  <p className="flex items-center gap-1"><Sparkles size={13} /> AI 맞춤 추천</p>
-                  <p className="flex items-center gap-1"><Accessibility size={13} /> 장애인 친화 기업</p>
-                  <p className="flex items-center gap-1"><CheckCircle2 size={13} /> 접근성 정보 제공</p>
-                  <p className="flex items-center gap-1"><BriefcaseBusiness size={13} /> 지속적인 취업 지원</p>
-                </div>
               </div>
             </section>
 
@@ -392,9 +386,6 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
                   <h2 className="text-xl font-black text-[#081B45]">추천 채용공고</h2>
                   <p className="mt-1 text-xs font-bold text-[#667085]">당신에게 맞는 일자리를 추천합니다.</p>
                 </div>
-                <button type="button" onClick={clearFilters} className="inline-flex items-center gap-1 text-xs font-extrabold text-[#1267E8]">
-                  전체보기 <ArrowRight size={14} />
-                </button>
               </div>
               <div className="space-y-3">
                 {filteredJobs.length > 0 ? (
@@ -412,39 +403,9 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
             <section className="rounded-lg bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-lg font-black text-[#081B45]">
-                  <Sparkles size={20} className="text-[#F59E0B]" />
-                  AI 맞춤 추천
-                </h2>
-                <button type="button" onClick={showMatchedJobs} className="text-xs font-extrabold text-[#1267E8]">더보기 →</button>
-              </div>
-              <p className="mb-4 text-xs font-bold text-[#667085]">지원님을 위한 추천 직무예요!</p>
-              <div className="space-y-3">
-                {recommendedJobs.slice(0, 5).map((job, index) => (
-                  <button
-                    type="button"
-                    key={job.id}
-                    onClick={() => selectRecommendedJob(job)}
-                    className="flex h-12 w-full items-center justify-between rounded-lg bg-[#F4F8FD] px-4 text-left text-sm font-extrabold text-[#344054] hover:bg-[#EAF2FF]"
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${index === 0 ? 'bg-[#E7F0FF] text-[#1267E8]' : index === 1 ? 'bg-[#EAF7FF] text-[#0E7490]' : index === 2 ? 'bg-[#FFF7E8] text-[#B45309]' : 'bg-[#EEF2F7] text-[#475467]'}`}>
-                        {index === 0 ? <BarChart3 size={17} /> : index === 1 ? <Database size={17} /> : index === 2 ? <Lightbulb size={17} /> : index === 3 ? <Code2 size={17} /> : <Settings size={17} />}
-                      </span>
-                      {job.title}
-                    </span>
-                    <ArrowRight size={15} className="text-[#98A2B3]" />
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-lg bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-lg font-black text-[#081B45]">
                   <MapPin size={20} />
                   지역별 채용공고
                 </h2>
-                <button type="button" onClick={() => setActiveRegion('전체')} className="text-xs font-extrabold text-[#1267E8]">더보기 →</button>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {regions.map(region => (
@@ -486,34 +447,6 @@ export function JobsPage({ mode = 'all', navigate, bookmarks, onBookmark, initia
               </div>
             </section>
 
-            <section className="rounded-lg bg-white p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-black text-[#081B45]">
-                <Target size={20} className="text-[#1267E8]" />
-                맞춤 조건
-              </h2>
-              <label className="mt-4 block">
-                <span className="text-xs font-extrabold text-[#667085]">희망 직무</span>
-                <input
-                  value={desiredRole}
-                  onChange={event => setDesiredRole(event.target.value)}
-                  className="mt-2 h-10 w-full rounded-lg border border-[#D7E1EE] px-3 text-sm font-bold outline-none focus:border-[#1267E8]"
-                />
-              </label>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {availableSkills.map(skill => (
-                  <button
-                    type="button"
-                    key={skill}
-                    onClick={() => toggleSkill(skill)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
-                      selectedSkills.includes(skill) ? 'bg-[#1267E8] text-white' : 'bg-[#F2F6FB] text-[#667085] hover:bg-[#EAF2FF]'
-                    }`}
-                  >
-                    {skill}
-                  </button>
-                ))}
-              </div>
-            </section>
           </aside>
         </main>
       </div>

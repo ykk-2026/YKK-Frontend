@@ -43,7 +43,6 @@ const accessibilityLabels = [
   { key: 'hearingLoop' as const, label: '보청 지원' },
 ];
 
-const applicationPasswordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
 const getNormalizedJobId = (jobId: string | null) => jobId?.replace(/^job-/, '') || '';
 const isPartTimeJob = (job: (typeof mockJobs)[number]) => job.category === 'PartTime' || job.requirements.includes('알바');
 
@@ -85,8 +84,6 @@ export function JobDetailPage({
     phone3: initialPhoneParts[2] || '',
     email: currentUser?.email || '',
     employmentType: meta.employment,
-    password: '',
-    passwordConfirm: '',
     privacyAgreed: false,
   });
 
@@ -143,16 +140,6 @@ export function JobDetailPage({
 
     if (!applicationForm.email.trim() || !applicationForm.email.includes('@')) {
       setApplyError('지원 결과를 받을 이메일을 입력해 주세요.');
-      return;
-    }
-
-    if (!applicationPasswordPattern.test(applicationForm.password)) {
-      setApplyError('비밀번호는 영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.');
-      return;
-    }
-
-    if (applicationForm.password !== applicationForm.passwordConfirm) {
-      setApplyError('비밀번호와 비밀번호 확인 값이 일치해야 합니다.');
       return;
     }
 
@@ -495,25 +482,6 @@ export function JobDetailPage({
                   </select>
                 </label>
 
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <span className="text-sm font-bold text-[#596273]">비밀번호</span>
-                  <div className="grid gap-2">
-                    <input
-                      type="password"
-                      value={applicationForm.password}
-                      onChange={event => updateApplicationForm('password', event.target.value)}
-                      placeholder="영문, 숫자, 특수문자 포함 8~20자"
-                      className="h-11 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                    />
-                    <input
-                      type="password"
-                      value={applicationForm.passwordConfirm}
-                      onChange={event => updateApplicationForm('passwordConfirm', event.target.value)}
-                      placeholder="비밀번호 확인"
-                      className="h-11 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                    />
-                  </div>
-                </label>
               </div>
 
               <label className="mt-5 flex items-start gap-2 rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-bold text-[#344054]">
