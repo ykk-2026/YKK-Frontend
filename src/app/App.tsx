@@ -9,6 +9,7 @@ import { RegisterPage } from '@/app/pages/auth/RegisterPage';
 import { ProfilePage } from '@/app/pages/profile/ProfilePage';
 import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
+import { AiJobRecommendationPage } from '@/app/pages/jobs/AiJobRecommendationPage';
 import { SupportPage } from '@/app/pages/support/SupportPage';
 import { CommunityPage, GuidePage } from '@/app/pages/info/InfoPages';
 import { CorporatePage } from '@/app/pages/corporate/CorporatePage';
@@ -501,10 +502,10 @@ export default function App() {
         );
 
       case 'jobs':
-        return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       case 'ai-recommend':
-        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+        return <AiJobRecommendationPage currentUser={currentUser} navigate={navigate} />;
 
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
