@@ -1,15 +1,14 @@
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { BrandLogo } from '@/app/components/BrandLogo';
-import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from '@/app/types';
+import type { Page, RegisterFormData } from '@/app/types';
+import { checkLoginIdAvailability } from '@/app/api/memberApi';
 
 interface RegisterPageProps {
   navigate: (page: Page) => void;
-  onRegister: (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData) => void;
+  onRegister: (formData: RegisterFormData, passwordConfirm: string) => Promise<void>;
   onBack: () => void;
 }
-
-type RegisterMode = 'personal' | 'corporate';
 
 const initialForm: RegisterFormData = {
   loginId: '',
@@ -22,30 +21,7 @@ const initialForm: RegisterFormData = {
   preferredRole: '',
 };
 
-const initialCorporateForm: CorporateRegisterFormData = {
-  loginId: '',
-  password: '',
-  managerName: '',
-  memberName: '',
-  birthDate: '',
-  gender: '',
-  email: '',
-  phone: '',
-  companyName: '',
-  businessNumber: '',
-  representativeName: '',
-  industry: '',
-  companyAddress: '',
-  companyDetailAddress: '',
-  companyPhone: '',
-  websiteUrl: '',
-  companyDescription: '',
-  employeeCount: '',
-  establishedDate: '',
-  verificationStatus: 'PENDING',
-};
-
-const reservedIds = ['admin', 'demo', 'test', 'user', 'jobbridge', 'minjun_kim', 'company', 'company01'];
+const reservedIds = ['admin', 'demo', 'test', 'user', 'jobbridge', 'minjun_kim'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
 const phonePattern = /^010-\d{4}-\d{4}$/;
@@ -74,36 +50,14 @@ const formatBirthDate = (value: string) => {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 };
 
-const formatBusinessNumber = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
-};
-
 export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps) {
-  const [registerMode, setRegisterMode] = useState<RegisterMode>('personal');
   const [form, setForm] = useState<RegisterFormData>(initialForm);
-  const [corporateForm, setCorporateForm] = useState<CorporateRegisterFormData>(initialCorporateForm);
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState('');
   const [idAvailable, setIdAvailable] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const activeLoginId = registerMode === 'corporate' ? corporateForm.loginId : form.loginId;
-  const activePassword = registerMode === 'corporate' ? corporateForm.password : form.password;
-  const activeEmail = registerMode === 'corporate' ? corporateForm.email : form.email;
-  const activePhone = registerMode === 'corporate' ? corporateForm.phone : form.phone;
-
-  const resetModeState = (mode: RegisterMode) => {
-    setRegisterMode(mode);
-    setPasswordConfirm('');
-    setIdCheckMessage('');
-    setIdAvailable(false);
-    setErrors({});
-  };
 
   const updateField = (field: keyof RegisterFormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -115,39 +69,8 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
     }
   };
 
-  const updateCorporateField = (field: keyof CorporateRegisterFormData, value: string) => {
-    setCorporateForm(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
-
-    if (field === 'loginId') {
-      setIdCheckMessage('');
-      setIdAvailable(false);
-    }
-  };
-
-  const updateActiveLoginId = (value: string) => {
-    if (registerMode === 'corporate') updateCorporateField('loginId', value);
-    else updateField('loginId', value);
-  };
-
-  const updateActivePassword = (value: string) => {
-    if (registerMode === 'corporate') updateCorporateField('password', value);
-    else updateField('password', value);
-  };
-
-  const updateActiveEmail = (value: string) => {
-    if (registerMode === 'corporate') updateCorporateField('email', value);
-    else updateField('email', value);
-  };
-
-  const updateActivePhone = (value: string) => {
-    const formatted = formatPhoneNumber(value);
-    if (registerMode === 'corporate') updateCorporateField('phone', formatted);
-    else updateField('phone', formatted);
-  };
-
-  const checkLoginId = () => {
-    const loginId = activeLoginId.trim().toLowerCase();
+  const checkLoginId = async () => {
+    const loginId = form.loginId.trim().toLowerCase();
 
     if (!loginId) {
       setIdAvailable(false);
@@ -161,83 +84,56 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
       return;
     }
 
-    if (reservedIds.includes(loginId)) {
+    try {
+      const result = await checkLoginIdAvailability(loginId);
+      setIdAvailable(result.available);
+      setIdCheckMessage(result.message || (result.available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.'));
+      if (result.available) setErrors(prev => ({ ...prev, loginId: '' }));
+    } catch (error) {
       setIdAvailable(false);
-      setIdCheckMessage('이미 사용 중인 아이디입니다.');
-      return;
+      setIdCheckMessage(error instanceof Error ? error.message : '아이디 중복 확인에 실패했습니다.');
     }
-
-    setIdAvailable(true);
-    setIdCheckMessage('사용 가능한 아이디입니다.');
-    setErrors(prev => ({ ...prev, loginId: '' }));
   };
 
   const validateForm = () => {
     const nextErrors: Record<string, string> = {};
-    const loginId = activeLoginId.trim().toLowerCase();
-    const email = activeEmail.trim();
+    const loginId = form.loginId.trim().toLowerCase();
+    const email = form.email.trim();
 
     if (!loginId) nextErrors.loginId = '아이디를 입력해 주세요.';
     else if (!/^[a-z0-9]{4,20}$/.test(loginId)) nextErrors.loginId = '아이디는 영문 소문자와 숫자 조합 4~20자로 입력해 주세요.';
     else if (!idAvailable) nextErrors.loginId = '아이디 중복확인을 해 주세요.';
 
-    if (!passwordPattern.test(activePassword)) nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.';
-    if (activePassword !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
+    if (!passwordPattern.test(form.password)) nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.';
+    if (form.password !== passwordConfirm) nextErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.';
+    if (!form.name.trim()) nextErrors.name = '이름을 입력해 주세요.';
     if (!email) nextErrors.email = '이메일을 입력해 주세요.';
     else if (!emailPattern.test(email)) nextErrors.email = '올바른 이메일 형식으로 입력해 주세요. 예: name@example.com';
-    if (!phonePattern.test(activePhone)) nextErrors.phone = '전화번호는 010-1234-5678 형식으로 입력해 주세요.';
-
-    if (registerMode === 'corporate') {
-      if (!corporateForm.companyName.trim()) nextErrors.companyName = '기업명을 입력해 주세요.';
-      if (!/^\d{3}-\d{2}-\d{5}$/.test(corporateForm.businessNumber)) nextErrors.businessNumber = '사업자등록번호는 000-00-00000 형식으로 입력해 주세요.';
-      if (!corporateForm.managerName.trim()) nextErrors.managerName = '담당자명을 입력해 주세요.';
-    } else {
-      if (!form.name.trim()) nextErrors.name = '이름을 입력해 주세요.';
-      if (!isValidBirthDate(form.birthDate.trim())) nextErrors.birthDate = '생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요. 예: 1999-01-01';
-      if (!form.gender) nextErrors.gender = '성별을 선택해 주세요.';
-    }
+    if (!isValidBirthDate(form.birthDate.trim())) nextErrors.birthDate = '생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요. 예: 1999-01-01';
+    if (!form.gender) nextErrors.gender = '성별을 선택해 주세요.';
+    if (!phonePattern.test(form.phone)) nextErrors.phone = '전화번호는 010-1234-5678 형식으로 입력해 주세요.';
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
-  const submitRegister = () => {
+  const submitRegister = async () => {
     if (!validateForm()) return;
 
-    if (registerMode === 'corporate') {
-      onRegister('corporate', {
-        ...corporateForm,
-        loginId: corporateForm.loginId.trim().toLowerCase(),
-        companyName: corporateForm.companyName.trim(),
-        managerName: corporateForm.managerName.trim(),
-        representativeName: corporateForm.representativeName.trim() || corporateForm.managerName.trim(),
-        industry: corporateForm.industry?.trim(),
-        companyAddress: corporateForm.companyAddress.trim() || '미입력',
-        companyDetailAddress: corporateForm.companyDetailAddress?.trim(),
-        companyPhone: corporateForm.companyPhone?.trim(),
-        websiteUrl: corporateForm.websiteUrl?.trim(),
-        companyDescription: corporateForm.companyDescription?.trim(),
-        employeeCount: corporateForm.employeeCount?.trim(),
-        establishedDate: corporateForm.establishedDate?.trim(),
-        verificationStatus: 'PENDING',
-        email: corporateForm.email.trim(),
-        phone: corporateForm.phone,
-      });
-      window.alert('기업 회원가입이 완료되었습니다. 로그인해 주세요.');
+    try {
+      await onRegister({
+        ...form,
+        loginId: form.loginId.trim().toLowerCase(),
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone,
+        birthDate: form.birthDate.trim(),
+      }, passwordConfirm);
+      window.alert('회원가입이 완료되었습니다. 로그인해 주세요.');
       navigate('login');
-      return;
+    } catch (error) {
+      setErrors(prev => ({ ...prev, submit: error instanceof Error ? error.message : '회원가입에 실패했습니다.' }));
     }
-
-    onRegister('personal', {
-      ...form,
-      loginId: form.loginId.trim().toLowerCase(),
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone,
-      birthDate: form.birthDate.trim(),
-    });
-    window.alert('회원가입이 완료되었습니다. 로그인해 주세요.');
-    navigate('login');
   };
 
   return (
@@ -263,26 +159,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
           </div>
 
           <div className="mb-7">
-            <div className="grid grid-cols-2 rounded-lg border border-border bg-muted/30 p-1">
-              {([
-                { id: 'personal', label: '개인회원' },
-                { id: 'corporate', label: '기업회원' },
-              ] as const).map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => resetModeState(item.id)}
-                  className={`rounded-md px-3 py-2.5 text-sm font-bold transition ${
-                    registerMode === item.id ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <h2 className="mt-5 text-center text-xl font-bold text-foreground">
-              {registerMode === 'corporate' ? '기업 회원가입' : '개인 회원가입'}
-            </h2>
+            <h2 className="text-center text-xl font-bold text-foreground">개인 회원가입</h2>
             <div className="mt-4 h-px bg-border" />
           </div>
 
@@ -291,8 +168,8 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
               <span className="mb-2 block text-sm font-medium">아이디 <span className="text-red-500">*</span></span>
               <div className="flex gap-2">
                 <input
-                  value={activeLoginId}
-                  onChange={event => updateActiveLoginId(event.target.value)}
+                  value={form.loginId}
+                  onChange={event => updateField('loginId', event.target.value)}
                   onKeyDown={event => {
                     if (event.key === 'Enter') checkLoginId();
                   }}
@@ -312,8 +189,8 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                 <span className="mb-2 block text-sm font-medium">비밀번호 <span className="text-red-500">*</span></span>
                 <div className="relative">
                   <input
-                    value={activePassword}
-                    onChange={event => updateActivePassword(event.target.value)}
+                    value={form.password}
+                    onChange={event => updateField('password', event.target.value)}
                     onKeyDown={event => {
                       if (event.key === 'Enter') submitRegister();
                     }}
@@ -352,130 +229,103 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
               </label>
             </div>
 
-            {registerMode === 'corporate' ? (
-              <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-medium">기업명 <span className="text-red-500">*</span></span>
-                    <input
-                      value={corporateForm.companyName}
-                      onChange={event => updateCorporateField('companyName', event.target.value)}
-                      className="w-full rounded-lg border border-border px-3 py-3"
-                      placeholder="예: Samsung SDS"
-                    />
-                    {errors.companyName && <p className="mt-2 text-sm text-red-500">{errors.companyName}</p>}
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-medium">사업자등록번호 <span className="text-red-500">*</span></span>
-                    <input
-                      value={corporateForm.businessNumber}
-                      onChange={event => updateCorporateField('businessNumber', formatBusinessNumber(event.target.value))}
-                      inputMode="numeric"
-                      className="w-full rounded-lg border border-border px-3 py-3"
-                      placeholder="000-00-00000"
-                    />
-                    {errors.businessNumber && <p className="mt-2 text-sm text-red-500">{errors.businessNumber}</p>}
-                  </label>
-                </div>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium">담당자명 <span className="text-red-500">*</span></span>
-                  <input
-                    value={corporateForm.managerName}
-                    onChange={event => updateCorporateField('managerName', event.target.value)}
-                    className="w-full rounded-lg border border-border px-3 py-3"
-                    placeholder="채용 담당자 이름"
-                  />
-                  {errors.managerName && <p className="mt-2 text-sm text-red-500">{errors.managerName}</p>}
-                </label>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-medium">이름 <span className="text-red-500">*</span></span>
-                    <input
-                      value={form.name}
-                      onChange={event => updateField('name', event.target.value)}
-                      className="w-full rounded-lg border border-border px-3 py-3"
-                      placeholder="이름을 입력해 주세요"
-                    />
-                    {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name}</p>}
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-medium">생년월일 <span className="text-red-500">*</span></span>
-                    <input
-                      value={form.birthDate}
-                      onChange={event => updateField('birthDate', formatBirthDate(event.target.value))}
-                      type="text"
-                      inputMode="numeric"
-                      className="w-full rounded-lg border border-border px-3 py-3"
-                      placeholder="예: 1999-01-01"
-                    />
-                    {errors.birthDate && <p className="mt-2 text-sm text-red-500">{errors.birthDate}</p>}
-                  </label>
-                </div>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium">성별 <span className="text-red-500">*</span></span>
-                  <select
-                    value={form.gender}
-                    onChange={event => updateField('gender', event.target.value)}
-                    className="w-full rounded-lg border border-border bg-white px-3 py-3"
-                  >
-                    <option value="">성별을 선택해 주세요</option>
-                    <option value="MALE">남성</option>
-                    <option value="FEMALE">여성</option>
-                    <option value="OTHER">기타/선택 안 함</option>
-                  </select>
-                  {errors.gender && <p className="mt-2 text-sm text-red-500">{errors.gender}</p>}
-                </label>
-              </>
-            )}
-
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium">이름 <span className="text-red-500">*</span></span>
+                <input
+                  value={form.name}
+                  onChange={event => updateField('name', event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitRegister();
+                  }}
+                  className="w-full rounded-lg border border-border px-3 py-3"
+                  placeholder="이름을 입력해 주세요"
+                />
+                {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name}</p>}
+              </label>
+
               <label className="block">
                 <span className="mb-2 block text-sm font-medium">이메일 <span className="text-red-500">*</span></span>
                 <input
-                  value={activeEmail}
-                  onChange={event => updateActiveEmail(event.target.value)}
+                  value={form.email}
+                  onChange={event => updateField('email', event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitRegister();
+                  }}
                   type="email"
                   className="w-full rounded-lg border border-border px-3 py-3"
                   placeholder="예: name@example.com"
                 />
                 {errors.email && <p className="mt-2 text-sm text-red-500">{errors.email}</p>}
               </label>
+            </div>
 
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-sm font-medium">전화번호 <span className="text-red-500">*</span></span>
+                <span className="mb-2 block text-sm font-medium">생년월일 <span className="text-red-500">*</span></span>
                 <input
-                  value={activePhone}
-                  onChange={event => updateActivePhone(event.target.value)}
+                  value={form.birthDate}
+                  onChange={event => updateField('birthDate', formatBirthDate(event.target.value))}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') submitRegister();
+                  }}
+                  type="text"
                   inputMode="numeric"
                   className="w-full rounded-lg border border-border px-3 py-3"
-                  placeholder="예: 010-1234-5678"
+                  placeholder="예: 1999-01-01"
                 />
-                {errors.phone && <p className="mt-2 text-sm text-red-500">{errors.phone}</p>}
+                {errors.birthDate && <p className="mt-2 text-sm text-red-500">{errors.birthDate}</p>}
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium">성별 <span className="text-red-500">*</span></span>
+                <select
+                  value={form.gender}
+                  onChange={event => updateField('gender', event.target.value)}
+                  className="w-full rounded-lg border border-border bg-white px-3 py-3"
+                >
+                  <option value="">성별을 선택해 주세요</option>
+                      <option value="MALE">남성</option>
+                      <option value="FEMALE">여성</option>
+                      <option value="OTHER">기타/선택 안함</option>
+                </select>
+                {errors.gender && <p className="mt-2 text-sm text-red-500">{errors.gender}</p>}
               </label>
             </div>
 
-            {registerMode === 'personal' && (
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium">희망 직무 <span className="text-xs text-muted-foreground">(선택)</span></span>
-                <input
-                  value={form.preferredRole}
-                  onChange={event => updateField('preferredRole', event.target.value)}
-                  className="w-full rounded-lg border border-border px-3 py-3"
-                  placeholder="희망하는 직무를 입력해 주세요"
-                />
-              </label>
-            )}
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium">전화번호 <span className="text-red-500">*</span></span>
+              <input
+                value={form.phone}
+                onChange={event => updateField('phone', formatPhoneNumber(event.target.value))}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') submitRegister();
+                }}
+                inputMode="numeric"
+                className="w-full rounded-lg border border-border px-3 py-3"
+                placeholder="예: 010-1234-5678"
+              />
+              {errors.phone && <p className="mt-2 text-sm text-red-500">{errors.phone}</p>}
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium">희망 직무 <span className="text-xs text-muted-foreground">(프로필)</span></span>
+              <input
+                value={form.preferredRole}
+                onChange={event => updateField('preferredRole', event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') submitRegister();
+                }}
+                className="w-full rounded-lg border border-border px-3 py-3"
+                placeholder="희망하는 직무를 입력해 주세요"
+              />
+            </label>
           </div>
 
+          {errors.submit && <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{errors.submit}</p>}
+
           <button type="button" onClick={submitRegister} className="mt-6 w-full rounded-lg bg-primary py-3.5 font-medium text-white shadow-sm hover:bg-primary/90">
-            {registerMode === 'corporate' ? '기업 회원가입' : '회원가입'}
+            회원가입
           </button>
           <button type="button" onClick={() => navigate('login')} className="mt-4 w-full text-sm text-muted-foreground">
             이미 계정이 있으신가요? <span className="font-semibold text-primary">로그인</span>

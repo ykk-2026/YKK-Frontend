@@ -1,9 +1,12 @@
 import {
+  Accessibility,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Bell,
   BookOpenCheck,
   Bookmark,
+  Building2,
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
@@ -11,20 +14,101 @@ import {
   FileText,
   HeartHandshake,
   MessageCircle,
+  Monitor,
+  ParkingSquare,
   Search,
   ShieldCheck,
+  Sparkles,
   Star,
   UsersRound,
   Video,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { Page } from '@/app/types';
+import type { CurrentUser, Page } from '@/app/types';
+import {
+  createCommunityPost,
+  createCommunityComment,
+  deleteCommunityComment,
+  deleteCommunityPost,
+  getCommunityPosts,
+  incrementCommunityPostViews,
+  reportCommunityPost,
+  type ApiCommunityPost,
+} from '@/app/api/communityApi';
 
 interface InfoPageProps {
   navigate: (page: Page) => void;
 }
 
-type CommunityCategory = 'QUESTION' | 'INFO';
+const companies = [
+  {
+    name: 'Samsung SDS',
+    field: '클라우드 · SI',
+    location: '서울 송파구',
+    scale: '대기업',
+    description: '클라우드와 엔터프라이즈 솔루션 직무를 중심으로 재택근무, 유연근무, 사무공간 접근성 지원을 함께 운영합니다.',
+    tags: ['재택근무', '유연근무', '장애인 주차'],
+    openings: 3,
+    hiring: ['Java 백엔드 개발자', '시스템 운영 엔지니어'],
+    accessibility: ['휠체어 이동 동선', '장애인 주차구역', '높낮이 조절 책상'],
+    support: ['화상 면접 가능', '근무시간 조정', '보조공학기기 상담'],
+    score: 96,
+    color: '#1B6EF3',
+  },
+  {
+    name: 'Kakao',
+    field: '플랫폼 서비스',
+    location: '경기 성남시',
+    scale: '대기업',
+    description: '플랫폼 개발과 서비스 운영 직무에서 하이브리드 근무, 문자 안내, 보조공학기기 구매 지원 제도를 제공합니다.',
+    tags: ['하이브리드', '보조기기', '문자 안내'],
+    openings: 2,
+    hiring: ['프론트엔드 개발자', '서비스 운영 매니저'],
+    accessibility: ['화상 면접', '문자 안내', '보조기기 구매 지원'],
+    support: ['청각장애 지원', '원격 협업 도구', '면접 방식 선택'],
+    score: 94,
+    color: '#F59E0B',
+  },
+  {
+    name: 'LG CNS',
+    field: 'AI · 데이터',
+    location: '서울 강서구',
+    scale: '대기업',
+    description: '데이터 분석과 AI 프로젝트 직무 채용을 진행하며 이동 편의시설, 건강검진, 근무시간 조정을 지원합니다.',
+    tags: ['정규직', '건강검진', '근무시간 조정'],
+    openings: 1,
+    hiring: ['데이터 분석가'],
+    accessibility: ['엘리베이터', '장애인 화장실', '근무시간 조정'],
+    support: ['건강검진 지원', '사무공간 접근성 확인', '멘토 배정'],
+    score: 91,
+    color: '#8B5CF6',
+  },
+  {
+    name: 'Naver',
+    field: '검색 · 커머스',
+    location: '경기 성남시',
+    scale: '대기업',
+    description: '서비스 기획, 운영, 디자인 직무에서 접근성 검토 절차와 원격 협업 환경, 회의 자막 지원을 제공합니다.',
+    tags: ['서비스기획', '원격협업', '회의 자막'],
+    openings: 4,
+    hiring: ['서비스 기획자', '콘텐츠 운영 담당자'],
+    accessibility: ['재택 병행', '셔틀버스', '회의 자막 지원'],
+    support: ['원격근무 병행', '접근성 리뷰 참여', '셔틀버스'],
+    score: 95,
+    color: '#10B981',
+  },
+];
+
+const companyStats = [
+  { label: '검증 기업', value: '24곳', helper: '접근성 항목 확인 완료' },
+  { label: '진행 공고', value: '86건', helper: '장애친화 조건 포함' },
+  { label: '유연근무', value: '41건', helper: '재택·하이브리드 포함' },
+  { label: '지원 제도', value: '18건', helper: '보조기기·면접 편의' },
+];
+
+const companyFilters = ['전체', 'IT/개발', '서비스', '데이터', '디자인'];
+
+type CommunityCategory = 'TIP' | 'QUESTION' | 'INFO' | 'FREE';
 type CommunityPostStatus = 'ACTIVE' | 'DELETED' | 'HIDDEN';
 type CommunityCommentStatus = 'ACTIVE' | 'DELETED';
 type CommunityReportReason = 'SPAM' | 'ABUSE' | 'FALSE_INFO' | 'ADVERTISEMENT' | 'ETC';
@@ -88,6 +172,7 @@ const communityPosts: CommunityPost[] = [];
 const communityPostsStorageKey = 'ileeumCommunityPosts';
 const communityViewedPostsStorageKey = 'ileeumCommunityViewedPosts';
 const communityReportedCommentsStorageKey = 'ileeumCommunityReportedComments';
+let communityPostsLoadPromise: Promise<ApiCommunityPost[]> | null = null;
 
 const communityBoards = [
   { title: '취업후기', description: '지원 과정과 합격 경험을 공유합니다.', count: '47개' },
@@ -98,7 +183,7 @@ const communityBoards = [
 
 const guideSteps = [
   { title: '프로필 작성', description: '희망 직무, 지역, 근무조건, 필요한 접근성 정보를 입력합니다.', icon: FileText },
-  { title: '맞춤 공고 확인', description: '프로필과 공고 조건을 비교해 잘 맞는 일자리를 확인합니다.', icon: BadgeCheck },
+  { title: 'AI 추천 확인', description: '프로필과 공고 조건을 비교한 맞춤 추천 일자리를 확인합니다.', icon: Sparkles },
   { title: '공고 비교', description: '연봉, 근무형태, 접근성 시설, 지원 제도를 공고별로 비교합니다.', icon: Search },
   { title: '간편 지원', description: '관심 공고를 저장하고 준비된 이력 정보로 빠르게 지원합니다.', icon: ClipboardCheck },
   { title: '면접 준비', description: '화상 면접, 접근성 요청, 제출 서류를 미리 점검합니다.', icon: Video },
@@ -111,16 +196,166 @@ const guideFaqs = [
   { question: '관심 공고는 어디서 확인하나요?', answer: '상단 메뉴의 프로필 또는 지원 현황에서 저장한 공고와 지원한 공고를 함께 확인할 수 있습니다.' },
 ];
 
-const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'QUESTION', 'INFO'];
-const writableCommunityCategories: CommunityCategory[] = ['QUESTION', 'INFO'];
+export function CompanyInfoPage({ navigate }: InfoPageProps) {
+  const [activeFilter, setActiveFilter] = useState('전체');
+  const filteredCompanies = companies.filter(company => {
+    if (activeFilter === '전체') return true;
+    const target = [company.field, company.description, ...company.hiring, ...company.tags].join(' ');
+    return target.includes(activeFilter.replace('IT/개발', '개발'));
+  });
+
+  return (
+    <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
+      <main className="mx-auto max-w-[1240px] px-5 py-6 sm:px-6">
+        <section className="overflow-hidden rounded-xl border border-[#DDE3EA] bg-white shadow-sm">
+          <div className="grid gap-6 bg-[#EEF5FF] p-6 lg:grid-cols-[1fr_300px] lg:items-center">
+            <div>
+              <span className="rounded-full bg-white px-4 py-1.5 text-xs font-extrabold text-[#0D6BEA]">기업 정보</span>
+              <h1 className="mt-4 text-3xl font-black leading-tight text-black">장애친화 기업 정보를 비교하세요</h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#596273]">
+                채용 중인 기업의 근무형태, 접근성 시설, 면접 편의, 지원 제도를 공고와 함께 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="rounded-lg border border-[#D7E6FF] bg-white p-4">
+              <p className="text-sm font-black text-black">확인 기준</p>
+              <div className="mt-3 space-y-2 text-xs font-bold text-[#596273]">
+                <p className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[#14843C]" /> 이동·출입 접근성</p>
+                <p className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[#14843C]" /> 보조공학기기 지원</p>
+                <p className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[#14843C]" /> 면접 및 근무 편의</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 border-t border-[#DDE8F8] p-5 sm:grid-cols-4">
+            {companyStats.map(item => (
+              <div key={item.label} className="rounded-lg bg-[#F8FAFC] px-4 py-3">
+                <p className="text-xs font-bold text-[#718096]">{item.label}</p>
+                <p className="mt-1 text-xl font-black text-black">{item.value}</p>
+                <p className="mt-1 text-[11px] font-semibold text-[#8A94A6]">{item.helper}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
+          <section>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#DDE3EA] bg-white px-5 py-4 shadow-sm">
+              <div>
+                <h2 className="text-lg font-black text-black">기업별 상세 정보</h2>
+                <p className="mt-1 text-xs font-bold text-[#7A8495]">필터를 누르면 이 페이지 안에서 바로 바뀝니다.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {companyFilters.map(filter => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setActiveFilter(filter)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${
+                      activeFilter === filter ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F4F8] text-[#344054] hover:bg-[#E4EFFF] hover:text-[#0D6BEA]'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {filteredCompanies.map(company => (
+                <article key={company.name} className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm transition hover:border-[#B9D6FF] hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg font-black text-white" style={{ backgroundColor: company.color }}>
+                        {company.name.slice(0, 1)}
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-lg font-black text-black">{company.name}</h2>
+                        <p className="mt-1 text-sm font-bold text-[#596273]">{company.field}</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[#E7F8EF] px-3 py-1 text-xs font-black text-[#14843C]">접근성 {company.score}%</span>
+                  </div>
+
+                  <p className="mt-4 text-sm font-semibold leading-6 text-[#344054]">{company.description}</p>
+
+                  <div className="mt-4 grid gap-2 text-xs font-bold text-[#596273] sm:grid-cols-2">
+                    <p className="rounded-lg bg-[#F8FAFC] px-3 py-2"><span className="text-[#8A94A6]">위치</span><br />{company.location}</p>
+                    <p className="rounded-lg bg-[#F8FAFC] px-3 py-2"><span className="text-[#8A94A6]">규모</span><br />{company.scale}</p>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {company.tags.map(tag => (
+                      <span key={tag} className="rounded-full bg-[#F1F4F8] px-3 py-1 text-xs font-extrabold text-[#344054]">{tag}</span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 border-t border-[#E7ECF2] pt-4">
+                    <p className="text-xs font-black text-[#718096]">채용 직무</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {company.hiring.map(role => (
+                        <span key={role} className="rounded-full bg-[#EEF5FF] px-3 py-1 text-xs font-extrabold text-[#0D6BEA]">{role}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-[#E7ECF2] pt-4">
+                    <p className="text-xs font-black text-[#718096]">지원 항목</p>
+                    <div className="mt-3 grid gap-2">
+                      {company.support.map(item => (
+                        <p key={item} className="flex items-center gap-2 text-xs font-bold text-[#344054]">
+                          <CheckCircle2 size={14} className="text-[#14843C]" />
+                          {item}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button type="button" onClick={() => navigate('jobs')} className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 text-sm font-extrabold text-white hover:bg-[#0959C7]">
+                    채용공고 {company.openings}건 보기 <ArrowRight size={16} />
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <aside className="space-y-4">
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-black text-black"><BadgeCheck size={20} /> 확인하는 정보</h2>
+              <div className="mt-4 grid gap-3 text-sm font-bold text-[#344054]">
+                <p className="flex items-center gap-2"><Accessibility size={17} className="text-[#0D6BEA]" /> 휠체어 접근성과 이동 동선</p>
+                <p className="flex items-center gap-2"><ParkingSquare size={17} className="text-[#0D6BEA]" /> 장애인 주차와 출입 편의</p>
+                <p className="flex items-center gap-2"><Monitor size={17} className="text-[#0D6BEA]" /> 보조공학기기 및 원격근무</p>
+                <p className="flex items-center gap-2"><Video size={17} className="text-[#0D6BEA]" /> 화상 면접과 문자 안내</p>
+              </div>
+            </section>
+            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-black text-black"><Building2 size={20} /> 기업회원 안내</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#596273]">채용 공고 등록 시 접근성 지원 항목을 함께 입력하면 구직자가 더 정확하게 공고를 비교할 수 있습니다.</p>
+              <button type="button" onClick={() => navigate('corporate')} className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-[#C9D5E5] px-4 text-sm font-extrabold text-[#344054] hover:bg-[#F8FAFC]">
+                기업 프로필 보기 <ArrowRight size={16} />
+              </button>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+const communityTabs: Array<'ALL' | CommunityCategory> = ['ALL', 'TIP', 'QUESTION', 'INFO', 'FREE'];
+const writableCommunityCategories: CommunityCategory[] = ['TIP', 'QUESTION', 'INFO', 'FREE'];
 const communityCategoryLabel: Record<'ALL' | CommunityCategory, string> = {
   ALL: '전체 게시글',
+  TIP: '꿀팁',
   QUESTION: '질문',
   INFO: '정보',
+  FREE: '자유',
 };
 const categoryTone: Record<CommunityCategory, string> = {
+  TIP: 'bg-[#E7F8EF] text-[#14843C]',
   QUESTION: 'bg-[#FFF1E7] text-[#C05621]',
   INFO: 'bg-[#EEF5FF] text-[#0D6BEA]',
+  FREE: 'bg-[#F1F4F8] text-[#344054]',
 };
 
 const communityGuideDetails = [
@@ -139,15 +374,18 @@ const communityGuideDetails = [
 ];
 
 const legacyCommunityCategoryMap: Record<string, CommunityCategory> = {
+  면접후기: 'TIP',
   정보공유: 'INFO',
   질문: 'QUESTION',
+  자유: 'FREE',
   채용정보: 'INFO',
+  꿀팁: 'TIP',
   정보: 'INFO',
 };
 
 const normalizeCommunityCategory = (category: string): CommunityCategory => {
   if (writableCommunityCategories.includes(category as CommunityCategory)) return category as CommunityCategory;
-  return legacyCommunityCategoryMap[category] || 'INFO';
+  return legacyCommunityCategoryMap[category] || 'FREE';
 };
 
 const getCommunityTimestamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ');
@@ -188,7 +426,7 @@ const normalizeCommunityPost = (post: Partial<CommunityPost>): CommunityPost => 
   return {
     id,
     memberId: post.memberId || '999',
-    category: normalizeCommunityCategory(post.category || 'INFO'),
+    category: normalizeCommunityCategory(post.category || 'FREE'),
     title: post.title || '',
     author: post.author || '나',
     content: post.content || '',
@@ -207,9 +445,30 @@ const normalizeCommunityPost = (post: Partial<CommunityPost>): CommunityPost => 
   };
 };
 
-const hasReportedCommunityPost = (post: CommunityPost) => post.reports.some(report => report.reporterMemberId === '999');
+const hasReportedCommunityPost = (post: CommunityPost) => post.reports.length > 0;
 
-export function CommunityPage() {
+const fromApiCommunityPost = (post: ApiCommunityPost): CommunityPost => normalizeCommunityPost({
+  ...post,
+  id: String(post.id),
+  memberId: String(post.memberId),
+  comments: post.comments.map(comment => ({
+    ...comment,
+    id: String(comment.id),
+    postId: String(comment.postId),
+    memberId: String(comment.memberId),
+    time: comment.createdAt,
+  })),
+  attachments: [],
+  reports: post.reports.map(report => ({
+    ...report,
+    id: String(report.id),
+    postId: String(report.postId),
+    reporterMemberId: String(report.reporterMemberId),
+  })),
+  time: post.createdAt,
+});
+
+export function CommunityPage({ currentUser }: { currentUser: CurrentUser | null }) {
   const [posts, setPosts] = useState<CommunityPost[]>(() => {
     if (typeof window === 'undefined') return communityPosts;
 
@@ -256,13 +515,56 @@ export function CommunityPage() {
   });
   const [showWriter, setShowWriter] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [communityError, setCommunityError] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [form, setForm] = useState<{ category: CommunityCategory; title: string; author: string; content: string }>({ category: 'INFO', title: '', author: '나', content: '' });
+  const [form, setForm] = useState<{ category: CommunityCategory; title: string; author: string; content: string }>({ category: 'FREE', title: '', author: '나', content: '' });
   const [commentForm, setCommentForm] = useState({ author: '나', content: '' });
 
   useEffect(() => {
-    localStorage.setItem(communityPostsStorageKey, JSON.stringify(posts));
-  }, [posts]);
+    let cancelled = false;
+
+    if (!communityPostsLoadPromise) {
+      communityPostsLoadPromise = getCommunityPosts().then(async databasePosts => {
+        const savedValue = localStorage.getItem(communityPostsStorageKey);
+        if (!savedValue) return databasePosts;
+
+        const localPosts = (JSON.parse(savedValue) as CommunityPost[])
+          .map(normalizeCommunityPost)
+          .filter(post => post.status === 'ACTIVE');
+        if (localPosts.length === 0) {
+          localStorage.removeItem(communityPostsStorageKey);
+          return databasePosts;
+        }
+
+        const migrated = await Promise.all(localPosts.map(post => createCommunityPost({
+          category: post.category,
+          title: post.title,
+          content: post.content,
+        })));
+        localStorage.removeItem(communityPostsStorageKey);
+        return [...migrated, ...databasePosts];
+      }).then(databasePosts => {
+        communityPostsLoadPromise = null;
+        return databasePosts;
+      }, error => {
+        communityPostsLoadPromise = null;
+        throw error;
+      });
+    }
+
+    communityPostsLoadPromise
+      .then(databasePosts => {
+        if (!cancelled) {
+          setPosts(databasePosts.map(fromApiCommunityPost));
+          setCommunityError('');
+        }
+      })
+      .catch(error => {
+        if (!cancelled) setCommunityError(error instanceof Error ? error.message : '게시글을 불러오지 못했습니다.');
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(communityViewedPostsStorageKey, JSON.stringify(Array.from(viewedPostIds)));
@@ -284,42 +586,27 @@ export function CommunityPage() {
   }, [activeTab, posts, query]);
   const selectedPost = posts.find(post => post.id === selectedPostId && post.status === 'ACTIVE') || null;
 
-  const submitPost = () => {
+  const submitPost = async () => {
     if (!form.title.trim() || !form.content.trim()) return;
 
-    const now = getCommunityTimestamp();
-    const nextPost: CommunityPost = {
-      id: `post-${Date.now()}`,
-      memberId: '999',
-      category: form.category,
-      title: form.title.trim(),
-      author: form.author.trim() || '나',
-      content: form.content.trim(),
-      comments: [],
-      attachments: [],
-      reports: [],
-      replies: 0,
-      views: 0,
-      viewCount: 0,
-      likeCount: 0,
-      status: 'ACTIVE',
-      time: '방금 전',
-      createdAt: now,
-      updatedAt: now,
-      isNew: true,
-    };
-
-    setPosts(prev => [
-      nextPost,
-      ...prev,
-    ]);
-    setForm({ category: 'INFO', title: '', author: '나', content: '' });
-    setActiveTab('ALL');
-    setQuery('');
-    setShowWriter(false);
+    try {
+      const saved = await createCommunityPost({
+        category: form.category,
+        title: form.title.trim(),
+        content: form.content.trim(),
+      });
+      setPosts(prev => [{ ...fromApiCommunityPost(saved), isNew: true }, ...prev]);
+      setForm({ category: 'FREE', title: '', author: '나', content: '' });
+      setActiveTab('ALL');
+      setQuery('');
+      setShowWriter(false);
+      setCommunityError('');
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '게시글 저장에 실패했습니다.');
+    }
   };
 
-  const openPost = (post: CommunityPost) => {
+  const openPost = async (post: CommunityPost) => {
     setSelectedPostId(post.id);
     setCommentForm({ author: '나', content: '' });
     if (viewedPostIds.has(post.id)) {
@@ -328,48 +615,66 @@ export function CommunityPage() {
     }
 
     setViewedPostIds(prev => new Set(prev).add(post.id));
-    setPosts(prev => prev.map(item => (item.id === post.id ? { ...item, views: item.views + 1, viewCount: item.viewCount + 1, isNew: false } : item)));
+    try {
+      const updated = await incrementCommunityPostViews(post.id);
+      setPosts(prev => prev.map(item => (item.id === post.id ? { ...item, views: updated.views, viewCount: updated.viewCount, isNew: false } : item)));
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '조회 수를 반영하지 못했습니다.');
+    }
   };
 
-  const deletePost = (postId: string) => {
-    setPosts(prev => prev.map(post => (post.id === postId ? { ...post, status: 'DELETED', updatedAt: getCommunityTimestamp() } : post)));
-    setSelectedPostId(prev => (prev === postId ? null : prev));
-    setBookmarks(prev => {
-      const next = new Set(prev);
-      next.delete(postId);
-      return next;
-    });
+  const deletePost = async (postId: string) => {
+    try {
+      await deleteCommunityPost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+      setSelectedPostId(prev => (prev === postId ? null : prev));
+      setBookmarks(prev => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+      setCommunityError('');
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '게시글 삭제에 실패했습니다.');
+    }
   };
 
-  const submitComment = () => {
+  const submitComment = async () => {
     if (!selectedPost || !commentForm.content.trim()) return;
 
-    const nextComment: CommunityComment = {
-      id: `comment-${Date.now()}`,
-      postId: selectedPost.id,
-      memberId: '999',
-      author: commentForm.author.trim() || '나',
-      content: commentForm.content.trim(),
-      status: 'ACTIVE',
-      time: '방금 전',
-      createdAt: getCommunityTimestamp(),
-      updatedAt: getCommunityTimestamp(),
-    };
-
-    setPosts(prev => prev.map(post => {
-      if (post.id !== selectedPost.id) return post;
-      const comments = [...post.comments, nextComment];
-      return { ...post, comments, replies: comments.filter(comment => comment.status === 'ACTIVE').length, updatedAt: getCommunityTimestamp() };
-    }));
-    setCommentForm({ author: '나', content: '' });
+    try {
+      const saved = await createCommunityComment(selectedPost.id, commentForm.content.trim());
+      const nextComment = normalizeCommunityComment({
+        ...saved,
+        id: String(saved.id),
+        postId: String(saved.postId),
+        memberId: String(saved.memberId),
+        time: saved.createdAt,
+      }, selectedPost.id);
+      setPosts(prev => prev.map(post => {
+        if (post.id !== selectedPost.id) return post;
+        const comments = [...post.comments, nextComment];
+        return { ...post, comments, replies: comments.length, updatedAt: saved.updatedAt };
+      }));
+      setCommentForm({ author: '나', content: '' });
+      setCommunityError('');
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '댓글 저장에 실패했습니다.');
+    }
   };
 
-  const deleteComment = (postId: string, commentId: string) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id !== postId) return post;
-      const comments = post.comments.map(comment => (comment.id === commentId ? { ...comment, status: 'DELETED' as const, updatedAt: getCommunityTimestamp() } : comment));
-      return { ...post, comments, replies: comments.filter(comment => comment.status === 'ACTIVE').length, updatedAt: getCommunityTimestamp() };
-    }));
+  const deleteComment = async (postId: string, commentId: string) => {
+    try {
+      await deleteCommunityComment(postId, commentId);
+      setPosts(prev => prev.map(post => {
+        if (post.id !== postId) return post;
+        const comments = post.comments.filter(comment => comment.id !== commentId);
+        return { ...post, comments, replies: comments.length, updatedAt: getCommunityTimestamp() };
+      }));
+      setCommunityError('');
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '댓글 삭제에 실패했습니다.');
+    }
   };
 
   const reportComment = (commentId: string) => {
@@ -382,21 +687,22 @@ export function CommunityPage() {
     });
   };
 
-  const reportPost = (postId: string) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id !== postId || hasReportedCommunityPost(post)) return post;
-
+  const reportPost = async (postId: string) => {
+    try {
+      const saved = await reportCommunityPost(postId);
       const report: CommunityReport = {
-        id: `report-${Date.now()}`,
-        postId,
-        reporterMemberId: '999',
-        reason: 'ETC',
-        status: 'PENDING',
-        createdAt: getCommunityTimestamp(),
+        ...saved,
+        id: String(saved.id),
+        postId: String(saved.postId),
+        reporterMemberId: String(saved.reporterMemberId),
       };
-
-      return { ...post, reports: [...post.reports, report] };
-    }));
+      setPosts(prev => prev.map(post => post.id === postId
+        ? { ...post, reports: [...post.reports, report] }
+        : post));
+      setCommunityError('');
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '게시글 신고에 실패했습니다.');
+    }
   };
 
   const toggleBookmark = (postId: string) => {
@@ -477,6 +783,12 @@ export function CommunityPage() {
                 </button>
               </div>
             </div>
+
+            {communityError && (
+              <div role="alert" className="border-b border-[#FFD5D2] bg-[#FFF1F1] px-6 py-3 text-sm font-bold text-[#D92D20]">
+                {communityError}
+              </div>
+            )}
 
             {showWriter && (
               <div className="border-b border-[#E7ECF2] bg-[#F8FAFC] px-6 py-4">
@@ -573,9 +885,11 @@ export function CommunityPage() {
                             <Flag size={13} />
                             {reportedCommentIds.has(comment.id) ? '신고완료' : '신고'}
                           </button>
-                          <button type="button" onClick={() => deleteComment(selectedPost.id, comment.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
-                          삭제
-                          </button>
+                          {currentUser?.id === comment.memberId && (
+                            <button type="button" onClick={() => deleteComment(selectedPost.id, comment.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
+                              삭제
+                            </button>
+                          )}
                         </div>
                       </article>
                     ))}
@@ -602,9 +916,11 @@ export function CommunityPage() {
                         <button type="button" onClick={() => toggleBookmark(post.id)} aria-label="게시글 저장" className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[#F8FAFC] ${bookmarks.has(post.id) ? 'text-[#0D6BEA]' : 'text-[#111827]'}`}>
                           <Bookmark size={19} fill={bookmarks.has(post.id) ? 'currentColor' : 'none'} />
                         </button>
-                        <button type="button" onClick={() => deletePost(post.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
-                          삭제
-                        </button>
+                        {currentUser?.id === post.memberId && (
+                          <button type="button" onClick={() => deletePost(post.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#D92D20] hover:bg-[#FFF1F1]">
+                            삭제
+                          </button>
+                        )}
                       </div>
                     </article>
                   ))}
@@ -633,18 +949,6 @@ export function CommunityPage() {
                   <button type="button" key={topic} onClick={() => setQuery(topic.replace('#', ''))} className="rounded-lg bg-[#EEF5FF] px-3 py-2 text-sm font-black text-[#0D6BEA] hover:bg-[#DCEBFF]">
                     {topic}
                   </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-black text-black"><BookOpenCheck size={20} className="text-[#14843C]" /> 자주 묻는 질문</h2>
-              <div className="mt-4 divide-y divide-[#E7ECF2]">
-                {guideFaqs.map(item => (
-                  <article key={item.question} className="py-4 first:pt-0 last:pb-0">
-                    <h3 className="text-sm font-black text-black">{item.question}</h3>
-                    <p className="mt-2 text-xs font-semibold leading-5 text-[#596273]">{item.answer}</p>
-                  </article>
                 ))}
               </div>
             </section>
@@ -696,58 +1000,59 @@ export function CommunityPage() {
 
 export function GuidePage({ navigate }: InfoPageProps) {
   return (
-    <div className="min-h-screen bg-[#F3F6FA] text-[#111827]">
-      <main className="mx-auto max-w-[1180px] px-6 py-8">
-        <section className="border-b border-[#D8E0EA] pb-7">
-          <span className="text-sm font-black text-[#0D6BEA]">이용안내</span>
-          <h1 className="mt-3 text-[32px] font-black leading-tight text-black">처음 이용할 때 필요한 순서만 정리했어요</h1>
-          <p className="mt-3 max-w-[720px] text-sm font-semibold leading-6 text-[#596273]">
-            프로필을 채우고, 조건에 맞는 공고를 확인한 뒤 지원 현황까지 이어지는 기본 흐름입니다.
-          </p>
+    <div className="min-h-screen bg-[#F6F7F9] text-[#111827]">
+      <main className="mx-auto max-w-[1240px] px-6 py-6">
+        <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
+          <span className="rounded-full bg-[#FFF4E5] px-4 py-1.5 text-xs font-extrabold text-[#B45309]">이용안내</span>
+          <h1 className="mt-4 text-3xl font-black text-black">일이음 이용 흐름을 안내합니다</h1>
+          <p className="mt-2 text-sm font-semibold text-[#596273]">회원가입부터 추천 공고 확인, 지원 관리까지 필요한 과정을 단계별로 확인하세요.</p>
         </section>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
-          <section className="rounded-xl border border-[#DDE3EA] bg-white px-6 py-2 shadow-sm">
-            {guideSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <article key={step.title} className="grid gap-4 border-b border-[#E7ECF2] py-6 last:border-b-0 sm:grid-cols-[72px_1fr]">
-                  <div className="flex items-start gap-3 sm:block">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0D6BEA]">
-                      <Icon size={21} />
-                    </span>
-                    <span className="mt-3 block text-xs font-black text-[#0D6BEA] sm:text-center">STEP {index + 1}</span>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-black">{step.title}</h2>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-[#596273]">{step.description}</p>
-                  </div>
-                </article>
-              );
-            })}
+        <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {guideSteps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <article key={step.title} className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0D6BEA]">
+                  <Icon size={23} />
+                </span>
+                <p className="mt-4 text-xs font-black text-[#0D6BEA]">STEP {index + 1}</p>
+                <h2 className="mt-1 text-lg font-black text-black">{step.title}</h2>
+                <p className="mt-3 text-sm font-semibold leading-6 text-[#596273]">{step.description}</p>
+              </article>
+            );
+          })}
+        </section>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
+          <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 text-lg font-black text-black"><ShieldCheck size={20} /> 자주 쓰는 기능</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <button type="button" onClick={() => navigate('jobs')} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-4 py-4 text-left text-sm font-extrabold hover:bg-[#EEF5FF]">
+                <span className="flex items-center gap-2"><Search size={18} /> 채용정보 검색</span>
+                <ArrowRight size={16} />
+              </button>
+              <button type="button" onClick={() => navigate('ai-recommend')} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-4 py-4 text-left text-sm font-extrabold hover:bg-[#EEF5FF]">
+                <span className="flex items-center gap-2"><Star size={18} /> AI 추천 보기</span>
+                <ArrowRight size={16} />
+              </button>
+              <button type="button" onClick={() => navigate('user-dashboard')} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-4 py-4 text-left text-sm font-extrabold hover:bg-[#EEF5FF]">
+                <span className="flex items-center gap-2"><Bell size={18} /> 지원 현황 관리</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
           </section>
 
-          <aside className="space-y-4">
-            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-black text-black"><HeartHandshake size={20} className="text-[#14843C]" /> 준비 전 확인</h2>
-              <div className="mt-4 space-y-3 text-sm font-semibold leading-6 text-[#344054]">
-                {['희망 직무와 근무 지역', '필요한 접근성 시설', '지원 가능한 근무 형태'].map(item => (
-                  <p key={item} className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#20B26B]" /> {item}</p>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-black text-black"><CalendarDays size={20} className="text-[#0D6BEA]" /> 다음 행동</h2>
-              <div className="mt-4 grid gap-2">
-                <button type="button" onClick={() => navigate('jobs')} className="flex h-11 items-center justify-between rounded-lg bg-[#F8FAFC] px-3 text-sm font-black text-black hover:bg-[#EEF5FF]">
-                  공고 보러가기 <ArrowRight size={16} />
-                </button>
-                <button type="button" onClick={() => navigate('community')} className="flex h-11 items-center justify-between rounded-lg bg-[#F8FAFC] px-3 text-sm font-black text-black hover:bg-[#EEF5FF]">
-                  커뮤니티 질문하기 <ArrowRight size={16} />
-                </button>
-              </div>
-            </section>
+          <aside className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 text-lg font-black text-black"><BookOpenCheck size={20} /> 자주 묻는 질문</h2>
+            <div className="mt-4 space-y-4">
+              {guideFaqs.map(item => (
+                <article key={item.question} className="border-b border-[#E7ECF2] pb-4 last:border-b-0 last:pb-0">
+                  <h3 className="text-sm font-black text-black">{item.question}</h3>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[#596273]">{item.answer}</p>
+                </article>
+              ))}
+            </div>
           </aside>
         </div>
       </main>
