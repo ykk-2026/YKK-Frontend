@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import type { ApplicationFormData, CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
-import { mockAdminUser, mockCorporateUser, mockJobs, mockUser } from '@/app/data/mockData';
+import { useState } from 'react';
+import type { ApplicationFormData, CorporateRegisterFormData, CurrentUser, Page, RegisterFormData, UserRole } from '@/app/types';
+import { mockAdminUser, mockCorporateUser, mockUser } from '@/app/data/mockData';
 import { Navbar } from '@/app/layout/Navbar';
 import { Footer } from '@/app/layout/Footer';
 import { MainPage } from '@/app/pages/home/MainPage';
@@ -11,23 +11,13 @@ import { JobDetailPage } from '@/app/pages/jobs/JobDetailPage';
 import { JobsPage } from '@/app/pages/jobs/JobsPage';
 import { AiJobRecommendationPage } from '@/app/pages/jobs/AiJobRecommendationPage';
 import { SupportPage } from '@/app/pages/support/SupportPage';
-import { AdminPage } from '@/app/pages/admin/AdminPage';
-import { CommunityPage, CompanyInfoPage, GuidePage } from '@/app/pages/info/InfoPages';
+import { CommunityPage, GuidePage } from '@/app/pages/info/InfoPages';
 import { CorporatePage } from '@/app/pages/corporate/CorporatePage';
-import {
-  getCurrentMember,
-  loginMember,
-  logoutMember,
-  registerMember,
-  type LoginMember,
-} from '@/app/api/memberApi';
-import { deleteInterestJob, getInterestJobs, saveInterestJob } from '@/app/api/interestJobApi';
-import { getJobApplications, saveJobApplication } from '@/app/api/jobApplicationApi';
-import type { ApiJobSeekerProfile } from '@/app/api/profileApi';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
 const registeredUserStorageKey = 'jobBridgeRegisteredUser';
+const registeredCorporateUserStorageKey = 'jobBridgeRegisteredCorporateUser';
 const autoLoginStorageKey = 'jobBridgeAutoLogin';
 const currentPageStorageKey = 'jobBridgeCurrentPage';
 const currentJobStorageKey = 'jobBridgeCurrentJob';
@@ -44,11 +34,9 @@ const pageValues: Page[] = [
   'saved',
   'applications',
   'ai-recommend',
-  'company-info',
   'community',
   'guide',
   'support',
-  'admin',
   'corporate',
 ];
 
@@ -56,22 +44,6 @@ interface AutoLoginSession {
   role: UserRole;
   loginId?: string;
 }
-
-const toCurrentUser = (member: LoginMember): CurrentUser => {
-  const role: UserRole = member.role === 'ADMIN'
-    ? 'admin'
-    : member.role === 'COMPANY' || member.role === 'CORPORATE' || member.role === 'EMPLOYER'
-      ? 'corporate'
-      : 'personal';
-
-  return {
-    role,
-    name: member.name,
-    id: String(member.id),
-    avatar: member.name.slice(0, 1),
-    loginId: member.loginId,
-  };
-};
 
 const loadRegisteredUser = (): RegisterFormData | null => {
   if (typeof window === 'undefined') return null;
@@ -83,6 +55,20 @@ const loadRegisteredUser = (): RegisterFormData | null => {
     return JSON.parse(savedUser) as RegisterFormData;
   } catch {
     localStorage.removeItem(registeredUserStorageKey);
+    return null;
+  }
+};
+
+const loadRegisteredCorporateUser = (): CorporateRegisterFormData | null => {
+  if (typeof window === 'undefined') return null;
+
+  const savedUser = localStorage.getItem(registeredCorporateUserStorageKey);
+  if (!savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser) as CorporateRegisterFormData;
+  } catch {
+    localStorage.removeItem(registeredCorporateUserStorageKey);
     return null;
   }
 };
@@ -195,6 +181,8 @@ const clearPendingApplicationJobId = () => {
 
 const createUserFromForm = (role: UserRole, formData: RegisterFormData): CurrentUser => ({
   role,
+  memberRole: role === 'admin' ? 'ADMIN' : 'JOB_SEEKER',
+  status: 'ACTIVE',
   name: formData.name.trim() || '구직자',
   id: formData.loginId.trim() || 'new_user',
   avatar: (formData.name.trim() || '회').slice(0, 1),
@@ -207,13 +195,42 @@ const createUserFromForm = (role: UserRole, formData: RegisterFormData): Current
   preferredRole: formData.preferredRole,
 });
 
+const createCorporateUserFromForm = (formData: CorporateRegisterFormData): CurrentUser => ({
+  role: 'corporate',
+  memberRole: 'COMPANY',
+  status: 'ACTIVE',
+  name: `${formData.companyName.trim()} 채용담당자`,
+  id: formData.loginId.trim() || 'corporate_user',
+  avatar: (formData.companyName.trim() || 'C').slice(0, 1),
+  loginId: formData.loginId,
+  email: formData.email,
+  phone: formData.phone,
+  companyProfile: {
+    companyName: formData.companyName,
+    businessNumber: formData.businessNumber,
+    representativeName: formData.representativeName || formData.managerName,
+    industry: formData.industry,
+    companyAddress: formData.companyAddress || '',
+    companyDetailAddress: formData.companyDetailAddress,
+    companyPhone: formData.companyPhone,
+    websiteUrl: formData.websiteUrl,
+    companyDescription: formData.companyDescription,
+    employeeCount: formData.employeeCount ? Number(formData.employeeCount) : undefined,
+    establishedDate: formData.establishedDate,
+    verificationStatus: formData.verificationStatus || 'PENDING',
+  },
+});
+
 const getMockUserByRole = (role: UserRole): CurrentUser => {
   if (role === 'corporate') return mockCorporateUser;
   if (role === 'admin') return mockAdminUser;
   return mockUser;
 };
 
-const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUser | null => {
+const getAutoLoggedInUser = (
+  registeredUser: RegisterFormData | null,
+  registeredCorporateUser: CorporateRegisterFormData | null,
+): CurrentUser | null => {
   const session = loadAutoLoginSession();
   if (!session) return null;
 
@@ -226,6 +243,10 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
   }
 
   if (session.role === 'corporate' || session.role === 'admin') {
+    if (session.role === 'corporate' && session.loginId && registeredCorporateUser?.loginId.trim() === session.loginId) {
+      return createCorporateUserFromForm(registeredCorporateUser);
+    }
+
     return getMockUserByRole(session.role);
   }
 
@@ -235,8 +256,9 @@ const getAutoLoggedInUser = (registeredUser: RegisterFormData | null): CurrentUs
 
 export default function App() {
   const [registeredUser, setRegisteredUser] = useState<RegisterFormData | null>(() => loadRegisteredUser());
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser));
-  const [currentPage, setCurrentPage] = useState<Page>('main');
+  const [registeredCorporateUser, setRegisteredCorporateUser] = useState<CorporateRegisterFormData | null>(() => loadRegisteredCorporateUser());
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => getAutoLoggedInUser(registeredUser, registeredCorporateUser));
+  const [currentPage, setCurrentPage] = useState<Page>(() => loadCurrentPage() || 'main');
   const [currentJobId, setCurrentJobId] = useState<string | null>(() => loadCurrentJobId());
   const [pageHistory, setPageHistory] = useState<Page[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
@@ -244,67 +266,6 @@ export default function App() {
   const [applicationForms, setApplicationForms] = useState<Record<string, ApplicationFormData>>(() => loadApplicationForms());
   const [pendingApplicationJobId, setPendingApplicationJobId] = useState<string | null>(() => loadPendingApplicationJobId());
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
-
-  useEffect(() => {
-    getCurrentMember()
-      .then(member => setCurrentUser(member ? toCurrentUser(member) : null))
-      .catch(() => setCurrentUser(null));
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser) {
-      setBookmarks(new Set());
-      setAppliedJobIds(new Set());
-      setApplicationForms({});
-      return;
-    }
-
-    let cancelled = false;
-
-    getInterestJobs()
-      .then(savedJobs => {
-        if (cancelled) return;
-        const next = savedJobs.reduce<Set<string>>((ids, savedJob) => {
-          const matchedJob = mockJobs.find(job => job.company === savedJob.companyName && job.title === savedJob.title);
-          if (matchedJob) ids.add(`job-${matchedJob.id}`);
-          return ids;
-        }, new Set());
-        setBookmarks(next);
-      })
-      .catch(() => setBookmarks(new Set()));
-
-    getJobApplications()
-      .then(applications => {
-        if (cancelled) return;
-        const nextIds = new Set<string>();
-        const nextForms: Record<string, ApplicationFormData> = {};
-
-        applications.forEach(application => {
-          const jobId = normalizeJobId(application.jobId);
-          nextIds.add(jobId);
-          nextForms[jobId] = {
-            name: application.applicantName,
-            phone: application.phone,
-            email: application.email,
-            employmentType: application.employmentType,
-            privacyAgreed: true,
-            submittedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-        });
-
-        setAppliedJobIds(nextIds);
-        setApplicationForms(nextForms);
-      })
-      .catch(() => {
-        setAppliedJobIds(new Set());
-        setApplicationForms({});
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentUser]);
 
   const navigate = (page: Page, jobId?: string) => {
     if (page !== currentPage) {
@@ -327,10 +288,17 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRegister = async (formData: RegisterFormData, passwordConfirm: string) => {
-    await registerMember(formData, passwordConfirm);
-    setRegisteredUser(formData);
-    localStorage.setItem(registeredUserStorageKey, JSON.stringify(formData));
+  const handleRegister = (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData) => {
+    if (role === 'corporate') {
+      const corporateForm = formData as CorporateRegisterFormData;
+      setRegisteredCorporateUser(corporateForm);
+      localStorage.setItem(registeredCorporateUserStorageKey, JSON.stringify(corporateForm));
+      return;
+    }
+
+    const personalForm = formData as RegisterFormData;
+    setRegisteredUser(personalForm);
+    localStorage.setItem(registeredUserStorageKey, JSON.stringify(personalForm));
   };
 
   const handleResetPassword = (newPassword: string) => {
@@ -343,67 +311,56 @@ export default function App() {
     });
   };
 
-  const handleLogin = async (loginId: string, password: string, keepLoggedIn = false) => {
-    const member = await loginMember(loginId, password);
-    if (keepLoggedIn) saveAutoLoginSession({ role: toCurrentUser(member).role, loginId: member.loginId });
-    else clearAutoLoginSession();
-    setCurrentUser(toCurrentUser(member));
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logoutMember();
-    } finally {
-      clearAutoLoginSession();
-      setCurrentUser(null);
-      setBookmarks(new Set());
-      setAppliedJobIds(new Set());
-      setApplicationForms({});
-      setPageHistory([]);
-      saveCurrentPage('main');
-      setCurrentPage('main');
-    }
-  };
-
-  const handleBookmark = async (id: string) => {
-    if (!currentUser) {
-      window.alert('로그인 후 관심 공고를 저장할 수 있습니다.');
-      navigate('login');
+  const handleLogin = (role: UserRole, formData?: RegisterFormData | CorporateRegisterFormData, keepLoggedIn = false) => {
+    if (formData && role === 'personal') {
+      const personalForm = formData as RegisterFormData;
+      saveAutoLoginSession({ role, loginId: personalForm.loginId.trim() });
+      setCurrentUser(createUserFromForm(role, personalForm));
       return;
     }
 
-    const normalizedJobId = normalizeJobId(id);
-    const bookmarkId = `job-${normalizedJobId}`;
-    const job = mockJobs.find(item => item.id === normalizedJobId);
-    if (!job) return;
-
-    try {
-      if (bookmarks.has(bookmarkId)) await deleteInterestJob(job.company, job.title);
-      else await saveInterestJob(job);
-
-      setBookmarks(prev => {
-      const next = new Set(prev);
-        if (next.has(bookmarkId)) next.delete(bookmarkId);
-        else next.add(bookmarkId);
-      return next;
-    });
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : '관심 공고 처리에 실패했습니다.');
+    if (formData && role === 'corporate') {
+      const corporateForm = formData as CorporateRegisterFormData;
+      saveAutoLoginSession({ role, loginId: corporateForm.loginId.trim() });
+      setCurrentUser(createCorporateUserFromForm(corporateForm));
+      return;
     }
+
+    if (role === 'corporate' && registeredCorporateUser) {
+      saveAutoLoginSession({ role, loginId: registeredCorporateUser.loginId.trim() });
+      setCurrentUser(createCorporateUserFromForm(registeredCorporateUser));
+      return;
+    }
+
+    if (role === 'personal' && registeredUser) {
+      saveAutoLoginSession({ role, loginId: registeredUser.loginId.trim() });
+      setCurrentUser(createUserFromForm(role, registeredUser));
+      return;
+    }
+
+    saveAutoLoginSession({ role, loginId: role === 'personal' ? 'demo' : undefined });
+    setCurrentUser(getMockUserByRole(role));
   };
 
-  const handleApplyJob = async (id: string, formData: ApplicationFormData) => {
-    const normalizedJobId = normalizeJobId(id);
-    const job = mockJobs.find(item => item.id === normalizedJobId);
-    if (!job) throw new Error('지원할 공고를 찾을 수 없습니다.');
+  const handleLogout = () => {
+    clearAutoLoginSession();
+    setCurrentUser(null);
+    setPageHistory([]);
+    saveCurrentPage('main');
+    setCurrentPage('main');
+  };
 
-    await saveJobApplication(job, {
-      applicantName: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      employmentType: formData.employmentType,
+  const handleBookmark = (id: string) => {
+    setBookmarks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
+  };
 
+  const handleApplyJob = (id: string, formData: ApplicationFormData) => {
+    const normalizedJobId = normalizeJobId(id);
     setAppliedJobIds(prev => {
       const next = new Set(prev);
       next.add(normalizedJobId);
@@ -415,6 +372,7 @@ export default function App() {
         ...prev,
         [normalizedJobId]: {
           ...formData,
+          applicationStatus: formData.applicationStatus || 'APPLIED',
           submittedAt: formData.submittedAt || new Date().toISOString(),
           updatedAt: formData.updatedAt || new Date().toISOString(),
         },
@@ -431,6 +389,7 @@ export default function App() {
         ...prev,
         [normalizedJobId]: {
           ...formData,
+          applicationStatus: formData.applicationStatus || prev[normalizedJobId]?.applicationStatus || 'APPLIED',
           submittedAt: prev[normalizedJobId]?.submittedAt || formData.submittedAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -463,12 +422,19 @@ export default function App() {
     navigate('login', `job-${normalizedJobId}`);
   };
 
-  const handleLoginSuccess = () => {
-    if (pendingApplicationJobId) {
+  const handleLoginSuccess = (role: UserRole) => {
+    if (role === 'personal' && pendingApplicationJobId) {
       const normalizedJobId = pendingApplicationJobId.replace(/^job-/, '');
       setPendingApplicationJobId(null);
       clearPendingApplicationJobId();
       navigate('job-detail', `job-${normalizedJobId}`);
+      return;
+    }
+
+    if (role === 'corporate') {
+      setPendingApplicationJobId(null);
+      clearPendingApplicationJobId();
+      navigate('corporate');
       return;
     }
 
@@ -480,20 +446,6 @@ export default function App() {
     navigate('jobs');
   };
 
-  const handleProfileSaved = (profile: ApiJobSeekerProfile) => {
-    setCurrentUser(prev => prev ? {
-      ...prev,
-      name: profile.name,
-      avatar: profile.name.trim().slice(0, 1) || prev.avatar,
-      email: profile.email,
-      phone: profile.phone,
-      currentRegion: profile.residenceRegion || prev.currentRegion,
-      preferredRole: profile.desiredJob || prev.preferredRole,
-      remotePreferred: Boolean(profile.remotePreferred),
-      flexiblePreferred: Boolean(profile.flexiblePreferred),
-    } : prev);
-  };
-
   const showNavFooter = !noNavPages.includes(currentPage);
 
   const renderPage = () => {
@@ -502,7 +454,7 @@ export default function App() {
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
 
       case 'login':
-        return <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
+        return <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} registeredCorporateUser={registeredCorporateUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
 
       case 'register':
         return <RegisterPage navigate={navigate} onRegister={handleRegister} onBack={handleBack} />;
@@ -534,7 +486,6 @@ export default function App() {
             applicationForms={applicationForms}
             initialMenu={currentPage === 'applications' ? '지원 현황' : '내 프로필'}
             onBookmark={handleBookmark}
-            onProfileSaved={handleProfileSaved}
             onUpdateApplication={handleUpdateApplication}
             onDeleteApplication={handleDeleteApplication}
           />
@@ -551,7 +502,7 @@ export default function App() {
         );
 
       case 'jobs':
-        return <JobsPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
+        return <JobsPage mode="recommended" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
       case 'ai-recommend':
         return <AiJobRecommendationPage currentUser={currentUser} navigate={navigate} />;
@@ -559,20 +510,14 @@ export default function App() {
       case 'saved':
         return <JobsPage mode="saved" navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} initialQuery={headerSearchQuery} />;
 
-      case 'company-info':
-        return <CompanyInfoPage navigate={navigate} />;
-
       case 'community':
-        return <CommunityPage currentUser={currentUser} />;
+        return <CommunityPage />;
 
       case 'guide':
         return <GuidePage navigate={navigate} />;
 
       case 'support':
         return <SupportPage currentUser={currentUser} />;
-
-      case 'admin':
-        return currentUser?.role === 'admin' ? <AdminPage /> : <LoginPage navigate={navigate} onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} registeredUser={registeredUser} onBack={handleBack} onResetPassword={handleResetPassword} />;
 
       default:
         return <MainPage navigate={navigate} bookmarks={bookmarks} onBookmark={handleBookmark} onSearch={handleHeaderSearch} />;
@@ -595,7 +540,7 @@ export default function App() {
         {renderPage()}
       </main>
 
-      {showNavFooter && currentPage !== 'user-dashboard' && currentPage !== 'corporate' && currentPage !== 'applications' && currentPage !== 'admin' && (
+      {showNavFooter && currentPage !== 'user-dashboard' && currentPage !== 'corporate' && currentPage !== 'applications' && (
         <Footer navigate={navigate} />
       )}
     </div>

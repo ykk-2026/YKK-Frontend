@@ -26,6 +26,13 @@ export interface JobRecommendationDto {
   accessibilitySupport?: string | null;
 }
 
+const recommendationUrls = (memberId: number) => [
+  `/api/job-recommendations/${memberId}`,
+  `/api/job-recommendations?memberId=${memberId}`,
+  `/api/recommendations/jobs/${memberId}`,
+  `/api/recommendations/jobs?memberId=${memberId}`,
+];
+
 const parseErrorMessage = async (response: Response) => {
   try {
     const body = (await response.json()) as { detail?: string; message?: string };
@@ -35,65 +42,45 @@ const parseErrorMessage = async (response: Response) => {
   }
 };
 
-const normalizeRecommendation = (value: unknown): JobRecommendationDto => {
-  const recommendation = value as Record<string, unknown>;
-  const nestedJob = recommendation.job && typeof recommendation.job === 'object'
-    ? recommendation.job as Record<string, unknown>
-    : {};
-  const salaryMin = nestedJob.salaryMin as number | null | undefined;
-  const salaryMax = nestedJob.salaryMax as number | null | undefined;
-  const salary = salaryMin || salaryMax
-    ? `${salaryMin ? `${salaryMin.toLocaleString()}만원` : '협의'} ~ ${salaryMax ? `${salaryMax.toLocaleString()}만원` : '협의'}`
-    : '협의';
-
-  return {
-    ...(recommendation as unknown as JobRecommendationDto),
-    jobId: (recommendation.jobId ?? nestedJob.id) as number | string,
-    title: String(recommendation.title ?? nestedJob.title ?? ''),
-    companyName: String(recommendation.companyName ?? nestedJob.companyName ?? ''),
-    job: String(recommendation.jobCategory ?? nestedJob.jobCategory ?? ''),
-    location: String(recommendation.location ?? nestedJob.location ?? ''),
-    employmentType: String(recommendation.employmentType ?? nestedJob.employmentType ?? ''),
-    salary: String(recommendation.salary ?? salary),
-    totalScore: Number(recommendation.totalScore ?? 0),
-    recommendReason: String(recommendation.recommendReason ?? recommendation.recommendationReason ?? ''),
-    mismatchReason: String(recommendation.mismatchReason ?? ''),
-    wheelchairAccessible: Boolean(recommendation.wheelchairAccessible ?? nestedJob.wheelchairAccessible),
-    accessibleRestroom: Boolean(recommendation.accessibleRestroom ?? nestedJob.accessibleRestroom),
-    disabledParking: Boolean(recommendation.disabledParking ?? nestedJob.disabledParking),
-    remoteAvailable: Boolean(recommendation.remoteAvailable ?? nestedJob.remoteAvailable),
-    flexibleWorkAvailable: Boolean(recommendation.flexibleWorkAvailable ?? nestedJob.flexibleWorkAvailable),
-    assistiveDeviceSupport: Boolean(recommendation.assistiveDeviceSupport ?? nestedJob.assistiveDeviceSupport),
-    accessibilitySupport: String(recommendation.accessibilitySupport ?? nestedJob.accessibilityInfo ?? ''),
-  };
-};
-
 const normalizeRecommendationResponse = (body: unknown): JobRecommendationDto[] => {
-  let recommendations: unknown[] = [];
+  if (Array.isArray(body)) return body as JobRecommendationDto[];
 
-  if (Array.isArray(body)) recommendations = body;
-  else if (body && typeof body === 'object') {
+  if (body && typeof body === 'object') {
     const payload = body as {
-      recommendations?: unknown[];
-      items?: unknown[];
-      data?: unknown[] | { recommendations?: unknown[]; items?: unknown[] };
+      recommendations?: JobRecommendationDto[];
+      items?: JobRecommendationDto[];
+      data?: JobRecommendationDto[] | { recommendations?: JobRecommendationDto[]; items?: JobRecommendationDto[] };
     };
 
-    if (Array.isArray(payload.recommendations)) recommendations = payload.recommendations;
-    else if (Array.isArray(payload.items)) recommendations = payload.items;
-    else if (Array.isArray(payload.data)) recommendations = payload.data;
-    else if (payload.data && typeof payload.data === 'object') {
-      if (Array.isArray(payload.data.recommendations)) recommendations = payload.data.recommendations;
-      else if (Array.isArray(payload.data.items)) recommendations = payload.data.items;
+    if (Array.isArray(payload.recommendations)) return payload.recommendations;
+    if (Array.isArray(payload.items)) return payload.items;
+    if (Array.isArray(payload.data)) return payload.data;
+    if (payload.data && typeof payload.data === 'object') {
+      if (Array.isArray(payload.data.recommendations)) return payload.data.recommendations;
+      if (Array.isArray(payload.data.items)) return payload.data.items;
     }
   }
 
-  return recommendations.map(normalizeRecommendation);
+  return [];
 };
 
-export async function getJobRecommendations(_memberId: number): Promise<JobRecommendationDto[]> {
-  const response = await fetch('/api/recommendations', { credentials: 'include' });
-  if (!response.ok) throw new Error(await parseErrorMessage(response));
-  if (response.status === 204) return [];
-  return normalizeRecommendationResponse(await response.json());
+export async function getJobRecommendations(memberId: number): Promise<JobRecommendationDto[]> {
+  let lastError = '';
+
+  for (const url of recommendationUrls(memberId)) {
+    const response = await fetch(url);
+
+    if (response.ok) {
+      if (response.status === 204) return [];
+      return normalizeRecommendationResponse(await response.json());
+    }
+
+    lastError = await parseErrorMessage(response);
+
+    if (response.status !== 404 && response.status !== 405) {
+      throw new Error(lastError);
+    }
+  }
+
+  throw new Error(lastError || '추천 API를 찾을 수 없습니다.');
 }

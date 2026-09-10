@@ -8,12 +8,10 @@ export type Page =
   | 'saved'
   | 'applications'
   | 'ai-recommend'
-  | 'company-info'
   | 'community'
   | 'guide'
   | 'support'
-  | 'corporate'
-  | 'admin';
+  | 'corporate';
 
 export type UserRole = 'personal' | 'corporate' | 'admin';
 export type MemberRole = 'JOB_SEEKER' | 'COMPANY' | 'ADMIN';
