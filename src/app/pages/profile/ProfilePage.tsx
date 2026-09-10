@@ -88,6 +88,18 @@ const workEnvironmentOptions = [
 ];
 
 const salaryPresets = ['3000', '4000', '5000', '6000', '10000'];
+const desiredJobExamples = [
+  '백엔드 개발자',
+  '프론트엔드 개발자',
+  '데이터 분석가',
+  '웹 서비스 기획자',
+  'UI/UX 디자이너',
+  'IT 서비스 운영',
+  '사무보조',
+  '고객상담',
+  '바리스타',
+  '매장관리',
+];
 const maxIntroLength = 500;
 const profilePhotoStoragePrefix = 'jobBridgeProfilePhoto';
 const maxProfilePhotoSize = 3 * 1024 * 1024;
@@ -138,6 +150,18 @@ const formatSalaryInput = (value: string) => {
   return Number(digits).toLocaleString('ko-KR');
 };
 
+const formatSalaryLabel = (value: string) => {
+  const salary = Number(value.replace(/\D/g, ''));
+  if (!salary) return '';
+  if (salary >= 10000 && salary % 10000 === 0) return `${salary / 10000}억원`;
+  if (salary >= 10000) {
+    const eok = Math.floor(salary / 10000);
+    const remainder = salary % 10000;
+    return `${eok}억 ${remainder.toLocaleString('ko-KR')}만원`;
+  }
+  return `${salary.toLocaleString('ko-KR')}만원`;
+};
+
 const formatCareerYears = (value: string) => value.replace(/\D/g, '').slice(0, 2);
 
 const loadProfilePhoto = (userId: string) => {
@@ -182,6 +206,7 @@ export function ProfilePage({
   const [savedMessage, setSavedMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
+  const [isDesiredJobOpen, setIsDesiredJobOpen] = useState(false);
   const [isDesiredRegionOpen, setIsDesiredRegionOpen] = useState(false);
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [editingApplicationJobId, setEditingApplicationJobId] = useState<string | null>(null);
@@ -772,9 +797,55 @@ export function ProfilePage({
               <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
                 <h2 className="mb-5 text-lg font-extrabold">구직 조건</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block">
+                  <label className="relative block">
                     <span className="mb-2 block text-sm font-bold">희망 직무</span>
-                    <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.desiredJob} onChange={event => updateForm('desiredJob', event.target.value)} placeholder="예: 백엔드 개발자" />
+                    <button
+                      type="button"
+                      onClick={() => setIsDesiredJobOpen(prev => !prev)}
+                      className="flex w-full items-center justify-between rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-left text-sm font-bold text-[#111827] focus:border-[#0D6BEA] focus:outline-none focus:ring-4 focus:ring-[#0D6BEA]/15"
+                    >
+                      <span className={profileForm.desiredJob ? 'text-[#111827]' : 'text-[#98A2B3]'}>
+                        {profileForm.desiredJob || '예: 백엔드 개발자'}
+                      </span>
+                      <span className="text-[#7A8495]">⌄</span>
+                    </button>
+                    {isDesiredJobOpen && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-[#DCEAF3] bg-white shadow-lg">
+                        {desiredJobExamples.map(job => (
+                          <button
+                            type="button"
+                            key={job}
+                            onClick={() => {
+                              updateForm('desiredJob', job);
+                              setIsDesiredJobOpen(false);
+                            }}
+                            className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-[#F4F8FC] ${
+                              profileForm.desiredJob === job ? 'bg-[#E4EFFF] font-bold text-[#0D6BEA]' : 'text-[#111827]'
+                            }`}
+                          >
+                            {job}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateForm('desiredJob', '');
+                            setIsDesiredJobOpen(false);
+                          }}
+                          className="block w-full border-t border-[#EEF2F6] px-3 py-2.5 text-left text-sm font-bold text-[#667085] hover:bg-[#F4F8FC]"
+                        >
+                          직접 입력하려면 선택 해제
+                        </button>
+                      </div>
+                    )}
+                    {!profileForm.desiredJob && (
+                      <input
+                        className="mt-2 w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm"
+                        value={profileForm.desiredJob}
+                        onChange={event => updateForm('desiredJob', event.target.value)}
+                        placeholder="목록에 없으면 직접 입력"
+                      />
+                    )}
                   </label>
                   <label className="relative block">
                     <span className="mb-2 block text-sm font-bold">희망 근무지역</span>
@@ -819,7 +890,7 @@ export function ProfilePage({
                     <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.careerYears} onChange={event => updateForm('careerYears', formatCareerYears(event.target.value))} inputMode="numeric" placeholder="예: 3" />
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-bold">희망 최소 연봉 <span className="text-[#7A8495]">(만원)</span></span>
+                    <span className="mb-2 block text-sm font-bold">희망 최소 연봉</span>
                     <div className="relative">
                       <input
                         className="w-full rounded-lg border border-[#DCEAF3] py-3 pl-3 pr-24 text-sm font-bold outline-none focus:ring-4 focus:ring-[#0D6BEA]/15"
@@ -842,7 +913,7 @@ export function ProfilePage({
                             profileForm.minSalary === Number(salary).toLocaleString('ko-KR') ? 'bg-[#0D6BEA] text-white' : 'bg-[#F1F3F6] text-[#344054] hover:bg-[#E4EFFF]'
                           }`}
                         >
-                          {Number(salary).toLocaleString('ko-KR')}만원
+                          {formatSalaryLabel(salary)}
                         </button>
                       ))}
                     </div>
@@ -1079,7 +1150,7 @@ export function ProfilePage({
               <p><b>현재 거주지역</b> {profileForm.residenceRegion}</p>
               <p><b>희망 근무지역</b> {profileForm.desiredRegion}</p>
               <p><b>경력</b> {careerTypeOptions.find(option => option.value === profileForm.careerType)?.label} / {profileForm.careerYears || 0}년</p>
-              <p><b>희망 최소 연봉</b> {profileForm.minSalary ? `${profileForm.minSalary}만원 이상` : '미입력'}</p>
+              <p><b>희망 최소 연봉</b> {profileForm.minSalary ? `${formatSalaryLabel(profileForm.minSalary)} 이상` : '미입력'}</p>
               <p><b>근무 방식</b> {selectedWorkTypes.length > 0 ? selectedWorkTypes.join(', ') : '미선택'}</p>
               <p><b>연락 가능 시간</b> {profileForm.contactTimeStart} ~ {profileForm.contactTimeEnd}</p>
               <p><b>선호 연락 방식</b> {contactMethodOptions.find(option => option.value === profileForm.contactMethod)?.label}</p>
