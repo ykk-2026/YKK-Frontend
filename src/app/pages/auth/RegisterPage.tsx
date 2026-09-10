@@ -5,7 +5,7 @@ import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from
 
 interface RegisterPageProps {
   navigate: (page: Page) => void;
-  onRegister: (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData) => Promise<void>;
+  onRegister: (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData) => void;
   onBack: () => void;
 }
 
@@ -201,11 +201,11 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
     return Object.keys(nextErrors).length === 0;
   };
 
-  const submitRegister = async () => {
+  const submitRegister = () => {
     if (!validateForm()) return;
 
     if (registerMode === 'corporate') {
-      await onRegister('corporate', {
+      onRegister('corporate', {
         ...corporateForm,
         loginId: corporateForm.loginId.trim().toLowerCase(),
         companyName: corporateForm.companyName.trim(),
@@ -228,7 +228,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
       return;
     }
 
-    await onRegister('personal', {
+    onRegister('personal', {
       ...form,
       loginId: form.loginId.trim().toLowerCase(),
       name: form.name.trim(),

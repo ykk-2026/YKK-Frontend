@@ -219,7 +219,7 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
   const profileUserId = useMemo(() => getProfileUserId(currentUser), [currentUser]);
   const [refreshKey, setRefreshKey] = useState(0);
   const savedProfile = useMemo(() => loadJobSeekerProfile(profileUserId), [profileUserId, refreshKey]);
-  const profileReady = currentUser?.role === 'personal';
+  const profileReady = currentUser?.role === 'personal' && hasSavedProfile(savedProfile);
   const profileChips = useMemo(() => getProfileChips(savedProfile), [savedProfile]);
   const [recommendations, setRecommendations] = useState<JobRecommendationDto[]>([]);
   const [loading, setLoading] = useState(Boolean(profileReady));
