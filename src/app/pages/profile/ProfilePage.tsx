@@ -398,12 +398,10 @@ export function ProfilePage({
     try {
       await saveProfile(currentUser.id, payload);
       onProfileSaved?.(payload);
-      setSavedMessage('프로필 정보가 DB에 저장되었습니다.');
-      window.alert('프로필 정보가 DB에 저장되었습니다.');
+      setSavedMessage('프로필이 저장되었습니다.');
     } catch (error) {
       const message = error instanceof Error ? error.message : '프로필 저장에 실패했습니다.';
       setSavedMessage(message);
-      window.alert(message);
     } finally {
       setIsSavingProfile(false);
     }

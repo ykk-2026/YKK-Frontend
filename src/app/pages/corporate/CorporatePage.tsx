@@ -92,7 +92,7 @@ export function CorporatePage({ currentUser, navigate, appliedJobIds, applicatio
               </p>
               <h1 className="mt-2 text-2xl font-extrabold text-black">지원자 관리</h1>
               <p className="mt-2 text-sm font-semibold text-[#667085]">
-                DDL의 `company_profile`과 `job_application_management` 구조에 맞춘 기업 콘솔입니다.
+                채용 공고와 지원자를 한곳에서 편리하게 관리하세요.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
