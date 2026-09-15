@@ -244,9 +244,6 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, r
             <h2 className="mt-5 text-center text-xl font-bold text-foreground">
               {loginMode === 'corporate' ? '기업회원 로그인' : '개인회원 로그인'}
             </h2>
-            <p className="mt-2 text-center text-xs font-semibold text-muted-foreground">
-              {loginMode === 'corporate' ? '데모: company01 / company123' : '데모: demo / password'}
-            </p>
             <div className="mt-4 h-px bg-border" />
           </div>
 
