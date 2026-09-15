@@ -5,7 +5,7 @@ import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from
 
 interface RegisterPageProps {
   navigate: (page: Page) => void;
-  onRegister: (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData) => void;
+  onRegister: (role: UserRole, formData: RegisterFormData | CorporateRegisterFormData, passwordConfirm: string) => Promise<void>;
   onBack: () => void;
 }
 
@@ -91,6 +91,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
   const [idCheckMessage, setIdCheckMessage] = useState('');
   const [idAvailable, setIdAvailable] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activeLoginId = registerMode === 'corporate' ? corporateForm.loginId : form.loginId;
   const activePassword = registerMode === 'corporate' ? corporateForm.password : form.password;
@@ -201,11 +202,13 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
     return Object.keys(nextErrors).length === 0;
   };
 
-  const submitRegister = () => {
-    if (!validateForm()) return;
+  const submitRegister = async () => {
+    if (isSubmitting || !validateForm()) return;
+    setIsSubmitting(true);
 
-    if (registerMode === 'corporate') {
-      onRegister('corporate', {
+    try {
+      if (registerMode === 'corporate') {
+        await onRegister('corporate', {
         ...corporateForm,
         loginId: corporateForm.loginId.trim().toLowerCase(),
         companyName: corporateForm.companyName.trim(),
@@ -222,22 +225,27 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
         verificationStatus: 'PENDING',
         email: corporateForm.email.trim(),
         phone: corporateForm.phone,
-      });
-      window.alert('기업 회원가입이 완료되었습니다. 로그인해 주세요.');
-      navigate('login');
-      return;
-    }
+        }, passwordConfirm);
+        window.alert('기업 회원가입이 완료되었습니다. 로그인해 주세요.');
+        navigate('login');
+        return;
+      }
 
-    onRegister('personal', {
-      ...form,
-      loginId: form.loginId.trim().toLowerCase(),
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone,
-      birthDate: form.birthDate.trim(),
-    });
-    window.alert('회원가입이 완료되었습니다. 로그인해 주세요.');
-    navigate('login');
+      await onRegister('personal', {
+        ...form,
+        loginId: form.loginId.trim().toLowerCase(),
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone,
+        birthDate: form.birthDate.trim(),
+      }, passwordConfirm);
+      window.alert('회원가입이 완료되었습니다. 로그인해 주세요.');
+      navigate('login');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : '회원가입에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -474,7 +482,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
             )}
           </div>
 
-          <button type="button" onClick={submitRegister} className="mt-6 w-full rounded-lg bg-primary py-3.5 font-medium text-white shadow-sm hover:bg-primary/90">
+          <button type="button" onClick={submitRegister} disabled={isSubmitting} className="mt-6 w-full rounded-lg bg-primary py-3.5 font-medium text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
             {registerMode === 'corporate' ? '기업 회원가입' : '회원가입'}
           </button>
           <button type="button" onClick={() => navigate('login')} className="mt-4 w-full text-sm text-muted-foreground">

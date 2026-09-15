@@ -19,8 +19,8 @@ import {
   UserRound,
 } from 'lucide-react';
 import { mockJobs } from '@/app/data/mockData';
-import { loadJobSeekerProfile, saveJobSeekerProfile } from '@/app/profileStorage';
 import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
+import { getProfile, saveProfile, type ApiJobSeekerProfile } from '@/app/api/profileApi';
 
 interface ProfilePageProps {
   currentUser: CurrentUser | null;
@@ -30,6 +30,7 @@ interface ProfilePageProps {
   applicationForms?: Record<string, ApplicationFormData>;
   initialMenu?: string;
   onBookmark: (id: string) => void;
+  onProfileSaved?: (profile: ApiJobSeekerProfile) => void;
   onUpdateApplication?: (id: string, formData: ApplicationFormData) => void;
   onDeleteApplication?: (id: string) => void;
 }
@@ -164,6 +165,29 @@ const formatSalaryLabel = (value: string) => {
 
 const formatCareerYears = (value: string) => value.replace(/\D/g, '').slice(0, 2);
 
+const toNumberOrNull = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  return digits ? Number(digits) : null;
+};
+
+const toProfileFormValues = (profile: ApiJobSeekerProfile) => ({
+  name: profile.name || '', birthDate: profile.birthDate || '', gender: profile.gender || 'OTHER',
+  email: profile.email || '', phone: profile.phone || '', residenceRegion: profile.residenceRegion || '',
+  desiredJob: profile.desiredJob || '', desiredRegion: profile.desiredRegion || '',
+  employmentType: profile.employmentType || 'ANY', careerType: profile.careerType || 'ANY',
+  careerYears: String(profile.careerYears ?? 0),
+  minSalary: profile.minSalary ? Number(profile.minSalary).toLocaleString('ko-KR') : '',
+  remotePreferred: Boolean(profile.remotePreferred), flexiblePreferred: Boolean(profile.flexiblePreferred),
+  hybridPreferred: Boolean(profile.hybridPreferred), onsitePreferred: Boolean(profile.onsitePreferred),
+  wheelchairRequired: Boolean(profile.wheelchairRequired),
+  accessibleRestroomRequired: Boolean(profile.accessibleRestroomRequired),
+  disabledParkingRequired: Boolean(profile.disabledParkingRequired),
+  assistiveDeviceRequired: Boolean(profile.assistiveDeviceRequired),
+  contactTimeStart: profile.contactTimeStart || '09:00', contactTimeEnd: profile.contactTimeEnd || '18:00',
+  contactMethod: profile.contactMethod || 'PHONE', introduction: profile.introduction || '',
+  profilePublic: profile.profilePublic ?? true,
+});
+
 const loadProfilePhoto = (userId: string) => {
   if (typeof window === 'undefined') return { type: 'initial', value: '' } satisfies ProfileAvatar;
 
@@ -194,16 +218,17 @@ export function ProfilePage({
   applicationForms = {},
   initialMenu = '내 프로필',
   onBookmark,
+  onProfileSaved,
   onUpdateApplication,
   onDeleteApplication,
 }: ProfilePageProps) {
   const initialName = currentUser?.name || '김민준';
   const initialAvatar = currentUser?.avatar || initialName.slice(0, 1);
   const userId = currentUser?.loginId || currentUser?.id || 'guest';
-  const savedProfile = loadJobSeekerProfile(userId);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [activeMenu, setActiveMenu] = useState(initialMenu);
   const [savedMessage, setSavedMessage] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
   const [isDesiredJobOpen, setIsDesiredJobOpen] = useState(false);
@@ -255,8 +280,23 @@ export function ProfilePage({
     contactMethod: 'PHONE',
     introduction: '',
     profilePublic: true,
-    ...savedProfile,
   });
+
+  useEffect(() => {
+    if (!currentUser?.id || currentUser.role !== 'personal') return;
+    let cancelled = false;
+    getProfile(currentUser.id)
+      .then(profile => {
+        if (cancelled) return;
+        const nextProfile = toProfileFormValues(profile);
+        setProfileForm(nextProfile);
+        setAccountForm(prev => ({ ...prev, email: nextProfile.email, phone: nextProfile.phone }));
+      })
+      .catch(error => {
+        if (!cancelled) setSavedMessage(error instanceof Error ? error.message : '프로필 정보를 불러오지 못했습니다.');
+      });
+    return () => { cancelled = true; };
+  }, [currentUser?.id, currentUser?.role]);
 
   useEffect(() => {
     setProfileAvatar(loadProfilePhoto(userId));
@@ -324,19 +364,48 @@ export function ProfilePage({
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (profileForm.contactTimeStart && profileForm.contactTimeEnd && profileForm.contactTimeStart >= profileForm.contactTimeEnd) {
       window.alert('연락 가능 시작시간은 종료시간보다 빨라야 합니다.');
       return;
     }
 
+    if (!currentUser?.id || currentUser.role !== 'personal') {
+      window.alert('로그인한 개인회원만 프로필을 저장할 수 있습니다.');
+      return;
+    }
+
+    const payload: ApiJobSeekerProfile = {
+      memberId: Number(currentUser.id),
+      name: profileForm.name.trim(), birthDate: profileForm.birthDate, gender: profileForm.gender,
+      email: profileForm.email.trim(), phone: profileForm.phone.trim(),
+      residenceRegion: profileForm.residenceRegion, desiredJob: profileForm.desiredJob.trim(),
+      desiredRegion: profileForm.desiredRegion, employmentType: profileForm.employmentType,
+      careerType: profileForm.careerType, careerYears: toNumberOrNull(profileForm.careerYears),
+      minSalary: toNumberOrNull(profileForm.minSalary), remotePreferred: profileForm.remotePreferred,
+      flexiblePreferred: profileForm.flexiblePreferred, wheelchairRequired: profileForm.wheelchairRequired,
+      accessibleRestroomRequired: profileForm.accessibleRestroomRequired,
+      disabledParkingRequired: profileForm.disabledParkingRequired,
+      assistiveDeviceRequired: profileForm.assistiveDeviceRequired,
+      hybridPreferred: profileForm.hybridPreferred, onsitePreferred: profileForm.onsitePreferred,
+      contactTimeStart: profileForm.contactTimeStart, contactTimeEnd: profileForm.contactTimeEnd,
+      contactMethod: profileForm.contactMethod, introduction: profileForm.introduction,
+      profilePublic: profileForm.profilePublic,
+    };
+
+    setIsSavingProfile(true);
+    setSavedMessage('');
     try {
-      saveJobSeekerProfile(userId, profileForm);
-      setSavedMessage('프로필 정보가 저장되었습니다.');
-      window.alert('프로필 정보가 저장되었습니다.');
-    } catch {
-      setSavedMessage('');
-      window.alert('프로필 정보를 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.');
+      await saveProfile(currentUser.id, payload);
+      onProfileSaved?.(payload);
+      setSavedMessage('프로필 정보가 DB에 저장되었습니다.');
+      window.alert('프로필 정보가 DB에 저장되었습니다.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '프로필 저장에 실패했습니다.';
+      setSavedMessage(message);
+      window.alert(message);
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -496,7 +565,7 @@ export function ProfilePage({
                   <button type="button" onClick={() => setIsPreviewOpen(true)} className="rounded-lg border border-[#D7DDE5] px-4 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
                     미리보기
                   </button>
-                  <button type="button" onClick={handleSave} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7]">
+                  <button type="button" onClick={handleSave} disabled={isSavingProfile} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7] disabled:cursor-not-allowed disabled:opacity-60">
                     <Save size={16} />
                     저장
                   </button>

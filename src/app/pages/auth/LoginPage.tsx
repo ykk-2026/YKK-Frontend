@@ -6,6 +6,8 @@ import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from
 interface LoginPageProps {
   navigate: (page: Page) => void;
   onLogin: (role: UserRole, formData?: RegisterFormData | CorporateRegisterFormData, keepLoggedIn?: boolean) => void;
+  onPersonalLogin: (loginId: string, password: string, keepLoggedIn?: boolean) => Promise<void>;
+  onCorporateLogin: (loginId: string, password: string, keepLoggedIn?: boolean) => Promise<void>;
   onLoginSuccess?: (role: UserRole) => void;
   registeredUser: RegisterFormData | null;
   registeredCorporateUser: CorporateRegisterFormData | null;
@@ -27,7 +29,7 @@ const formatPhoneNumber = (value: string) => {
 
 const isPhoneLike = (value: string) => /^\d|^-?\d/.test(value.replace(/\s/g, ''));
 
-export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, registeredCorporateUser, onBack, onResetPassword }: LoginPageProps) {
+export function LoginPage({ navigate, onLogin, onPersonalLogin, onCorporateLogin, onLoginSuccess, registeredUser, registeredCorporateUser, onBack, onResetPassword }: LoginPageProps) {
   const [loginMode, setLoginMode] = useState<LoginMode>('personal');
   const [showPw, setShowPw] = useState(false);
   const [loginId, setLoginId] = useState('');
@@ -75,48 +77,31 @@ export function LoginPage({ navigate, onLogin, onLoginSuccess, registeredUser, r
     setNewPasswordConfirm('');
   };
 
-  const submitLogin = () => {
+  const submitLogin = async () => {
     if (isSubmitting) return;
 
     if (loginMode === 'corporate') {
-      if (registeredCorporateUser && loginId.trim() === registeredCorporateUser.loginId.trim() && password === registeredCorporateUser.password) {
-        setIsSubmitting(true);
-        onLogin('corporate', registeredCorporateUser, autoLogin);
+      setIsSubmitting(true);
+      setError('');
+      try {
+        await onCorporateLogin(loginId, password, autoLogin);
         window.setTimeout(() => finishLogin('corporate'), 180);
-        return;
+      } catch (loginError) {
+        setError(loginError instanceof Error ? loginError.message : '기업회원 로그인에 실패했습니다.');
+        setIsSubmitting(false);
       }
-
-      if (loginId.trim() !== 'company01' || password !== 'company123') {
-        setError(registeredCorporateUser ? '기업 아이디 또는 비밀번호가 올바르지 않습니다.' : '기업 데모 계정은 아이디 company01, 비밀번호 company123으로 로그인할 수 있습니다.');
-        return;
-      }
-
-      setIsSubmitting(true);
-      onLogin('corporate', undefined, autoLogin);
-      window.setTimeout(() => finishLogin('corporate'), 180);
-      return;
-    }
-
-    if (registeredUser) {
-      if (loginId.trim() !== registeredUser.loginId.trim() || password !== registeredUser.password) {
-        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
-        return;
-      }
-
-      setIsSubmitting(true);
-      onLogin('personal', registeredUser, autoLogin);
-      window.setTimeout(() => finishLogin('personal'), 180);
-      return;
-    }
-
-    if (loginId.trim() !== 'demo' || password !== 'password') {
-      setError('데모 계정은 아이디 demo, 비밀번호 password로 로그인할 수 있습니다.');
       return;
     }
 
     setIsSubmitting(true);
-    onLogin('personal', undefined, autoLogin);
-    window.setTimeout(() => finishLogin('personal'), 180);
+    setError('');
+    try {
+      await onPersonalLogin(loginId, password, autoLogin);
+      window.setTimeout(() => finishLogin('personal'), 180);
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : '로그인에 실패했습니다.');
+      setIsSubmitting(false);
+    }
   };
 
   const findLoginIdByInfo = () => {

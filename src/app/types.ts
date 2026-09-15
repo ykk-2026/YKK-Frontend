@@ -8,6 +8,7 @@ export type Page =
   | 'saved'
   | 'applications'
   | 'ai-recommend'
+  | 'company-info'
   | 'community'
   | 'guide'
   | 'support'
