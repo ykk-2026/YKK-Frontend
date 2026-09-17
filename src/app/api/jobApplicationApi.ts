@@ -13,6 +13,8 @@ export interface JobApplicationRecord extends JobApplicationForm {
   companyName: string;
   jobTitle: string;
   status: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const responseError = async (response: Response) => {
@@ -26,6 +28,12 @@ const responseError = async (response: Response) => {
 
 export async function getJobApplications(): Promise<JobApplicationRecord[]> {
   const response = await fetch('/api/job-applications');
+  if (!response.ok) throw new Error(await responseError(response));
+  return response.json() as Promise<JobApplicationRecord[]>;
+}
+
+export async function getCompanyJobApplications(): Promise<JobApplicationRecord[]> {
+  const response = await fetch('/api/job-applications/company');
   if (!response.ok) throw new Error(await responseError(response));
   return response.json() as Promise<JobApplicationRecord[]>;
 }

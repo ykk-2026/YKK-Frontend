@@ -14,14 +14,14 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
-import { getJobRecommendations, type JobRecommendationDto } from '@/app/api/jobRecommendationApi';
-import { mockJobs } from '@/app/data/mockData';
+import { JobRecommendationApiError, getJobRecommendations, type JobRecommendationDto } from '@/app/api/jobRecommendationApi';
 import { loadJobSeekerProfile, type SavedJobSeekerProfile } from '@/app/profileStorage';
-import type { CurrentUser, Job, Page } from '@/app/types';
+import type { CurrentUser, Page } from '@/app/types';
 
 interface AiJobRecommendationPageProps {
   currentUser: CurrentUser | null;
   navigate: (page: Page, jobId?: string) => void;
+  onSessionExpired: () => void;
 }
 
 type IconType = ComponentType<{ size?: number; className?: string }>;
@@ -57,18 +57,6 @@ const textOrDash = (value: unknown) => {
   return text || '-';
 };
 
-const normalizeRegionKeyword = (region?: string) => {
-  const text = region?.trim();
-  if (!text) return '';
-  const first = text.split(/\s+/)[0] || text;
-  return first.replace(/특별시|광역시|자치시|자치도|도|시|군|구/g, '');
-};
-
-const parseSalaryNumber = (salary?: string) => {
-  const numbers = salary?.match(/\d[\d,]*/g)?.map(value => Number(value.replace(/,/g, ''))) || [];
-  return numbers.length ? Math.max(...numbers) : 0;
-};
-
 const normalizeEmploymentType = (value?: string) => {
   switch (value) {
     case 'FULL_TIME':
@@ -86,25 +74,6 @@ const normalizeEmploymentType = (value?: string) => {
   }
 };
 
-const hasSavedProfile = (profile: Partial<SavedJobSeekerProfile> | null) =>
-  Boolean(
-    profile &&
-      (
-        profile.desiredJob?.trim() ||
-        profile.desiredRegion?.trim() ||
-        profile.employmentType ||
-        profile.minSalary ||
-        profile.remotePreferred ||
-        profile.flexiblePreferred ||
-        profile.wheelchairRequired ||
-        profile.accessibleRestroomRequired ||
-        profile.disabledParkingRequired ||
-        profile.assistiveDeviceRequired
-      ),
-  );
-
-const isFlexibleJob = (job: Job) => job.workType.includes('유연') || job.benefits.some(benefit => benefit.includes('유연'));
-
 const getJobRole = (recommendation: JobRecommendationDto) =>
   textOrDash(recommendation.job || recommendation.jobCategory || recommendation.duty);
 
@@ -118,7 +87,7 @@ const getProfileChips = (profile: Partial<SavedJobSeekerProfile> | null) => {
 
   return [
     profile.desiredJob ? `희망직무 ${profile.desiredJob}` : '',
-    profile.desiredRegion ? `희망지역 ${profile.desiredRegion}` : '',
+    profile.residenceRegion ? `현재 거주지 ${profile.residenceRegion}` : '',
     normalizeEmploymentType(profile.employmentType) ? `고용형태 ${normalizeEmploymentType(profile.employmentType)}` : '',
     profile.minSalary ? `희망연봉 ${profile.minSalary}만원 이상` : '',
     profile.remotePreferred ? '재택근무 선호' : '',
@@ -130,96 +99,14 @@ const getProfileChips = (profile: Partial<SavedJobSeekerProfile> | null) => {
   ].filter(Boolean);
 };
 
-const buildMismatchReason = (job: Job, profile: Partial<SavedJobSeekerProfile>) => {
-  const reasons: string[] = [];
-  const desiredEmployment = normalizeEmploymentType(profile.employmentType);
-  const minSalary = parseSalaryNumber(profile.minSalary);
-  const jobSalary = parseSalaryNumber(job.salary);
-
-  if (desiredEmployment && !job.workType.includes(desiredEmployment) && !job.category.includes(profile.employmentType || '')) {
-    reasons.push(`희망 고용형태(${desiredEmployment})와 공고 근무형태를 확인해 주세요.`);
-  }
-
-  if (minSalary && jobSalary && jobSalary < minSalary) {
-    reasons.push(`희망 최소 연봉 ${profile.minSalary}만원 이상 조건과 급여를 비교해 주세요.`);
-  }
-
-  if (profile.wheelchairRequired && !job.accessibility.wheelchair) reasons.push('휠체어 접근 가능 여부를 확인해 주세요.');
-  if (profile.accessibleRestroomRequired && !job.accessibility.restroom) reasons.push('장애인 화장실 제공 여부를 확인해 주세요.');
-  if (profile.disabledParkingRequired && !job.accessibility.parking) reasons.push('장애인 주차 가능 여부를 확인해 주세요.');
-  if (profile.remotePreferred && !job.isRemote) reasons.push('재택근무 가능 여부를 확인해 주세요.');
-  if (profile.flexiblePreferred && !isFlexibleJob(job)) reasons.push('유연근무 가능 여부를 확인해 주세요.');
-
-  return reasons.join(' ');
-};
-
-const buildLocalRecommendations = (profile: Partial<SavedJobSeekerProfile>): JobRecommendationDto[] => {
-  const desiredJob = profile.desiredJob?.trim().toLowerCase() || '';
-  const desiredRegion = normalizeRegionKeyword(profile.desiredRegion);
-
-  return mockJobs
-    .map(job => {
-      let totalScore = 55;
-      const matchedReasons: string[] = [];
-      const searchableRole = [job.title, job.category, ...job.requirements].join(' ').toLowerCase();
-
-      if (desiredJob && searchableRole.includes(desiredJob)) {
-        totalScore += 20;
-        matchedReasons.push('희망 직무와 공고 업무 키워드가 잘 맞습니다.');
-      } else if (desiredJob) {
-        totalScore += 5;
-      }
-
-      if (desiredRegion && job.location.includes(desiredRegion)) {
-        totalScore += 14;
-        matchedReasons.push('희망 근무지역과 공고 지역이 일치합니다.');
-      }
-
-      if (profile.remotePreferred && job.isRemote) {
-        totalScore += 8;
-        matchedReasons.push('재택근무 조건을 제공합니다.');
-      }
-
-      if (profile.flexiblePreferred && isFlexibleJob(job)) {
-        totalScore += 8;
-        matchedReasons.push('유연근무 조건을 제공합니다.');
-      }
-
-      if (profile.wheelchairRequired && job.accessibility.wheelchair) totalScore += 5;
-      if (profile.accessibleRestroomRequired && job.accessibility.restroom) totalScore += 4;
-      if (profile.disabledParkingRequired && job.accessibility.parking) totalScore += 4;
-      if (profile.assistiveDeviceRequired && (job.accessibility.hearingLoop || job.accessibility.guideDog)) totalScore += 4;
-
-      const fallbackReason = job.aiReasons[0] || '프로필의 희망조건과 근무환경을 기준으로 공고를 비교했습니다.';
-
-      return {
-        jobId: job.id,
-        title: job.title,
-        companyName: job.company,
-        job: job.category,
-        location: job.location,
-        employmentType: job.workType,
-        salary: job.salary,
-        totalScore: Math.min(99, totalScore),
-        recommendReason: [...matchedReasons, fallbackReason].slice(0, 3).join(' '),
-        mismatchReason: buildMismatchReason(job, profile),
-        wheelchairAccessible: job.accessibility.wheelchair,
-        disabledRestroom: job.accessibility.restroom,
-        disabledParking: job.accessibility.parking,
-        remoteWorkAvailable: job.isRemote,
-        flexibleWorkAvailable: isFlexibleJob(job),
-        assistiveTechnologySupport: job.accessibility.hearingLoop || job.accessibility.guideDog,
-      };
-    })
-    .sort((a, b) => b.totalScore - a.totalScore);
-};
-
-export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommendationPageProps) {
+export function AiJobRecommendationPage({ currentUser, navigate, onSessionExpired }: AiJobRecommendationPageProps) {
   const memberId = useMemo(() => resolveMemberId(currentUser), [currentUser]);
   const profileUserId = useMemo(() => getProfileUserId(currentUser), [currentUser]);
   const [refreshKey, setRefreshKey] = useState(0);
   const savedProfile = useMemo(() => loadJobSeekerProfile(profileUserId), [profileUserId, refreshKey]);
-  const profileReady = currentUser?.role === 'personal' && hasSavedProfile(savedProfile);
+  // The backend profile is the source of truth. A user can have a complete
+  // profile in the database even when this browser has no localStorage copy.
+  const profileReady = currentUser?.role === 'personal' && memberId !== null;
   const profileChips = useMemo(() => getProfileChips(savedProfile), [savedProfile]);
   const [recommendations, setRecommendations] = useState<JobRecommendationDto[]>([]);
   const [loading, setLoading] = useState(Boolean(profileReady));
@@ -246,38 +133,31 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
     }
 
     let mounted = true;
-    let localTimer: ReturnType<typeof window.setTimeout> | null = null;
     setLoading(true);
     setError('');
 
-    const localRecommendations = buildLocalRecommendations(savedProfile || {});
-
     if (!memberId) {
-      localTimer = window.setTimeout(() => {
-        if (!mounted) return;
-        setRecommendations(localRecommendations);
-        setLastCalculatedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        setLoading(false);
-      }, 250);
-
-      return () => {
-        mounted = false;
-        if (localTimer) window.clearTimeout(localTimer);
-      };
+      setRecommendations([]);
+      setError('로그인 후 AI 추천을 이용해 주세요.');
+      setLoading(false);
+      return;
     }
 
     getJobRecommendations(memberId)
       .then(items => {
         if (!mounted) return;
-        setRecommendations(items.length > 0 ? items : localRecommendations);
+        setRecommendations(items);
         setLastCalculatedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
       })
       .catch(errorValue => {
         if (!mounted) return;
+        if (errorValue instanceof JobRecommendationApiError && errorValue.status === 401) {
+          onSessionExpired();
+          return;
+        }
         const message = errorValue instanceof Error ? errorValue.message : '추천 정보를 불러오지 못했습니다.';
-        setRecommendations(localRecommendations);
-        setLastCalculatedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        if (localRecommendations.length === 0) setError(message);
+        setRecommendations([]);
+        setError(message);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -285,15 +165,15 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
 
     return () => {
       mounted = false;
-      if (localTimer) window.clearTimeout(localTimer);
     };
-  }, [calculationKey, memberId, profileReady, savedProfile]);
+  }, [calculationKey, memberId, onSessionExpired, profileReady, savedProfile]);
 
   const topRecommendation = recommendations[0];
   const averageScore = recommendations.length
     ? Math.round(recommendations.reduce((sum, item) => sum + scoreToPercent(item.totalScore), 0) / recommendations.length)
     : 0;
   const recalculateRecommendations = () => {
+    setError('');
     setRefreshKey(prev => prev + 1);
     setCalculationKey(prev => prev + 1);
   };
@@ -339,6 +219,12 @@ export function AiJobRecommendationPage({ currentUser, navigate }: AiJobRecommen
               {lastCalculatedAt && (
                 <p className="mt-3 text-xs font-bold text-[#667085]">
                   최근 계산: {lastCalculatedAt}
+                </p>
+              )}
+              {error && (
+                <p className="mt-3 inline-flex items-center gap-2 text-sm font-extrabold text-[#D92D20]" role="alert">
+                  <CircleAlert size={16} />
+                  {error}
                 </p>
               )}
             </div>
@@ -445,6 +331,15 @@ function RecommendationCard({
     if (recommendation[item.key]) return true;
     return item.aliases?.some(alias => Boolean(recommendation[alias]));
   });
+  const scoreDetails = [
+    { label: '직무', score: Math.min(25, Math.max(0, recommendation.jobScore ?? 0)), maximum: 25 },
+    { label: '지역', score: Math.min(20, Math.max(0, recommendation.regionScore ?? 0)), maximum: 20 },
+    { label: '고용형태', score: Math.min(10, Math.max(0, recommendation.employmentTypeScore ?? 0)), maximum: 10 },
+    { label: '경력', score: Math.min(10, Math.max(0, recommendation.careerScore ?? 0)), maximum: 10 },
+    { label: '급여', score: Math.min(15, Math.max(0, recommendation.salaryScore ?? 0)), maximum: 15 },
+    { label: '근무방식', score: Math.min(10, Math.max(0, recommendation.workStyleScore ?? 0)), maximum: 10 },
+    { label: '접근성', score: Math.min(10, Math.max(0, recommendation.accessibilityScore ?? 0)), maximum: 10 },
+  ];
 
   return (
     <article className="overflow-hidden rounded-xl border border-[#E3EAF3] bg-white shadow-sm transition hover:border-[#B9D6FF] hover:shadow-md">
@@ -474,6 +369,23 @@ function RecommendationCard({
             {recommendation.mismatchReason && (
               <InfoBlock title="확인할 조건" value={recommendation.mismatchReason} warning />
             )}
+          </div>
+
+          <div className="mt-4 rounded-lg border border-[#E3EAF3] p-4">
+            <p className="text-xs font-black text-[#667085]">항목별 적합도 점수</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {scoreDetails.map(item => (
+                <div key={item.label} className="rounded-lg bg-[#F8FAFC] px-3 py-2">
+                  <div className="flex items-center justify-between text-xs font-extrabold">
+                    <span className="text-[#596273]">{item.label}</span>
+                    <span className="text-[#0D6BEA]">{item.score ?? 0}/{item.maximum}</span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#DCEAF3]">
+                    <div className="h-full rounded-full bg-[#0D6BEA]" style={{ width: `${Math.min(100, ((item.score ?? 0) / item.maximum) * 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="mt-4 rounded-lg bg-[#F8FAFC] p-4">

@@ -21,21 +21,15 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useState } from 'react';
-import type { Page } from '@/app/types';
+import type { Job, Page } from '@/app/types';
 
 interface MainPageProps {
+  jobs: Job[];
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
   onBookmark: (id: string) => void;
   onSearch: (query: string) => void;
 }
-
-const recommendedJobs = [
-  { id: 'job-1', company: 'ABC테크', initial: 'A', color: '#53657F', title: 'Java 백엔드 개발자', location: '서울 강남구', match: 98, salary: '4,000만+', tags: ['정규직', '재택근무 가능'] },
-  { id: 'job-2', company: '대한소프트', initial: 'D', color: '#48A6D8', title: '웹 퍼블리셔', location: '서울 마포구', match: 88, salary: '3,200만+', tags: ['계약직', '유연근무'] },
-  { id: 'job-4', company: '리유', initial: 'R', color: '#4FC3A1', title: 'UI/UX 디자이너', location: '서울 영등포구', match: 95, salary: '3,500만+', tags: ['정규직', '시각장애 우대'] },
-  { id: 'job-10', company: '해피', initial: 'H', color: '#F5A84B', title: '고객 상담 매니저', location: '부산 해운대구', match: 92, salary: '3,000만+', tags: ['정규직', '청각장애 우대'] },
-];
 
 const quickActions = [
   { label: 'AI 맞춤 추천', helper: '내 프로필 기반 추천', icon: Target, action: 'ai', color: '#1F64E8' },
@@ -46,23 +40,12 @@ const quickActions = [
 ];
 
 const accessibilityJobs = [
-  { label: '휠체어 접근 가능', count: '38건', icon: Accessibility, query: '휠체어' },
-  { label: '재택근무 가능', count: '24건', icon: Home, query: '재택근무' },
-  { label: '유연근무 가능', count: '19건', icon: Clock3, query: '유연근무' },
-  { label: '장애인 주차시설', count: '31건', icon: ParkingSquare, query: '장애인 주차' },
-  { label: '보조공학기기 지원', count: '12건', icon: Monitor, query: '보조기기' },
+  { label: '휠체어 접근 가능', icon: Accessibility, query: '휠체어' },
+  { label: '재택근무 가능', icon: Home, query: '재택근무' },
+  { label: '유연근무 가능', icon: Clock3, query: '유연근무' },
+  { label: '장애인 주차시설', icon: ParkingSquare, query: '장애인 주차' },
+  { label: '보조공학기기 지원', icon: Monitor, query: '보조기기' },
 ];
-
-const latestJobs = [
-  { id: 'job-15', category: '서비스', company: '교보문고', title: '도서 정리 및 고객 안내 알바', location: '대구 중구', type: '파트타임', deadline: 'D-7', color: '#22C55E' },
-  { id: 'job-12', category: '서비스', company: 'XYZ 컴퍼니', title: '매장 진열 및 계산 보조 알바', location: '경기 성남시', type: '주말 알바', deadline: 'D-6', color: '#7C3AED' },
-  { id: 'job-3', category: 'IT/개발', company: 'LG CNS', title: '데이터 분석가', location: '서울 강서구', type: '정규직', deadline: 'D-7', color: '#A855F7' },
-  { id: 'job-1', category: 'IT/개발', company: 'ABC테크', title: 'Java 백엔드 개발자', location: '서울 강남구', type: '정규직', deadline: 'D-12', color: '#53657F' },
-  { id: 'job-7', category: '사무/관리', company: '코리아오피스', title: '문서 정리 및 사무보조', location: '서울 중구', type: '계약직', deadline: 'D-5', color: '#0EA5E9' },
-  { id: 'job-4', category: '디자인', company: '리유', title: 'UI/UX 디자이너', location: '서울 영등포구', type: '정규직', deadline: 'D-9', color: '#4FC3A1' },
-  { id: 'job-13', category: '제조', company: '쿠팡풀필먼트', title: '물류센터 포장 검수 알바', location: '인천 서구', type: '단기 알바', deadline: 'D-2', color: '#DC2626' },
-];
-const latestJobCategories = ['IT/개발', '사무/관리', '서비스', '디자인', '제조'];
 
 const notices = [
   { title: '일이음 서비스 리뉴얼 오픈 안내', date: '2025.05.20' },
@@ -114,8 +97,25 @@ function HeroIllustration() {
   );
 }
 
-export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPageProps) {
-  const [selectedLatestCategory, setSelectedLatestCategory] = useState('IT/개발');
+export function MainPage({ jobs, navigate, bookmarks, onBookmark, onSearch }: MainPageProps) {
+  const [selectedLatestCategory, setSelectedLatestCategory] = useState('전체');
+  const recommendedJobs = jobs.slice(0, 4).map(job => ({
+    id: `job-${job.id}`, company: job.company, initial: job.company.slice(0, 1), color: job.companyColor,
+    title: job.title, location: job.location, salary: job.salary,
+    tags: [job.workType, job.isRemote ? '재택근무 가능' : '', job.category].filter(Boolean),
+  }));
+  const latestJobs = jobs.slice(0, 7).map(job => ({
+    id: `job-${job.id}`, category: job.category, company: job.company, title: job.title,
+    location: job.location, type: job.workType, deadline: job.deadline, color: job.companyColor,
+  }));
+  const latestJobCategories = ['전체', ...Array.from(new Set(latestJobs.map(job => job.category)))];
+  const accessibilityCounts = [
+    jobs.filter(job => job.accessibility.wheelchair).length,
+    jobs.filter(job => job.isRemote).length,
+    jobs.filter(job => job.workType.includes('FLEXIBLE') || job.benefits.some(item => item.includes('유연'))).length,
+    jobs.filter(job => job.accessibility.parking).length,
+    jobs.filter(job => job.accessibility.hearingLoop).length,
+  ];
   const displayedLatestJobs = latestJobs.filter(job => selectedLatestCategory === '전체' || job.category === selectedLatestCategory);
 
   const runQuickAction = (action: (typeof quickActions)[number]['action']) => {
@@ -161,8 +161,8 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
           <section className="rounded-b-xl border border-t-0 border-[#DDE3EA] bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-end gap-3">
-                <h2 className="text-xl font-black text-black">AI가 추천하는 일자리</h2>
-                <p className="pb-0.5 text-xs font-semibold text-[#7A8495]">회원님의 프로필과 접근성 조건을 함께 반영했어요</p>
+                <h2 className="text-xl font-black text-black">기업이 등록한 최신 일자리</h2>
+                <p className="pb-0.5 text-xs font-semibold text-[#7A8495]">현재 모집 중인 실제 채용공고입니다</p>
               </div>
               <button type="button" onClick={() => navigate('ai-recommend')} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#EEF5FF] px-3 text-xs font-extrabold text-[#1F64E8] hover:bg-[#DCEBFF]">
                 더 많은 추천 보기 <ArrowRight size={14} />
@@ -178,7 +178,6 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                         {job.initial}
                       </span>
                       <span className="min-w-0">
-                        <span className="inline-flex rounded-full bg-[#E7F8EF] px-2 py-0.5 text-[10px] font-black text-[#14843C]">적합 {job.match}%</span>
                         <span className="mt-1 block truncate text-[11px] font-extrabold text-[#596273]">{job.company}</span>
                         <span className="mt-1 block truncate text-[15px] font-black text-black">{job.title}</span>
                         <span className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-[#7A8495]">
@@ -201,11 +200,9 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                       <span key={tag} className="rounded-full bg-[#F1F4F8] px-2.5 py-1 text-[10px] font-bold text-[#344054]">{tag}</span>
                     ))}
                   </div>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#E7ECF2]">
-                    <div className="h-full rounded-full bg-[#1F64E8]" style={{ width: `${job.match}%` }} />
-                  </div>
                 </article>
               ))}
+              {recommendedJobs.length === 0 && <p className="col-span-full py-10 text-center text-sm font-semibold text-[#667085]">등록된 채용공고가 없습니다.</p>}
             </div>
           </section>
 
@@ -247,7 +244,7 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                 </button>
               </div>
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
-                {accessibilityJobs.map(item => {
+                {accessibilityJobs.map((item, index) => {
                   const Icon = item.icon;
                   return (
                     <button key={item.label} type="button" onClick={() => onSearch(item.query)} className="min-h-[118px] rounded-xl border border-[#E0F2EA] bg-[#F8FFFC] px-3 py-4 text-center transition hover:border-[#8DDCC2] hover:bg-[#F0FCF8]">
@@ -255,7 +252,7 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                         <Icon size={23} />
                       </span>
                       <span className="mt-3 block text-[12px] font-black leading-4 text-black">{item.label}</span>
-                      <span className="mt-2 block text-[11px] font-black text-[#14843C]">{item.count}</span>
+                      <span className="mt-2 block text-[11px] font-black text-[#14843C]">{accessibilityCounts[index]}건</span>
                     </button>
                   );
                 })}
@@ -303,6 +300,7 @@ export function MainPage({ navigate, bookmarks, onBookmark, onSearch }: MainPage
                     <span className="shrink-0 rounded-full bg-[#FFF1F1] px-2.5 py-1 text-xs font-black text-[#D92D20]">{job.deadline}</span>
                   </article>
                 ))}
+                {displayedLatestJobs.length === 0 && <p className="py-8 text-center text-sm font-semibold text-[#667085]">등록된 채용공고가 없습니다.</p>}
               </div>
             </section>
 

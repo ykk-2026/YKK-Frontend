@@ -18,11 +18,11 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react';
-import { mockJobs } from '@/app/data/mockData';
 import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
 import { getProfile, saveProfile, type ApiJobSeekerProfile } from '@/app/api/profileApi';
 
 interface ProfilePageProps {
+  jobs: Job[];
   currentUser: CurrentUser | null;
   navigate: (page: Page, jobId?: string) => void;
   bookmarks: Set<string>;
@@ -39,31 +39,6 @@ type ProfileAvatar = {
   type: 'initial' | 'preset' | 'upload';
   value: string;
 };
-
-const regionOptions = [
-  '서울특별시 송파구',
-  '서울특별시 강남구',
-  '서울특별시 강서구',
-  '서울특별시 마포구',
-  '경기도 성남시',
-  '경기도 수원시',
-  '경기도 고양시',
-  '인천광역시',
-  '부산광역시',
-  '대구광역시',
-  '대전광역시',
-  '광주광역시',
-  '울산광역시',
-  '세종특별자치시',
-  '강원특별자치도',
-  '충청북도',
-  '충청남도',
-  '전북특별자치도',
-  '전라남도',
-  '경상북도',
-  '경상남도',
-  '제주특별자치도',
-];
 
 const menuItems = [
   { label: '내 프로필', icon: UserRound },
@@ -211,6 +186,7 @@ const loadProfilePhoto = (userId: string) => {
 };
 
 export function ProfilePage({
+  jobs,
   currentUser,
   navigate,
   bookmarks,
@@ -230,9 +206,7 @@ export function ProfilePage({
   const [savedMessage, setSavedMessage] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isResidenceRegionOpen, setIsResidenceRegionOpen] = useState(false);
   const [isDesiredJobOpen, setIsDesiredJobOpen] = useState(false);
-  const [isDesiredRegionOpen, setIsDesiredRegionOpen] = useState(false);
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [editingApplicationJobId, setEditingApplicationJobId] = useState<string | null>(null);
   const [applicationEditError, setApplicationEditError] = useState('');
@@ -256,13 +230,13 @@ export function ProfilePage({
   });
   const [profileForm, setProfileForm] = useState({
     name: initialName,
-    birthDate: currentUser?.birthDate || '1998-05-23',
-    gender: currentUser?.gender || 'MALE',
+    birthDate: currentUser?.birthDate || '',
+    gender: currentUser?.gender || 'OTHER',
     email: currentUser?.email || '',
-    phone: currentUser?.phone || '010-1234-5678',
-    residenceRegion: currentUser?.currentRegion || '서울특별시 송파구',
+    phone: currentUser?.phone || '',
+    residenceRegion: currentUser?.currentRegion || '',
     desiredJob: currentUser?.preferredRole || '',
-    desiredRegion: '서울특별시 송파구',
+    desiredRegion: '',
     employmentType: 'ANY',
     careerType: 'ANY',
     careerYears: '0',
@@ -308,11 +282,11 @@ export function ProfilePage({
 
   const avatarInitial = (profileForm.name.trim() || initialName).slice(0, 1);
   const selectedDefaultProfile = defaultProfileOptions.find(option => option.id === profileAvatar.value) || defaultProfileOptions[0];
-  const savedJobs = mockJobs
+  const savedJobs = jobs
     .map(job => ({ ...job, savedKey: bookmarks.has(`job-${job.id}`) ? `job-${job.id}` : '' }))
     .filter(job => job.savedKey);
-  const appliedJobs = mockJobs.filter(job => appliedJobIds.has(job.id));
-  const editingApplicationJob = editingApplicationJobId ? mockJobs.find(job => job.id === editingApplicationJobId) : null;
+  const appliedJobs = jobs.filter(job => appliedJobIds.has(job.id));
+  const editingApplicationJob = editingApplicationJobId ? jobs.find(job => job.id === editingApplicationJobId) : null;
 
   const updateForm = (field: keyof typeof profileForm, value: string | boolean) => {
     setProfileForm(prev => ({ ...prev, [field]: value }));
@@ -832,31 +806,17 @@ export function ProfilePage({
                       <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A8495]" />
                     </div>
                   </label>
-                  <label className="relative block">
-                    <span className="mb-2 block text-sm font-bold">현재 거주지역</span>
-                    <button type="button" onClick={() => setIsResidenceRegionOpen(prev => !prev)} className="flex w-full items-center justify-between rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-left text-sm">
-                      {profileForm.residenceRegion}
-                      <span className="text-[#7A8495]">⌄</span>
-                    </button>
-                    {isResidenceRegionOpen && (
-                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-[#DCEAF3] bg-white shadow-lg">
-                        {regionOptions.map(region => (
-                          <button
-                            type="button"
-                            key={region}
-                            onClick={() => {
-                              updateForm('residenceRegion', region);
-                              setIsResidenceRegionOpen(false);
-                            }}
-                            className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-[#F4F8FC] ${
-                              profileForm.residenceRegion === region ? 'bg-[#E4EFFF] font-bold text-[#0D6BEA]' : 'text-[#111827]'
-                            }`}
-                          >
-                            {region}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <label className="block sm:col-span-2">
+                    <span className="mb-2 block text-sm font-bold">현재 거주지 상세주소</span>
+                    <input
+                      className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm"
+                      value={profileForm.residenceRegion}
+                      onChange={event => updateForm('residenceRegion', event.target.value)}
+                      placeholder="예: 서울특별시 은평구 통일로 684"
+                    />
+                    <span className="mt-1.5 block text-xs font-semibold text-[#7A8495]">
+                      AI 지역 적합도는 이 주소에서 공고의 실제 근무지까지 이동거리와 예상시간으로 계산합니다.
+                    </span>
                   </label>
                 </div>
               </section>
@@ -912,32 +872,6 @@ export function ProfilePage({
                         onChange={event => updateForm('desiredJob', event.target.value)}
                         placeholder="목록에 없으면 직접 입력"
                       />
-                    )}
-                  </label>
-                  <label className="relative block">
-                    <span className="mb-2 block text-sm font-bold">희망 근무지역</span>
-                    <button type="button" onClick={() => setIsDesiredRegionOpen(prev => !prev)} className="flex w-full items-center justify-between rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-left text-sm">
-                      {profileForm.desiredRegion}
-                      <span className="text-[#7A8495]">⌄</span>
-                    </button>
-                    {isDesiredRegionOpen && (
-                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-[#DCEAF3] bg-white shadow-lg">
-                        {regionOptions.map(region => (
-                          <button
-                            type="button"
-                            key={region}
-                            onClick={() => {
-                              updateForm('desiredRegion', region);
-                              setIsDesiredRegionOpen(false);
-                            }}
-                            className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-[#F4F8FC] ${
-                              profileForm.desiredRegion === region ? 'bg-[#E4EFFF] font-bold text-[#0D6BEA]' : 'text-[#111827]'
-                            }`}
-                          >
-                            {region}
-                          </button>
-                        ))}
-                      </div>
                     )}
                   </label>
                   <label className="block">
@@ -1214,8 +1148,7 @@ export function ProfilePage({
               <p><b>성별</b> {genderLabels[profileForm.gender] || profileForm.gender}</p>
               <p><b>전화번호</b> {profileForm.phone}</p>
               <p><b>이메일</b> {profileForm.email || '미입력'}</p>
-              <p><b>현재 거주지역</b> {profileForm.residenceRegion}</p>
-              <p><b>희망 근무지역</b> {profileForm.desiredRegion}</p>
+              <p><b>현재 거주지 상세주소</b> {profileForm.residenceRegion}</p>
               <p><b>경력</b> {careerTypeOptions.find(option => option.value === profileForm.careerType)?.label} / {profileForm.careerYears || 0}년</p>
               <p><b>희망 최소 연봉</b> {profileForm.minSalary ? `${formatSalaryLabel(profileForm.minSalary)} 이상` : '미입력'}</p>
               <p><b>근무 방식</b> {selectedWorkTypes.length > 0 ? selectedWorkTypes.join(', ') : '미선택'}</p>

@@ -40,70 +40,28 @@ interface InfoPageProps {
   navigate: (page: Page) => void;
 }
 
-const companies = [
-  {
-    name: 'Samsung SDS',
-    field: '클라우드 · SI',
-    location: '서울 송파구',
-    scale: '대기업',
-    description: '클라우드와 엔터프라이즈 솔루션 직무를 중심으로 재택근무, 유연근무, 사무공간 접근성 지원을 함께 운영합니다.',
-    tags: ['재택근무', '유연근무', '장애인 주차'],
-    openings: 3,
-    hiring: ['Java 백엔드 개발자', '시스템 운영 엔지니어'],
-    accessibility: ['휠체어 이동 동선', '장애인 주차구역', '높낮이 조절 책상'],
-    support: ['화상 면접 가능', '근무시간 조정', '보조공학기기 상담'],
-    score: 96,
-    color: '#1B6EF3',
-  },
-  {
-    name: 'Kakao',
-    field: '플랫폼 서비스',
-    location: '경기 성남시',
-    scale: '대기업',
-    description: '플랫폼 개발과 서비스 운영 직무에서 하이브리드 근무, 문자 안내, 보조공학기기 구매 지원 제도를 제공합니다.',
-    tags: ['하이브리드', '보조기기', '문자 안내'],
-    openings: 2,
-    hiring: ['프론트엔드 개발자', '서비스 운영 매니저'],
-    accessibility: ['화상 면접', '문자 안내', '보조기기 구매 지원'],
-    support: ['청각장애 지원', '원격 협업 도구', '면접 방식 선택'],
-    score: 94,
-    color: '#F59E0B',
-  },
-  {
-    name: 'LG CNS',
-    field: 'AI · 데이터',
-    location: '서울 강서구',
-    scale: '대기업',
-    description: '데이터 분석과 AI 프로젝트 직무 채용을 진행하며 이동 편의시설, 건강검진, 근무시간 조정을 지원합니다.',
-    tags: ['정규직', '건강검진', '근무시간 조정'],
-    openings: 1,
-    hiring: ['데이터 분석가'],
-    accessibility: ['엘리베이터', '장애인 화장실', '근무시간 조정'],
-    support: ['건강검진 지원', '사무공간 접근성 확인', '멘토 배정'],
-    score: 91,
-    color: '#8B5CF6',
-  },
-  {
-    name: 'Naver',
-    field: '검색 · 커머스',
-    location: '경기 성남시',
-    scale: '대기업',
-    description: '서비스 기획, 운영, 디자인 직무에서 접근성 검토 절차와 원격 협업 환경, 회의 자막 지원을 제공합니다.',
-    tags: ['서비스기획', '원격협업', '회의 자막'],
-    openings: 4,
-    hiring: ['서비스 기획자', '콘텐츠 운영 담당자'],
-    accessibility: ['재택 병행', '셔틀버스', '회의 자막 지원'],
-    support: ['원격근무 병행', '접근성 리뷰 참여', '셔틀버스'],
-    score: 95,
-    color: '#10B981',
-  },
-];
+type CompanyInfo = {
+  name: string;
+  field: string;
+  location: string;
+  scale: string;
+  description: string;
+  tags: string[];
+  openings: number;
+  hiring: string[];
+  accessibility: string[];
+  support: string[];
+  score: number;
+  color: string;
+};
+
+const companies: CompanyInfo[] = [];
 
 const companyStats = [
-  { label: '검증 기업', value: '24곳', helper: '접근성 항목 확인 완료' },
-  { label: '진행 공고', value: '86건', helper: '장애친화 조건 포함' },
-  { label: '유연근무', value: '41건', helper: '재택·하이브리드 포함' },
-  { label: '지원 제도', value: '18건', helper: '보조기기·면접 편의' },
+  { label: '검증 기업', value: '0곳', helper: '등록된 정보 없음' },
+  { label: '진행 공고', value: '0건', helper: '등록된 정보 없음' },
+  { label: '유연근무', value: '0건', helper: '등록된 정보 없음' },
+  { label: '지원 제도', value: '0건', helper: '등록된 정보 없음' },
 ];
 
 const companyFilters = ['전체', 'IT/개발', '서비스', '데이터', '디자인'];

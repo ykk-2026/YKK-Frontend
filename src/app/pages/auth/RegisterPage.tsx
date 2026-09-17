@@ -45,7 +45,7 @@ const initialCorporateForm: CorporateRegisterFormData = {
   verificationStatus: 'PENDING',
 };
 
-const reservedIds = ['admin', 'demo', 'test', 'user', 'jobbridge', 'minjun_kim', 'company', 'company01'];
+const reservedIds = ['admin', 'test', 'user', 'jobbridge', 'minjun_kim', 'company', 'company01'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
 const phonePattern = /^010-\d{4}-\d{4}$/;
@@ -369,7 +369,7 @@ export function RegisterPage({ navigate, onRegister, onBack }: RegisterPageProps
                       value={corporateForm.companyName}
                       onChange={event => updateCorporateField('companyName', event.target.value)}
                       className="w-full rounded-lg border border-border px-3 py-3"
-                      placeholder="예: Samsung SDS"
+                      placeholder="예: 이음테크"
                     />
                     {errors.companyName && <p className="mt-2 text-sm text-red-500">{errors.companyName}</p>}
                   </label>

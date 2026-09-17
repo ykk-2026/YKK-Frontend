@@ -5,7 +5,6 @@ import type { CorporateRegisterFormData, Page, RegisterFormData, UserRole } from
 
 interface LoginPageProps {
   navigate: (page: Page) => void;
-  onLogin: (role: UserRole, formData?: RegisterFormData | CorporateRegisterFormData, keepLoggedIn?: boolean) => void;
   onPersonalLogin: (loginId: string, password: string, keepLoggedIn?: boolean) => Promise<void>;
   onCorporateLogin: (loginId: string, password: string, keepLoggedIn?: boolean) => Promise<void>;
   onLoginSuccess?: (role: UserRole) => void;
@@ -29,7 +28,7 @@ const formatPhoneNumber = (value: string) => {
 
 const isPhoneLike = (value: string) => /^\d|^-?\d/.test(value.replace(/\s/g, ''));
 
-export function LoginPage({ navigate, onLogin, onPersonalLogin, onCorporateLogin, onLoginSuccess, registeredUser, registeredCorporateUser, onBack, onResetPassword }: LoginPageProps) {
+export function LoginPage({ navigate, onPersonalLogin, onCorporateLogin, onLoginSuccess, registeredUser, registeredCorporateUser, onBack, onResetPassword }: LoginPageProps) {
   const [loginMode, setLoginMode] = useState<LoginMode>('personal');
   const [showPw, setShowPw] = useState(false);
   const [loginId, setLoginId] = useState('');
@@ -123,12 +122,6 @@ export function LoginPage({ navigate, onLogin, onPersonalLogin, onCorporateLogin
       return;
     }
 
-    if (findName.trim() === '데모' && (normalizedContact === 'demo@example.com' || normalizedContact === '010-1234-5678')) {
-      setFindResult('가입된 아이디는 demo 입니다.');
-      setLoginId('demo');
-      return;
-    }
-
     setFindResult('일치하는 회원 정보를 찾을 수 없습니다.');
   };
 
@@ -141,12 +134,6 @@ export function LoginPage({ navigate, onLogin, onPersonalLogin, onCorporateLogin
     if (registeredUser && findLoginId.trim() === registeredUser.loginId.trim() && findContact.trim() === registeredUser.email.trim()) {
       setFindResult('회원 정보가 확인되었습니다. 새 비밀번호를 입력해 주세요.');
       setIsPasswordVerified(true);
-      return;
-    }
-
-    if (findLoginId.trim() === 'demo' && findContact.trim() === 'demo@example.com') {
-      setFindResult('데모 계정은 비밀번호 변경 대상이 아닙니다. 비밀번호 password로 로그인해 주세요.');
-      setIsPasswordVerified(false);
       return;
     }
 

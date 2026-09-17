@@ -20,10 +20,10 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { mockJobs } from '@/app/data/mockData';
-import type { ApplicationFormData, CurrentUser, Page } from '@/app/types';
+import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
 
 interface JobDetailPageProps {
+  jobs: Job[];
   jobId: string | null;
   currentUser: CurrentUser | null;
   navigate: (page: Page, jobId?: string) => void;
@@ -44,9 +44,9 @@ const accessibilityLabels = [
 ];
 
 const getNormalizedJobId = (jobId: string | null) => jobId?.replace(/^job-/, '') || '';
-const isPartTimeJob = (job: (typeof mockJobs)[number]) => job.category === 'PartTime' || job.requirements.includes('알바');
+const isPartTimeJob = (job: Job) => job.workType === 'PART_TIME' || job.category === 'PartTime' || job.requirements.includes('알바');
 
-const getJobMeta = (job: (typeof mockJobs)[number]) => {
+const getJobMeta = (job: Job) => {
   const partTime = isPartTimeJob(job);
   const remote = job.isRemote || job.workType.includes('재택');
 
@@ -61,6 +61,7 @@ const getJobMeta = (job: (typeof mockJobs)[number]) => {
 };
 
 export function JobDetailPage({
+  jobs,
   jobId,
   currentUser,
   navigate,
@@ -71,7 +72,7 @@ export function JobDetailPage({
   onRequireLoginForApply,
 }: JobDetailPageProps) {
   const normalizedJobId = getNormalizedJobId(jobId);
-  const job = mockJobs.find(item => item.id === normalizedJobId) || mockJobs[0];
+  const job = (jobs.find(item => item.id === normalizedJobId) || jobs[0]) as Job;
   const meta = useMemo(() => getJobMeta(job), [job]);
   const initialPhoneParts = (currentUser?.phone || '').split('-');
   const [isApplyOpen, setIsApplyOpen] = useState(false);

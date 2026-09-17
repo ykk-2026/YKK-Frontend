@@ -1,79 +1,193 @@
-import { BriefcaseBusiness, Building2, CalendarDays, Mail, MapPin, Phone, Search, ShieldCheck, UsersRound } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { mockJobs } from '@/app/data/mockData';
-import type { ApplicationFormData, CurrentUser, JobApplicationStatus, Page } from '@/app/types';
+import { Building2, CalendarDays, Mail, MapPin, Phone, Trash2, UsersRound } from 'lucide-react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  closeJobPosting,
+  createJobPosting,
+  deleteJobPosting,
+  getMyJobPostings,
+  updateJobPosting,
+  type JobPosting,
+  type JobPostingForm,
+} from '@/app/api/jobPostingApi';
+import { getCompanyJobApplications, type JobApplicationRecord } from '@/app/api/jobApplicationApi';
+import type { CurrentUser, Page } from '@/app/types';
 
 interface CorporatePageProps {
   currentUser: CurrentUser | null;
   navigate: (page: Page, jobId?: string) => void;
-  appliedJobIds: Set<string>;
-  applicationForms: Record<string, ApplicationFormData>;
+  onJobsChanged: () => void;
 }
 
-const applicationStatusLabels: Record<JobApplicationStatus, string> = {
-  APPLIED: '지원 완료',
-  REVIEWING: '서류 검토',
-  DOCUMENT_PASSED: '서류 합격',
-  INTERVIEW: '면접',
-  FINAL_REVIEW: '최종 검토',
-  ACCEPTED: '합격',
-  REJECTED: '불합격',
-  CANCELED: '지원 취소',
+const emptyForm: JobPostingForm = {
+  companyName: '',
+  title: '',
+  jobCategory: '',
+  employmentType: 'FULL_TIME',
+  location: '',
+  salaryMin: null,
+  salaryMax: null,
+  experienceLevel: 'ANY',
+  educationLevel: '',
+  description: '',
+  requirements: '',
+  preferredQualifications: '',
+  accessibilityInfo: '',
+  wheelchairAccessible: false,
+  accessibleRestroom: false,
+  disabledParking: false,
+  remoteAvailable: false,
+  flexibleWorkAvailable: false,
+  assistiveDeviceSupport: false,
+  deadline: '',
 };
 
-const verificationLabels = {
-  PENDING: '인증 대기',
-  APPROVED: '인증 완료',
-  REJECTED: '인증 반려',
-};
+const statusLabel = (status: JobPosting['status']) => ({
+  OPEN: '모집 중',
+  CLOSED: '마감',
+  DELETED: '삭제',
+}[status]);
 
-const formatDate = (value?: string) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
-};
+export function CorporatePage({ currentUser, navigate, onJobsChanged }: CorporatePageProps) {
+  const [form, setForm] = useState<JobPostingForm>({ ...emptyForm });
+  const [myJobs, setMyJobs] = useState<JobPosting[]>([]);
+  const [applications, setApplications] = useState<JobApplicationRecord[]>([]);
+  const [editingJobId, setEditingJobId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-export function CorporatePage({ currentUser, navigate, appliedJobIds, applicationForms }: CorporatePageProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const companyProfile = currentUser?.companyProfile;
-  const companyName = companyProfile?.companyName || '';
+  const loadMyJobs = async () => {
+    try {
+      setMyJobs(await getMyJobPostings());
+    } catch (value) {
+      setError(value instanceof Error ? value.message : '내 공고를 불러오지 못했습니다.');
+    }
+  };
 
-  const companyJobs = useMemo(
-    () => mockJobs.filter(job => !companyName || job.company === companyName),
-    [companyName],
-  );
+  const loadApplications = async () => {
+    try {
+      setApplications(await getCompanyJobApplications());
+    } catch (value) {
+      setApplications([]);
+      setError(value instanceof Error ? value.message : '지원자 목록을 불러오지 못했습니다.');
+    }
+  };
 
-  const applicantRows = useMemo(() => {
-    return companyJobs
-      .filter(job => appliedJobIds.has(job.id))
-      .map(job => ({
-        job,
-        application: applicationForms[job.id],
-      }))
-      .filter((row): row is { job: typeof row.job; application: ApplicationFormData } => Boolean(row.application));
-  }, [appliedJobIds, applicationForms, companyJobs]);
+  useEffect(() => {
+    if (currentUser?.role === 'corporate') {
+      setForm(previous => ({
+        ...previous,
+        companyName: previous.companyName || currentUser.companyProfile?.companyName || '',
+      }));
+      loadMyJobs();
+      loadApplications();
+    }
+  }, [currentUser?.id, currentUser?.role]);
 
-  const filteredRows = applicantRows.filter(({ job, application }) => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
+  const updateText = (name: keyof JobPostingForm, value: string) => {
+    setForm(previous => ({ ...previous, [name]: value }));
+  };
 
-    return [job.title, application.name, application.phone, application.email, application.employmentType, application.applicationStatus || 'APPLIED']
-      .some(value => value.toLowerCase().includes(query));
-  });
+  const updateNumber = (name: 'salaryMin' | 'salaryMax', value: string) => {
+    setForm(previous => ({ ...previous, [name]: value ? Number(value) : null }));
+  };
+
+  const updateCheck = (name: keyof JobPostingForm, checked: boolean) => {
+    setForm(previous => ({ ...previous, [name]: checked }));
+  };
+
+  const submitJob = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setError('');
+    try {
+      if (editingJobId == null) {
+        await createJobPosting(form);
+      } else {
+        await updateJobPosting(editingJobId, form);
+      }
+      setForm({ ...emptyForm, companyName: form.companyName });
+      setMessage(editingJobId == null
+        ? '채용공고가 등록되었습니다. 구직자 공고 목록에도 바로 표시됩니다.'
+        : '채용공고가 수정되었습니다.');
+      setEditingJobId(null);
+      await loadMyJobs();
+      onJobsChanged();
+    } catch (value) {
+      setError(value instanceof Error ? value.message : '채용공고 등록에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEdit = (job: JobPosting) => {
+    setEditingJobId(job.id);
+    setForm({
+      companyName: job.companyName,
+      title: job.title,
+      jobCategory: job.jobCategory,
+      employmentType: job.employmentType,
+      location: job.location,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      experienceLevel: job.experienceLevel || 'ANY',
+      educationLevel: job.educationLevel || '',
+      description: job.description || '',
+      requirements: job.requirements || '',
+      preferredQualifications: job.preferredQualifications || '',
+      accessibilityInfo: job.accessibilityInfo || '',
+      wheelchairAccessible: Boolean(job.wheelchairAccessible),
+      accessibleRestroom: Boolean(job.accessibleRestroom),
+      disabledParking: Boolean(job.disabledParking),
+      remoteAvailable: Boolean(job.remoteAvailable),
+      flexibleWorkAvailable: Boolean(job.flexibleWorkAvailable),
+      assistiveDeviceSupport: Boolean(job.assistiveDeviceSupport),
+      deadline: job.deadline || '',
+    });
+    setMessage('');
+    setError('');
+    window.scrollTo({ top: 280, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingJobId(null);
+    setForm({ ...emptyForm, companyName: currentUser.companyProfile?.companyName || '' });
+    setMessage('');
+    setError('');
+  };
+
+  const closeJob = async (jobId: number) => {
+    if (!window.confirm('이 공고를 마감하시겠습니까?')) return;
+    try {
+      await closeJobPosting(jobId);
+      await loadMyJobs();
+      onJobsChanged();
+    } catch (value) {
+      setError(value instanceof Error ? value.message : '공고 마감에 실패했습니다.');
+    }
+  };
+
+  const removeJob = async (jobId: number) => {
+    if (!window.confirm('이 공고를 삭제하시겠습니까?')) return;
+    try {
+      await deleteJobPosting(jobId);
+      await loadMyJobs();
+      onJobsChanged();
+    } catch (value) {
+      setError(value instanceof Error ? value.message : '공고 삭제에 실패했습니다.');
+    }
+  };
 
   if (!currentUser || currentUser.role !== 'corporate') {
     return (
       <div className="min-h-screen bg-[#F3F7FF] px-5 py-12">
-        <section className="mx-auto max-w-2xl rounded-lg border border-[#DDE3EA] bg-white p-6 text-center shadow-sm">
-          <h1 className="text-xl font-extrabold text-black">기업 로그인이 필요합니다</h1>
-          <p className="mt-2 text-sm font-semibold text-[#667085]">지원자 목록은 기업회원만 확인할 수 있습니다.</p>
-          <button
-            type="button"
-            onClick={() => navigate('login')}
-            className="mt-5 rounded-lg bg-[#0D6BEA] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#0959C7]"
-          >
-            로그인하기
+        <section className="mx-auto max-w-2xl rounded-xl border border-[#DDE3EA] bg-white p-8 text-center shadow-sm">
+          <Building2 className="mx-auto text-[#0D6BEA]" size={38} />
+          <h1 className="mt-4 text-xl font-extrabold">기업 로그인이 필요합니다</h1>
+          <p className="mt-2 text-sm font-semibold text-[#667085]">기업회원만 채용공고를 등록할 수 있습니다.</p>
+          <button type="button" onClick={() => navigate('login')} className="mt-5 rounded-lg bg-[#0D6BEA] px-5 py-3 text-sm font-extrabold text-white">
+            기업 로그인
           </button>
         </section>
       </div>
@@ -82,171 +196,125 @@ export function CorporatePage({ currentUser, navigate, appliedJobIds, applicatio
 
   return (
     <div className="min-h-screen bg-[#F3F7FF] text-[#111827]">
-      <main className="mx-auto max-w-[1256px] px-5 py-6 sm:px-8">
-        <section className="rounded-lg border border-[#DDE3EA] bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="flex items-center gap-2 text-sm font-bold text-[#0D6BEA]">
-                <Building2 size={17} />
-                {companyName || '기업회원'}
-              </p>
-              <h1 className="mt-2 text-2xl font-extrabold text-black">지원자 관리</h1>
-              <p className="mt-2 text-sm font-semibold text-[#667085]">
-                채용 공고와 지원자를 한곳에서 편리하게 관리하세요.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-lg bg-[#F4F8FC] px-4 py-3">
-                <p className="text-xs font-bold text-[#667085]">등록 공고</p>
-                <p className="mt-1 text-xl font-extrabold text-black">{companyJobs.length}</p>
-              </div>
-              <div className="rounded-lg bg-[#F4F8FC] px-4 py-3">
-                <p className="text-xs font-bold text-[#667085]">지원자</p>
-                <p className="mt-1 text-xl font-extrabold text-black">{applicantRows.length}</p>
-              </div>
-              <div className="rounded-lg bg-[#F4F8FC] px-4 py-3">
-                <p className="text-xs font-bold text-[#667085]">회원상태</p>
-                <p className="mt-1 text-xl font-extrabold text-black">{currentUser.status || 'ACTIVE'}</p>
-              </div>
-              <div className="rounded-lg bg-[#F4F8FC] px-4 py-3">
-                <p className="text-xs font-bold text-[#667085]">기업인증</p>
-                <p className="mt-1 text-xl font-extrabold text-black">
-                  {verificationLabels[companyProfile?.verificationStatus || 'PENDING']}
-                </p>
-              </div>
-            </div>
-          </div>
+      <main className="mx-auto max-w-[1180px] px-5 py-8">
+        <section className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
+          <p className="flex items-center gap-2 text-sm font-extrabold text-[#0D6BEA]"><Building2 size={18} />{currentUser.companyProfile?.companyName}</p>
+          <h1 className="mt-2 text-3xl font-black">기업 채용공고 관리</h1>
+          <p className="mt-2 text-sm font-semibold text-[#667085]">공고를 등록하면 구직자 채용공고와 AI 추천에 사용됩니다.</p>
         </section>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <aside className="space-y-5">
-            <section className="rounded-lg border border-[#DDE3EA] bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <ShieldCheck size={18} className="text-[#0D6BEA]" />
-                <h2 className="font-extrabold text-black">기업 프로필</h2>
-              </div>
-              <dl className="grid gap-3 text-sm">
-                <div>
-                  <dt className="font-bold text-[#667085]">사업자등록번호</dt>
-                  <dd className="mt-1 font-extrabold text-black">{companyProfile?.businessNumber || '-'}</dd>
-                </div>
-                <div>
-                  <dt className="font-bold text-[#667085]">대표자명</dt>
-                  <dd className="mt-1 font-extrabold text-black">{companyProfile?.representativeName || '-'}</dd>
-                </div>
-                <div>
-                  <dt className="font-bold text-[#667085]">업종</dt>
-                  <dd className="mt-1 font-extrabold text-black">{companyProfile?.industry || '-'}</dd>
-                </div>
-                <div>
-                  <dt className="font-bold text-[#667085]">주소</dt>
-                  <dd className="mt-1 font-extrabold text-black">
-                    {[companyProfile?.companyAddress, companyProfile?.companyDetailAddress].filter(Boolean).join(' ') || '-'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-bold text-[#667085]">회사 전화번호</dt>
-                  <dd className="mt-1 font-extrabold text-black">{companyProfile?.companyPhone || '-'}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="rounded-lg border border-[#DDE3EA] bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <BriefcaseBusiness size={18} className="text-[#0D6BEA]" />
-                <h2 className="font-extrabold text-black">내 공고</h2>
-              </div>
-              <div className="grid gap-3">
-                {companyJobs.map(job => {
-                  const applicantCount = appliedJobIds.has(job.id) && applicationForms[job.id] ? 1 : 0;
-
-                  return (
-                    <button
-                      key={job.id}
-                      type="button"
-                      onClick={() => navigate('job-detail', `job-${job.id}`)}
-                      className="rounded-lg border border-[#E1E6EE] p-4 text-left hover:border-[#0D6BEA]"
-                    >
-                      <p className="text-sm font-extrabold text-black">{job.title}</p>
-                      <p className="mt-2 flex items-center gap-1 text-xs font-bold text-[#667085]">
-                        <MapPin size={13} />
-                        {job.location} · {job.workType}
-                      </p>
-                      <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#EEF5FF] px-3 py-1 text-xs font-extrabold text-[#0D6BEA]">
-                        <UsersRound size={13} />
-                        지원자 {applicantCount}명
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          </aside>
-
-          <section className="rounded-lg border border-[#DDE3EA] bg-white shadow-sm">
-            <div className="border-b border-[#E7ECF2] p-5">
-              <div className="relative max-w-md">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#667085]" />
-                <input
-                  value={searchQuery}
-                  onChange={event => setSearchQuery(event.target.value)}
-                  placeholder="지원자, 공고명, 연락처, 상태 검색"
-                  className="h-11 w-full rounded-lg border border-[#D7DDE5] bg-white pl-9 pr-3 text-sm font-semibold outline-none focus:border-[#0D6BEA] focus:ring-4 focus:ring-[#0D6BEA]/15"
-                />
-              </div>
+        <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <form onSubmit={submitJob} className="rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-extrabold">{editingJobId == null ? '새 채용공고 등록' : '채용공고 수정'}</h2>
+              {editingJobId != null && (
+                <button type="button" onClick={cancelEdit} className="rounded-lg border border-[#D7E1EE] px-3 py-2 text-xs font-extrabold text-[#596273]">수정 취소</button>
+              )}
             </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field label="회사명 *"><input required value={form.companyName} onChange={event => updateText('companyName', event.target.value)} placeholder="공고에 표시할 회사명" /></Field>
+              <Field label="공고 제목 *"><input required value={form.title} onChange={event => updateText('title', event.target.value)} /></Field>
+              <Field label="직무 분야 *"><input required value={form.jobCategory} onChange={event => updateText('jobCategory', event.target.value)} placeholder="예: 백엔드 개발" /></Field>
+              <Field label="고용 형태 *">
+                <select value={form.employmentType} onChange={event => updateText('employmentType', event.target.value)}>
+                  <option value="FULL_TIME">정규직</option><option value="CONTRACT">계약직</option><option value="PART_TIME">파트타임</option><option value="INTERN">인턴</option>
+                </select>
+              </Field>
+              <Field label="실제 근무지 상세주소 *"><input required value={form.location} onChange={event => updateText('location', event.target.value)} placeholder="예: 서울특별시 송파구 올림픽로 300" /></Field>
+              <Field label="최소 연봉(만원)"><input type="number" min="0" value={form.salaryMin ?? ''} onChange={event => updateNumber('salaryMin', event.target.value)} /></Field>
+              <Field label="최대 연봉(만원)"><input type="number" min="0" value={form.salaryMax ?? ''} onChange={event => updateNumber('salaryMax', event.target.value)} /></Field>
+              <Field label="경력 조건">
+                <select value={form.experienceLevel} onChange={event => updateText('experienceLevel', event.target.value)}>
+                  <option value="ANY">경력 무관</option><option value="ENTRY">신입</option><option value="EXPERIENCED">경력</option>
+                </select>
+              </Field>
+              <Field label="마감일"><input type="date" value={form.deadline} onChange={event => updateText('deadline', event.target.value)} /></Field>
+            </div>
+            <div className="mt-4 grid gap-4">
+              <Field label="업무 내용"><textarea rows={4} value={form.description} onChange={event => updateText('description', event.target.value)} /></Field>
+              <Field label="필수 요건"><textarea rows={3} value={form.requirements} onChange={event => updateText('requirements', event.target.value)} placeholder="쉼표 또는 줄바꿈으로 구분" /></Field>
+              <Field label="우대 사항"><textarea rows={3} value={form.preferredQualifications} onChange={event => updateText('preferredQualifications', event.target.value)} /></Field>
+              <Field label="접근성 안내"><textarea rows={2} value={form.accessibilityInfo} onChange={event => updateText('accessibilityInfo', event.target.value)} /></Field>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Check label="휠체어 접근 가능" checked={form.wheelchairAccessible} onChange={value => updateCheck('wheelchairAccessible', value)} />
+              <Check label="장애인 화장실" checked={form.accessibleRestroom} onChange={value => updateCheck('accessibleRestroom', value)} />
+              <Check label="장애인 주차" checked={form.disabledParking} onChange={value => updateCheck('disabledParking', value)} />
+              <Check label="재택근무 가능" checked={form.remoteAvailable} onChange={value => updateCheck('remoteAvailable', value)} />
+              <Check label="유연근무 가능" checked={form.flexibleWorkAvailable} onChange={value => updateCheck('flexibleWorkAvailable', value)} />
+              <Check label="보조공학기기 지원" checked={form.assistiveDeviceSupport} onChange={value => updateCheck('assistiveDeviceSupport', value)} />
+            </div>
+            {message && <p className="mt-4 rounded-lg bg-[#E7F8EF] p-3 text-sm font-bold text-[#14843C]">{message}</p>}
+            {error && <p className="mt-4 rounded-lg bg-[#FFF1F1] p-3 text-sm font-bold text-[#D92D20]">{error}</p>}
+            <button disabled={loading} className="mt-5 w-full rounded-lg bg-[#0D6BEA] py-3 text-sm font-extrabold text-white disabled:bg-[#9CC4F8]">
+              {loading ? '저장 중...' : editingJobId == null ? '채용공고 등록' : '수정 내용 저장'}
+            </button>
+          </form>
 
-            {filteredRows.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px] text-sm">
-                  <thead className="bg-[#F8FAFC] text-[#667085]">
-                    <tr>
-                      <th className="px-5 py-3 text-left font-bold">지원자</th>
-                      <th className="px-5 py-3 text-left font-bold">공고</th>
-                      <th className="px-5 py-3 text-left font-bold">연락처</th>
-                      <th className="px-5 py-3 text-left font-bold">지원일</th>
-                      <th className="px-5 py-3 text-left font-bold">전형 상태</th>
+          <aside className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">내가 등록한 공고</h2><span className="text-sm font-bold text-[#0D6BEA]">{myJobs.length}건</span></div>
+            <div className="mt-4 grid gap-3">
+              {myJobs.length === 0 && <p className="rounded-lg bg-[#F8FAFC] p-5 text-center text-sm font-semibold text-[#667085]">아직 등록한 공고가 없습니다.</p>}
+              {myJobs.map(job => (
+                <article key={job.id} className="rounded-lg border border-[#E1E6EE] p-4">
+                  <div className="flex items-start justify-between gap-2"><h3 className="font-extrabold">{job.title}</h3><span className="shrink-0 rounded-full bg-[#EEF5FF] px-2 py-1 text-xs font-bold text-[#0D6BEA]">{statusLabel(job.status)}</span></div>
+                  <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-[#667085]"><MapPin size={13} />{job.location}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#667085]"><CalendarDays size={13} />{job.deadline || '상시채용'}</p>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" onClick={() => navigate('job-detail', `job-${job.id}`)} className="flex-1 rounded-lg border border-[#C8D7EA] py-2 text-xs font-extrabold">보기</button>
+                    <button type="button" onClick={() => startEdit(job)} className="flex-1 rounded-lg bg-[#EEF5FF] py-2 text-xs font-extrabold text-[#0D6BEA]">수정</button>
+                    {job.status === 'OPEN' && <button type="button" onClick={() => closeJob(job.id)} className="flex-1 rounded-lg bg-[#FFF4E5] py-2 text-xs font-extrabold text-[#B54708]">마감</button>}
+                    <button type="button" onClick={() => removeJob(job.id)} className="rounded-lg bg-[#FFF1F1] px-3 text-[#D92D20]" aria-label="공고 삭제"><Trash2 size={16} /></button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </aside>
+        </section>
+
+        <section className="mt-5 rounded-xl border border-[#DDE3EA] bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-extrabold"><UsersRound size={21} className="text-[#0D6BEA]" />지원자 목록</h2>
+              <p className="mt-2 text-sm font-semibold text-[#667085]">내 회사가 등록한 공고에 실제로 지원한 구직자만 표시됩니다.</p>
+            </div>
+            <span className="rounded-full bg-[#EEF5FF] px-3 py-1 text-sm font-extrabold text-[#0D6BEA]">{applications.length}명</span>
+          </div>
+          {applications.length === 0 ? (
+            <div className="py-12 text-center">
+              <UsersRound className="mx-auto text-[#98A2B3]" size={36} />
+              <p className="mt-3 text-sm font-semibold text-[#667085]">아직 지원자가 없습니다.</p>
+            </div>
+          ) : (
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-[#F8FAFC] text-[#667085]">
+                  <tr><th className="px-4 py-3 text-left">지원자</th><th className="px-4 py-3 text-left">지원 공고</th><th className="px-4 py-3 text-left">연락처</th><th className="px-4 py-3 text-left">지원일</th><th className="px-4 py-3 text-left">상태</th></tr>
+                </thead>
+                <tbody>
+                  {applications.map(application => (
+                    <tr key={application.id} className="border-t border-[#E7ECF2]">
+                      <td className="px-4 py-4 font-extrabold">{application.applicantName}</td>
+                      <td className="px-4 py-4 font-semibold">{application.jobTitle}</td>
+                      <td className="px-4 py-4 text-[#596273]"><span className="flex items-center gap-1"><Phone size={13} />{application.phone}</span><span className="mt-1 flex items-center gap-1"><Mail size={13} />{application.email}</span></td>
+                      <td className="px-4 py-4 font-semibold text-[#596273]">{application.createdAt ? new Date(application.createdAt).toLocaleDateString('ko-KR') : '-'}</td>
+                      <td className="px-4 py-4"><span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-xs font-extrabold text-[#14843C]">{application.status}</span></td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRows.map(({ job, application }) => {
-                      const status = application.applicationStatus || 'APPLIED';
-
-                      return (
-                        <tr key={job.id} className="border-t border-[#E7ECF2]">
-                          <td className="px-5 py-4">
-                            <p className="font-extrabold text-black">{application.name}</p>
-                            <p className="mt-1 text-xs font-semibold text-[#667085]">{application.employmentType}</p>
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-[#344054]">{job.title}</td>
-                          <td className="px-5 py-4">
-                            <p className="flex items-center gap-2 font-semibold text-[#344054]"><Phone size={14} />{application.phone}</p>
-                            <p className="mt-1 flex items-center gap-2 font-semibold text-[#344054]"><Mail size={14} />{application.email}</p>
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-[#344054]">
-                            <span className="inline-flex items-center gap-2"><CalendarDays size={14} />{formatDate(application.submittedAt)}</span>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-xs font-extrabold text-[#14843C]">
-                              {applicationStatusLabels[status]}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="px-5 py-14 text-center">
-                <UsersRound className="mx-auto text-[#98A2B3]" size={34} />
-                <h2 className="mt-4 text-lg font-extrabold text-black">표시할 지원자가 없습니다</h2>
-                <p className="mt-2 text-sm font-semibold text-[#667085]">구직자가 {companyName || '기업'} 공고에 지원하면 이 목록에 바로 표시됩니다.</p>
-              </div>
-            )}
-          </section>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </main>
     </div>
   );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return <label className="grid gap-2 text-sm font-bold text-[#344054]">{label}<span className="[&_input]:h-11 [&_input]:rounded-lg [&_input]:border [&_input]:border-[#D7E1EE] [&_input]:px-3 [&_select]:h-11 [&_select]:rounded-lg [&_select]:border [&_select]:border-[#D7E1EE] [&_select]:px-3 [&_textarea]:rounded-lg [&_textarea]:border [&_textarea]:border-[#D7E1EE] [&_textarea]:p-3">{children}</span></label>;
+}
+
+function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return <label className="flex items-center gap-2 rounded-lg bg-[#F8FAFC] p-3 text-sm font-bold"><input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} />{label}</label>;
 }
