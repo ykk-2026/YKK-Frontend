@@ -1,4 +1,5 @@
 import type { Job } from '@/app/types';
+import { getJson, postForm } from './http';
 
 export interface JobPostingForm {
   companyName: string;
@@ -31,45 +32,21 @@ export interface JobPosting extends JobPostingForm {
   updatedAt?: string;
 }
 
-const responseError = async (response: Response) => {
-  try {
-    const body = await response.json() as { detail?: string; message?: string; error?: string };
-    return body.detail || body.message || body.error || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
-};
+// 백엔드는 GET/POST + 폼 파라미터로 호출하고, 등록/수정/삭제는 MsgDTO { result, msg } 로 응답한다
+export const getOpenJobPostings = () => getJson<JobPosting[]>('/api/jobs/getJobList');
 
-const request = async <T>(url: string, options?: RequestInit): Promise<T> => {
-  const response = await fetch(url, options);
-  if (!response.ok) throw new Error(await responseError(response));
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
-};
+export const getMyJobPostings = () => getJson<JobPosting[]>('/api/jobs/getMyJobList');
 
-export const getOpenJobPostings = () => request<JobPosting[]>('/api/jobs?limit=100');
+export const getJobPosting = (jobId: number | string) => getJson<JobPosting>('/api/jobs/getJobInfo', { jobId });
 
-export const getMyJobPostings = () => request<JobPosting[]>('/api/jobs/my');
+export const createJobPosting = (form: JobPostingForm) => postForm('/api/jobs/insertJobInfo', form);
 
-export const createJobPosting = (form: JobPostingForm) => request<JobPosting>('/api/jobs', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(form),
-});
+export const updateJobPosting = (jobId: number, form: JobPostingForm) =>
+  postForm('/api/jobs/updateJobInfo', { ...form, jobId });
 
-export const updateJobPosting = (jobId: number, form: JobPostingForm) => request<JobPosting>(`/api/jobs/${jobId}`, {
-  method: 'PUT',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(form),
-});
+export const closeJobPosting = (jobId: number) => postForm('/api/jobs/updateJobClose', { jobId });
 
-export const closeJobPosting = (jobId: number) => request<void>(`/api/jobs/${jobId}/close`, {
-  method: 'PATCH',
-});
-
-export const deleteJobPosting = (jobId: number) => request<void>(`/api/jobs/${jobId}`, {
-  method: 'DELETE',
-});
+export const deleteJobPosting = (jobId: number) => postForm('/api/jobs/deleteJobInfo', { jobId });
 
 const splitText = (value?: string | null) => value
   ? value.split(/[,\n]/).map(item => item.trim()).filter(Boolean)

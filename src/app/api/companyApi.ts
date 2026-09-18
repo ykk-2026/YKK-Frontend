@@ -1,4 +1,5 @@
 import type { CorporateRegisterFormData } from '@/app/types';
+import { getJson, postForm } from './http';
 
 export interface CompanyLoginResult {
   member: { id: number; loginId: string; name: string; role: string };
@@ -10,32 +11,37 @@ export interface CompanyLoginResult {
   };
 }
 
-const responseError = async (response: Response) => {
-  try {
-    const body = await response.json() as { detail?: string; message?: string; error?: string };
-    return body.detail || body.message || body.error || `요청 실패 (${response.status})`;
-  } catch { return `요청 실패 (${response.status})`; }
-};
-
-export async function registerCompany(form: CorporateRegisterFormData, passwordConfirm: string) {
-  const response = await fetch('/api/companies', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...form, passwordConfirm,
-      name: form.memberName?.trim() || form.managerName.trim(),
-      employeeCount: form.employeeCount ? Number(form.employeeCount) : null,
-      establishedDate: form.establishedDate || null,
-    }),
-  });
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json();
+// 백엔드 CompanyProfileDTO : 기업정보 + MEMBER 테이블 JOIN 값(memberId, loginId, name, role)이 한 객체로 온다
+interface CompanyProfileDTO extends CompanyLoginResult['profile'] {
+  memberId?: number;
+  loginId?: string;
+  name?: string;
+  role?: string;
 }
 
-export async function loginCompany(loginId: string, password: string) {
-  const response = await fetch('/api/companies/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ loginId: loginId.trim(), password }),
+export async function registerCompany(form: CorporateRegisterFormData, passwordConfirm: string) {
+  return postForm('/api/companies/insertCompanyInfo', {
+    ...form, passwordConfirm,
+    name: form.memberName?.trim() || form.managerName.trim(),
+    employeeCount: form.employeeCount ? Number(form.employeeCount) : '',
+    establishedDate: form.establishedDate || '',
   });
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<CompanyLoginResult>;
+}
+
+// 로그인된 기업정보 : 기업회원으로 로그인 안 했으면 null
+export async function getCurrentCompany(): Promise<CompanyLoginResult | null> {
+  const c = await getJson<CompanyProfileDTO>('/api/companies/getCompanyInfo');
+  if (!c.loginId) return null;
+  return {
+    member: { id: c.memberId as number, loginId: c.loginId, name: c.name ?? '', role: c.role ?? 'COMPANY' },
+    profile: c,
+  };
+}
+
+// 기업 로그인 : 결과는 MsgDTO 이므로 성공 후 기업정보를 다시 조회한다
+export async function loginCompany(loginId: string, password: string) {
+  await postForm('/api/companies/login', { loginId: loginId.trim(), password });
+  const result = await getCurrentCompany();
+  if (!result) throw new Error('기업 로그인 정보를 불러오지 못했습니다.');
+  return result;
 }

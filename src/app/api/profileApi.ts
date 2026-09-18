@@ -1,3 +1,5 @@
+import { getJson, postForm } from './http';
+
 export interface ApiJobSeekerProfile {
   memberId: number;
   name: string;
@@ -29,26 +31,10 @@ export interface ApiJobSeekerProfile {
   profilePublic?: boolean | null;
 }
 
-const responseError = async (response: Response) => {
-  try {
-    const body = await response.json() as { detail?: string; message?: string; error?: string };
-    return body.detail || body.message || body.error || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
-};
+// 백엔드는 GET/POST + 폼 파라미터로 호출하고, 저장 결과는 MsgDTO { result, msg } 로 응답한다
+// 날짜/시간은 "1999-01-02", "09:00" 문자열로 보내고, 한글 라벨(남성, 정규직, 신입 등)은 백엔드에서 코드값으로 변환한다
+export const getProfile = (memberId: string | number) =>
+  getJson<ApiJobSeekerProfile>('/api/profiles/getProfileInfo', { memberId });
 
-export async function getProfile(memberId: string | number) {
-  const response = await fetch(`/api/profiles/${memberId}`);
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<ApiJobSeekerProfile>;
-}
-
-export async function saveProfile(memberId: string | number, profile: ApiJobSeekerProfile) {
-  const response = await fetch(`/api/profiles/${memberId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile),
-  });
-  if (!response.ok) throw new Error(await responseError(response));
-}
+export const saveProfile = (memberId: string | number, profile: ApiJobSeekerProfile) =>
+  postForm('/api/profiles/saveProfileInfo', { ...profile, memberId });

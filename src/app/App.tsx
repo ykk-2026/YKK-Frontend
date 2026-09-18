@@ -121,7 +121,7 @@ const saveCurrentJobId = (jobId?: string) => {
   if (jobId) localStorage.setItem(currentJobStorageKey, jobId);
 };
 
-const normalizeJobId = (id: string) => id.replace(/^job-/, '');
+const normalizeJobId = (id: string | number) => String(id).replace(/^job-/, '');
 
 const loadPendingApplicationJobId = () => {
   if (typeof window === 'undefined') return null;
@@ -201,6 +201,7 @@ export default function App() {
         forms[jobId] = {
           name: application.applicantName, phone: application.phone, email: application.email,
           employmentType: application.employmentType, privacyAgreed: true,
+          coverLetter: application.coverLetter || '',
           applicationStatus: application.status as ApplicationFormData['applicationStatus'],
           submittedAt: application.createdAt || '',
           updatedAt: application.updatedAt || application.createdAt || '',
@@ -329,7 +330,7 @@ export default function App() {
     const job = jobs.find(item => item.id === normalizedJobId);
     if (!job) return;
     try {
-      if (bookmarks.has(bookmarkId)) await deleteInterestJob(job.company, job.title);
+      if (bookmarks.has(bookmarkId)) await deleteInterestJob(job);
       else await saveInterestJob(job);
       setBookmarks(prev => {
         const next = new Set(prev);
@@ -348,6 +349,7 @@ export default function App() {
     await saveJobApplication(job, {
       applicantName: formData.name, phone: formData.phone,
       email: formData.email, employmentType: formData.employmentType,
+      coverLetter: formData.coverLetter,
     });
     setAppliedJobIds(prev => {
       const next = new Set(prev);

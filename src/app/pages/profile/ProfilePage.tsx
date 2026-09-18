@@ -217,6 +217,7 @@ export function ProfilePage({
     phone3: '',
     email: '',
     employmentType: '정규/계약직',
+    coverLetter: '',
     privacyAgreed: true,
   });
   const [profileAvatar, setProfileAvatar] = useState<ProfileAvatar>(() => loadProfilePhoto(userId));
@@ -300,6 +301,17 @@ export function ProfilePage({
 
   const updateApplicationEditForm = (field: keyof typeof applicationEditForm, value: string | boolean) => {
     setApplicationEditForm(prev => ({ ...prev, [field]: value }));
+    setApplicationEditError('');
+  };
+
+  const loadProfileIntroductionForApplication = () => {
+    const introduction = profileForm.introduction.trim();
+    if (!introduction) {
+      setApplicationEditError('프로필에 저장된 자기소개가 없습니다.');
+      return;
+    }
+    if (applicationEditForm.coverLetter.trim() && !window.confirm('작성 중인 내용을 프로필 자기소개로 바꾸시겠습니까?')) return;
+    setApplicationEditForm(prev => ({ ...prev, coverLetter: introduction.slice(0, 1500) }));
     setApplicationEditError('');
   };
 
@@ -423,6 +435,7 @@ export function ProfilePage({
       phone3: phoneParts[2] || '',
       email: savedApplication?.email || profileForm.email,
       employmentType: savedApplication?.employmentType || (job.category === 'PartTime' ? '아르바이트' : '정규/계약직'),
+      coverLetter: savedApplication?.coverLetter || '',
       privacyAgreed: savedApplication?.privacyAgreed ?? true,
     });
     setApplicationEditError('');
@@ -444,18 +457,8 @@ export function ProfilePage({
       return;
     }
 
-    if (!applicationEditForm.name.trim() || /\s/.test(applicationEditForm.name)) {
-      setApplicationEditError('성명은 공백 없이 입력해 주세요.');
-      return;
-    }
-
-    if (phoneParts.some(part => !/^\d+$/.test(part)) || phoneParts[1].length < 3 || phoneParts[2].length < 4) {
-      setApplicationEditError('연락 가능한 휴대전화 번호를 정확히 입력해 주세요.');
-      return;
-    }
-
-    if (!applicationEditForm.email.trim() || !applicationEditForm.email.includes('@')) {
-      setApplicationEditError('지원 결과를 받을 이메일을 입력해 주세요.');
+    if (!applicationEditForm.coverLetter.trim()) {
+      setApplicationEditError('자기소개 및 지원내용을 입력해 주세요.');
       return;
     }
 
@@ -466,6 +469,7 @@ export function ProfilePage({
       phone: phoneParts.join('-'),
       email: applicationEditForm.email.trim(),
       employmentType: applicationEditForm.employmentType,
+      coverLetter: applicationEditForm.coverLetter.trim(),
       privacyAgreed: applicationEditForm.privacyAgreed,
       submittedAt: previousApplication?.submittedAt || now,
       updatedAt: now,
@@ -536,10 +540,6 @@ export function ProfilePage({
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setIsPreviewOpen(true)} className="rounded-lg border border-[#D7DDE5] px-4 py-2 text-sm font-bold hover:bg-[#F8FAFC]">
                     미리보기
-                  </button>
-                  <button type="button" onClick={handleSave} disabled={isSavingProfile} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-4 py-2 text-sm font-bold text-white hover:bg-[#0959C7] disabled:cursor-not-allowed disabled:opacity-60">
-                    <Save size={16} />
-                    저장
                   </button>
                 </div>
               )}
@@ -1014,6 +1014,12 @@ export function ProfilePage({
                   className="w-full resize-none rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm outline-none focus:ring-4 focus:ring-[#0D6BEA]/15"
                 />
                 <p className="mt-2 text-right text-sm font-bold text-[#7A8495]">{profileForm.introduction.length} / {maxIntroLength}자</p>
+                <div className="mt-4 flex justify-end border-t border-[#E7ECF2] pt-4">
+                  <button type="button" onClick={handleSave} disabled={isSavingProfile} className="inline-flex items-center gap-2 rounded-lg bg-[#0D6BEA] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0959C7] disabled:cursor-not-allowed disabled:opacity-60">
+                    <Save size={16} />
+                    {isSavingProfile ? '저장 중...' : '저장'}
+                  </button>
+                </div>
               </section>
             </>
           )}
@@ -1040,43 +1046,34 @@ export function ProfilePage({
             </div>
 
             <div className="px-6 py-6">
-              <div className="rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-bold text-[#344054]">
+              <div className="rounded-lg bg-[#F8FAFC] px-4 py-0 text-sm font-bold text-[#344054]">
                 공고명: <span className="text-black">{editingApplicationJob.title}</span>
               </div>
 
               <div className="mt-5 divide-y divide-[#E7ECF2] border-t border-[#D7DDE5]">
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <span className="text-sm font-bold text-[#596273]">성명</span>
-                  <input
-                    value={applicationEditForm.name}
-                    onChange={event => updateApplicationEditForm('name', event.target.value)}
-                    className="h-11 w-full rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                  />
-                </label>
-
                 <div className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <p className="text-sm font-bold text-[#596273]">휴대전화</p>
-                  <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-                    {(['phone1', 'phone2', 'phone3'] as const).map((field, index) => (
-                      <input
-                        key={field}
-                        value={applicationEditForm[field]}
-                        onChange={event => updateApplicationEditForm(field, event.target.value.replace(/\D/g, '').slice(0, index === 0 ? 3 : 4))}
-                        className="h-11 min-w-0 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                      />
-                    ))}
+                  <label htmlFor="application-edit-cover-letter" className="text-sm font-bold text-[#596273]">자기소개 및 지원내용</label>
+                  <div className="min-w-0">
+                    <div className="mb-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={loadProfileIntroductionForApplication}
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#B8D2F5] bg-[#F4F8FF] px-3 py-1.5 text-[11px] font-bold text-[#0D6BEA] transition-colors hover:border-[#8AB8F2] hover:bg-[#E8F1FF] sm:text-xs"
+                      >
+                        <UserRound size={13} />
+                        프로필 자기소개 불러오기
+                      </button>
+                    </div>
+                    <textarea
+                      id="application-edit-cover-letter"
+                      value={applicationEditForm.coverLetter}
+                      onChange={event => updateApplicationEditForm('coverLetter', event.target.value.slice(0, 1500))}
+                      placeholder="나의 강점과 경험, 지원 동기와 직무에 적합한 이유를 작성해 주세요."
+                      rows={8}
+                      className="w-full resize-y rounded border border-[#D7DDE5] px-3 py-3 text-sm leading-6 outline-none focus:border-[#0D6BEA]"
+                    />
                   </div>
                 </div>
-
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <span className="text-sm font-bold text-[#596273]">이메일</span>
-                  <input
-                    value={applicationEditForm.email}
-                    onChange={event => updateApplicationEditForm('email', event.target.value)}
-                    placeholder="email@example.com"
-                    className="h-11 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                  />
-                </label>
 
                 <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-bold text-[#596273]">고용형태</span>
@@ -1099,7 +1096,7 @@ export function ProfilePage({
                   onChange={event => updateApplicationEditForm('privacyAgreed', event.target.checked)}
                   className="mt-1"
                 />
-                수정된 이름, 연락처, 이메일을 채용 담당자에게 전달하는 데 동의합니다.
+                회원 정보와 수정된 지원 내용을 채용 담당자에게 전달하는 데 동의합니다.
               </label>
 
               {applicationEditError && <p className="mt-4 rounded-lg bg-[#FFF5F5] px-4 py-3 text-sm font-bold text-[#D92D20]">{applicationEditError}</p>}
