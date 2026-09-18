@@ -10,6 +10,8 @@ export interface JobRecommendationDto {
   salary: string;
   totalScore: number;
   jobScore?: number;
+  jobMatchSource?: 'GENERATIVE_AI' | 'RULE_FALLBACK' | string;
+  jobMatchReason?: string | null;
   regionScore?: number;
   employmentTypeScore?: number;
   careerScore?: number;
@@ -53,7 +55,8 @@ interface ApiRecommendation extends Omit<JobRecommendationDto, 'job'> {
   } | null;
 }
 
-const recommendationUrls = (_memberId: number) => ['/api/recommendations'];
+// 프로필이 없거나 구직자가 아니면 404 대신 빈 배열이 온다
+const recommendationUrls = (_memberId: number) => ['/api/recommendations/getRecommendationList'];
 
 export class JobRecommendationApiError extends Error {
   constructor(message: string, public readonly status: number) {

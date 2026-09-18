@@ -1,3 +1,5 @@
+import { getJson, postForm } from './http';
+
 export interface ApiCommunityPost {
   id: number;
   memberId: number;
@@ -36,59 +38,48 @@ export interface ApiCommunityReport {
   createdAt: string;
 }
 
-const responseError = async (response: Response) => {
-  try {
-    const body = await response.json() as { detail?: string; message?: string; error?: string };
-    return body.detail || body.message || body.error || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
+// 백엔드는 GET/POST + 폼 파라미터로 호출하고, 등록/삭제/신고 결과는 MsgDTO { result, msg } 로 응답한다
+// 화면에서 등록된 게시글/댓글/신고 객체를 사용하므로, 등록 후 목록을 다시 조회해서 돌려준다
+export const getCommunityPosts = () => getJson<ApiCommunityPost[]>('/api/community/getPostList');
+
+const findPost = async (id: string | number) => {
+  const post = (await getCommunityPosts()).find(item => String(item.id) === String(id));
+  if (!post) throw new Error('게시글을 찾을 수 없습니다.');
+  return post;
 };
 
-export async function getCommunityPosts(): Promise<ApiCommunityPost[]> {
-  const response = await fetch('/api/community/posts');
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<ApiCommunityPost[]>;
-}
-
 export async function createCommunityPost(value: Pick<ApiCommunityPost, 'category' | 'title' | 'content'>) {
-  const response = await fetch('/api/community/posts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(value),
-  });
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<ApiCommunityPost>;
+  await postForm('/api/community/insertPostInfo', value);
+  // 목록은 최신순(created_at DESC, id DESC)이므로 첫 번째가 방금 등록한 글
+  const [latest] = await getCommunityPosts();
+  if (!latest) throw new Error('등록된 게시글을 불러오지 못했습니다.');
+  return latest;
 }
 
-export async function incrementCommunityPostViews(id: string) {
-  const response = await fetch(`/api/community/posts/${encodeURIComponent(id)}/views`, { method: 'POST' });
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<ApiCommunityPost>;
-}
+// 상세보기 조회 : 백엔드에서 조회수를 증가시킨 뒤 게시글을 돌려준다
+export const incrementCommunityPostViews = (id: string) =>
+  getJson<ApiCommunityPost>('/api/community/getPostInfo', { postId: id });
 
 export async function deleteCommunityPost(id: string) {
-  const response = await fetch(`/api/community/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  if (!response.ok) throw new Error(await responseError(response));
+  await postForm('/api/community/deletePostInfo', { postId: id });
 }
 
 export async function createCommunityComment(postId: string, content: string) {
-  const response = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/comments`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
-  });
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<ApiCommunityComment>;
+  await postForm('/api/community/insertCommentInfo', { postId, content });
+  const post = await findPost(postId);
+  const saved = post.comments[post.comments.length - 1]; // 댓글은 등록순이므로 마지막이 방금 단 댓글
+  if (!saved) throw new Error('등록된 댓글을 불러오지 못했습니다.');
+  return saved;
 }
 
-export async function deleteCommunityComment(postId: string, commentId: string) {
-  const response = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE' });
-  if (!response.ok) throw new Error(await responseError(response));
+export async function deleteCommunityComment(_postId: string, commentId: string) {
+  await postForm('/api/community/deleteCommentInfo', { commentId });
 }
 
 export async function reportCommunityPost(postId: string) {
-  const response = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/reports`, { method: 'POST' });
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<ApiCommunityReport>;
+  await postForm('/api/community/insertReportInfo', { postId });
+  const post = await findPost(postId);
+  const saved = post.reports[post.reports.length - 1]; // 로그인 사용자의 신고 내역 중 마지막
+  if (!saved) throw new Error('신고 내역을 불러오지 못했습니다.');
+  return saved;
 }

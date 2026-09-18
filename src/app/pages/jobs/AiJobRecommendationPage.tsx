@@ -332,13 +332,13 @@ function RecommendationCard({
     return item.aliases?.some(alias => Boolean(recommendation[alias]));
   });
   const scoreDetails = [
-    { label: '직무', score: Math.min(25, Math.max(0, recommendation.jobScore ?? 0)), maximum: 25 },
-    { label: '지역', score: Math.min(20, Math.max(0, recommendation.regionScore ?? 0)), maximum: 20 },
+    { label: '직무·기술', score: Math.min(30, Math.max(0, recommendation.jobScore ?? 0)), maximum: 30 },
+    { label: '지역', score: Math.min(15, Math.max(0, recommendation.regionScore ?? 0)), maximum: 15 },
     { label: '고용형태', score: Math.min(10, Math.max(0, recommendation.employmentTypeScore ?? 0)), maximum: 10 },
     { label: '경력', score: Math.min(10, Math.max(0, recommendation.careerScore ?? 0)), maximum: 10 },
-    { label: '급여', score: Math.min(15, Math.max(0, recommendation.salaryScore ?? 0)), maximum: 15 },
+    { label: '급여', score: Math.min(10, Math.max(0, recommendation.salaryScore ?? 0)), maximum: 10 },
     { label: '근무방식', score: Math.min(10, Math.max(0, recommendation.workStyleScore ?? 0)), maximum: 10 },
-    { label: '접근성', score: Math.min(10, Math.max(0, recommendation.accessibilityScore ?? 0)), maximum: 10 },
+    { label: '접근성', score: Math.min(15, Math.max(0, recommendation.accessibilityScore ?? 0)), maximum: 15 },
   ];
 
   return (
@@ -364,11 +364,8 @@ function RecommendationCard({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 xl:grid-cols-2">
-            <InfoBlock title="추천 이유" value={getReason(recommendation)} />
-            {recommendation.mismatchReason && (
-              <InfoBlock title="확인할 조건" value={recommendation.mismatchReason} warning />
-            )}
+          <div className="mt-5">
+            <InfoBlock title="종합 추천 이유" value={getReason(recommendation)} />
           </div>
 
           <div className="mt-4 rounded-lg border border-[#E3EAF3] p-4">

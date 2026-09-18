@@ -16,11 +16,13 @@ import {
   Phone,
   Send,
   ShieldCheck,
+  UserRound,
   Users,
   WalletCards,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ApplicationFormData, CurrentUser, Job, Page } from '@/app/types';
+import { getProfile } from '@/app/api/profileApi';
 
 interface JobDetailPageProps {
   jobs: Job[];
@@ -78,6 +80,7 @@ export function JobDetailPage({
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [submittedApplied, setSubmittedApplied] = useState(false);
   const [applyError, setApplyError] = useState('');
+  const [isProfileIntroductionLoading, setIsProfileIntroductionLoading] = useState(false);
   const [applicationForm, setApplicationForm] = useState({
     name: currentUser?.name || '',
     phone1: initialPhoneParts[0] || '010',
@@ -85,6 +88,7 @@ export function JobDetailPage({
     phone3: initialPhoneParts[2] || '',
     email: currentUser?.email || '',
     employmentType: meta.employment,
+    coverLetter: '',
     privacyAgreed: false,
   });
 
@@ -95,6 +99,28 @@ export function JobDetailPage({
   const updateApplicationForm = (field: keyof typeof applicationForm, value: string | boolean) => {
     setApplicationForm(prev => ({ ...prev, [field]: value }));
     setApplyError('');
+  };
+
+  const loadProfileIntroduction = async () => {
+    if (!currentUser?.id || isProfileIntroductionLoading) return;
+
+    if (applicationForm.coverLetter.trim() && !window.confirm('작성 중인 내용을 프로필 자기소개로 바꾸시겠습니까?')) return;
+
+    setIsProfileIntroductionLoading(true);
+    setApplyError('');
+    try {
+      const profile = await getProfile(currentUser.id);
+      const introduction = profile.introduction?.trim() || '';
+      if (!introduction) {
+        setApplyError('프로필에 저장된 자기소개가 없습니다.');
+        return;
+      }
+      setApplicationForm(prev => ({ ...prev, coverLetter: introduction.slice(0, 1500) }));
+    } catch (error) {
+      setApplyError(error instanceof Error ? error.message : '프로필 자기소개를 불러오지 못했습니다.');
+    } finally {
+      setIsProfileIntroductionLoading(false);
+    }
   };
 
   const handleApply = () => {
@@ -129,18 +155,8 @@ export function JobDetailPage({
       return;
     }
 
-    if (!applicationForm.name.trim() || /\s/.test(applicationForm.name)) {
-      setApplyError('성명은 공백 없이 입력해 주세요.');
-      return;
-    }
-
-    if (phoneParts.some(part => !/^\d+$/.test(part)) || phoneParts[1].length < 3 || phoneParts[2].length < 4) {
-      setApplyError('연락 가능한 휴대전화 번호를 정확히 입력해 주세요.');
-      return;
-    }
-
-    if (!applicationForm.email.trim() || !applicationForm.email.includes('@')) {
-      setApplyError('지원 결과를 받을 이메일을 입력해 주세요.');
+    if (!applicationForm.coverLetter.trim()) {
+      setApplyError('자기소개 및 지원내용을 입력해 주세요.');
       return;
     }
 
@@ -150,6 +166,7 @@ export function JobDetailPage({
       phone: phoneParts.join('-'),
       email: applicationForm.email.trim(),
       employmentType: applicationForm.employmentType,
+      coverLetter: applicationForm.coverLetter.trim(),
       privacyAgreed: applicationForm.privacyAgreed,
       submittedAt: now,
       updatedAt: now,
@@ -418,7 +435,7 @@ export function JobDetailPage({
             <div className="flex items-start justify-between gap-4 border-b border-[#E7ECF2] px-6 py-5">
               <div>
                 <p className="text-sm font-bold text-[#0D6BEA]">{job.company}</p>
-                <h2 className="mt-1 text-xl font-extrabold text-black">간편 지원</h2>
+                <h2 className="mt-1 text-xl font-extrabold text-black">지원서</h2>
                 <p className="mt-1 text-sm font-semibold text-[#7A8495]">{job.title}</p>
               </div>
               <button
@@ -432,43 +449,35 @@ export function JobDetailPage({
             </div>
 
             <div className="px-6 py-6">
-              <div className="rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-bold text-[#344054]">
+              <div className="rounded-lg bg-[#F8FAFC] px-4 py-0 text-sm font-bold text-[#344054]">
                 공고명: <span className="text-black">{job.title}</span>
               </div>
 
               <div className="mt-5 divide-y divide-[#E7ECF2] border-t border-[#D7DDE5]">
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <span className="text-sm font-bold text-[#596273]">성명</span>
-                  <input
-                    value={applicationForm.name}
-                    onChange={event => updateApplicationForm('name', event.target.value)}
-                    className="h-11 w-full rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                  />
-                </label>
-
                 <div className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <p className="text-sm font-bold text-[#596273]">휴대전화</p>
-                  <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-                    {(['phone1', 'phone2', 'phone3'] as const).map((field, index) => (
-                      <input
-                        key={field}
-                        value={applicationForm[field]}
-                        onChange={event => updateApplicationForm(field, event.target.value.replace(/\D/g, '').slice(0, index === 0 ? 3 : 4))}
-                        className="h-11 min-w-0 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                      />
-                    ))}
+                  <label htmlFor="application-cover-letter" className="text-sm font-bold text-[#596273]">자기소개 및 지원내용</label>
+                  <div className="min-w-0">
+                    <div className="mb-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={loadProfileIntroduction}
+                        disabled={isProfileIntroductionLoading}
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#B8D2F5] bg-[#F4F8FF] px-3 py-1.5 text-[11px] font-bold text-[#0D6BEA] transition-colors hover:border-[#8AB8F2] hover:bg-[#E8F1FF] disabled:cursor-wait disabled:opacity-60 sm:text-xs"
+                      >
+                        <UserRound size={13} />
+                        {isProfileIntroductionLoading ? '불러오는 중...' : '프로필 자기소개 불러오기'}
+                      </button>
+                    </div>
+                    <textarea
+                      id="application-cover-letter"
+                      value={applicationForm.coverLetter}
+                      onChange={event => updateApplicationForm('coverLetter', event.target.value.slice(0, 1500))}
+                      placeholder="나의 강점과 경험, 지원 동기와 직무에 적합한 이유를 작성해 주세요."
+                      rows={8}
+                      className="w-full resize-y rounded border border-[#D7DDE5] px-3 py-3 text-sm leading-6 outline-none focus:border-[#0D6BEA]"
+                    />
                   </div>
                 </div>
-
-                <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <span className="text-sm font-bold text-[#596273]">이메일</span>
-                  <input
-                    value={applicationForm.email}
-                    onChange={event => updateApplicationForm('email', event.target.value)}
-                    placeholder="email@example.com"
-                    className="h-11 rounded border border-[#D7DDE5] px-3 text-sm outline-none focus:border-[#0D6BEA]"
-                  />
-                </label>
 
                 <label className="grid gap-3 py-5 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-bold text-[#596273]">고용형태</span>
@@ -492,7 +501,7 @@ export function JobDetailPage({
                   onChange={event => updateApplicationForm('privacyAgreed', event.target.checked)}
                   className="mt-1"
                 />
-                지원 진행을 위해 이름, 연락처, 이메일을 채용 담당자에게 전달하는 데 동의합니다.
+                지원 진행을 위해 회원 정보와 작성한 지원 내용을 채용 담당자에게 전달하는 데 동의합니다.
               </label>
 
               {applyError && <p className="mt-4 rounded-lg bg-[#FFF5F5] px-4 py-3 text-sm font-bold text-[#D92D20]">{applyError}</p>}

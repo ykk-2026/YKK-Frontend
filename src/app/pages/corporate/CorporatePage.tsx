@@ -287,9 +287,9 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
             </div>
           ) : (
             <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[760px] text-sm">
+              <table className="w-full min-w-[1080px] text-sm">
                 <thead className="bg-[#F8FAFC] text-[#667085]">
-                  <tr><th className="px-4 py-3 text-left">지원자</th><th className="px-4 py-3 text-left">지원 공고</th><th className="px-4 py-3 text-left">연락처</th><th className="px-4 py-3 text-left">지원일</th><th className="px-4 py-3 text-left">상태</th></tr>
+                  <tr><th className="px-4 py-3 text-left">지원자</th><th className="px-4 py-3 text-left">지원 공고</th><th className="px-4 py-3 text-left">연락처</th><th className="px-4 py-3 text-left">자기소개 및 지원내용</th><th className="px-4 py-3 text-left">지원일</th><th className="px-4 py-3 text-left">상태</th></tr>
                 </thead>
                 <tbody>
                   {applications.map(application => (
@@ -297,6 +297,7 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
                       <td className="px-4 py-4 font-extrabold">{application.applicantName}</td>
                       <td className="px-4 py-4 font-semibold">{application.jobTitle}</td>
                       <td className="px-4 py-4 text-[#596273]"><span className="flex items-center gap-1"><Phone size={13} />{application.phone}</span><span className="mt-1 flex items-center gap-1"><Mail size={13} />{application.email}</span></td>
+                      <td className="max-w-[360px] whitespace-pre-wrap break-words px-4 py-4 font-semibold leading-6 text-[#344054]">{application.coverLetter || '미입력'}</td>
                       <td className="px-4 py-4 font-semibold text-[#596273]">{application.createdAt ? new Date(application.createdAt).toLocaleDateString('ko-KR') : '-'}</td>
                       <td className="px-4 py-4"><span className="rounded-full bg-[#E7F8EF] px-3 py-1 text-xs font-extrabold text-[#14843C]">{application.status}</span></td>
                     </tr>

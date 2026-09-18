@@ -1,4 +1,5 @@
 import type { Job } from '@/app/types';
+import { getJson, postForm } from './http';
 
 export interface InterestJob {
   id: number;
@@ -12,15 +13,6 @@ export interface InterestJob {
   flexibleWorkAvailable: boolean;
   assistiveDeviceSupport: boolean;
 }
-
-const responseError = async (response: Response) => {
-  try {
-    const body = await response.json() as { detail?: string; message?: string; error?: string };
-    return body.detail || body.message || body.error || `요청 실패 (${response.status})`;
-  } catch {
-    return `요청 실패 (${response.status})`;
-  }
-};
 
 const salaryRange = (salary: string) => {
   const values = salary.match(/\d[\d,]*/g)?.map(value => Number(value.replaceAll(',', ''))) || [];
@@ -41,45 +33,12 @@ const accessibilityText = (job: Job) => (Object.entries(job.accessibility) as [k
   .map(([name]) => accessibilityLabels[name])
   .join(', ');
 
-export async function getInterestJobs(): Promise<InterestJob[]> {
-  const response = await fetch('/api/interest-jobs');
-  if (!response.ok) throw new Error(await responseError(response));
-  return response.json() as Promise<InterestJob[]>;
-}
+// 백엔드는 GET/POST + 폼 파라미터로 호출하고, 등록/삭제 결과는 MsgDTO { result, msg } 로 응답한다
+export const getInterestJobs = () => getJson<InterestJob[]>('/api/interest-jobs/getInterestJobList');
 
-export async function saveInterestJob(job: Job) {
-  const response = await fetch('/api/interest-jobs', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      companyName: job.company,
-      title: job.title,
-      jobCategory: job.category,
-      employmentType: job.category === 'PartTime' ? 'PART_TIME' : 'FULL_TIME',
-      location: job.location,
-      ...salaryRange(job.salary),
-      experienceLevel: null,
-      educationLevel: null,
-      description: job.description,
-      requirements: job.requirements.join(', '),
-      preferredQualifications: job.benefits.join(', '),
-      accessibilityInfo: accessibilityText(job),
-      wheelchairAccessible: job.accessibility.wheelchair,
-      accessibleRestroom: job.accessibility.restroom,
-      disabledParking: job.accessibility.parking,
-      remoteAvailable: job.isRemote,
-      flexibleWorkAvailable: job.workType.includes('유연')
-        || job.benefits.some(benefit => benefit.includes('유연근무')),
-      assistiveDeviceSupport: job.accessibility.hearingLoop,
-      deadline: job.deadline,
-      status: 'OPEN',
-    }),
-  });
-  if (!response.ok) throw new Error(await responseError(response));
-}
+export const saveInterestJob = (job: Job) => postForm('/api/interest-jobs/insertInterestJobInfo', {
+  jobId: job.id
+});
 
-export async function deleteInterestJob(companyName: string, title: string) {
-  const params = new URLSearchParams({ companyName, title });
-  const response = await fetch(`/api/interest-jobs?${params.toString()}`, { method: 'DELETE' });
-  if (!response.ok) throw new Error(await responseError(response));
-}
+export const deleteInterestJob = (job: Job) =>
+  postForm('/api/interest-jobs/deleteInterestJobInfo', { jobId: job.id });
