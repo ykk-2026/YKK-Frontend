@@ -34,8 +34,8 @@ const accessibilityBadges: Array<{
   { key: 'wheelchairAccessible', aliases: ['wheelchairAccess'], label: '휠체어 접근 가능' },
   { key: 'disabledRestroom', aliases: ['accessibleRestroom'], label: '장애인 화장실' },
   { key: 'disabledParking', label: '장애인 주차' },
-  { key: 'remoteWorkAvailable', aliases: ['remoteAvailable'], label: '재택근무 가능' },
-  { key: 'flexibleWorkAvailable', aliases: ['flexibleAvailable'], label: '유연근무 가능' },
+  { key: 'restAreaAvailable', label: '장애인 휴게공간' },
+  { key: 'elevatorAvailable', label: '엘리베이터 이용 가능' },
   { key: 'assistiveTechnologySupport', aliases: ['assistiveDeviceSupport'], label: '보조공학기기 지원' },
 ];
 
@@ -59,15 +59,24 @@ const textOrDash = (value: unknown) => {
 
 const normalizeEmploymentType = (value?: string) => {
   switch (value) {
+    case 'ANY':
+      return '무관';
     case 'FULL_TIME':
       return '정규직';
-    case 'PART_TIME':
-      return '파트타임';
     case 'CONTRACT':
       return '계약직';
+    case 'PERMANENT_CONTRACT':
+      return '무기계약직';
+    case 'CONVERSION_TYPE':
+      return '정규직 전환형';
+    case 'PART_TIME':
+      return '시간제·파트타임';
+    case 'INTERN':
     case 'INTERNSHIP':
       return '인턴';
-    case 'FREELANCER':
+    case 'DISPATCH':
+      return '파견직';
+    case 'FREELANCE':
       return '프리랜서';
     default:
       return '';
@@ -90,12 +99,12 @@ const getProfileChips = (profile: Partial<SavedJobSeekerProfile> | null) => {
     profile.residenceRegion ? `현재 거주지 ${profile.residenceRegion}` : '',
     normalizeEmploymentType(profile.employmentType) ? `고용형태 ${normalizeEmploymentType(profile.employmentType)}` : '',
     profile.minSalary ? `희망연봉 ${profile.minSalary}만원 이상` : '',
-    profile.remotePreferred ? '재택근무 선호' : '',
-    profile.flexiblePreferred ? '유연근무 선호' : '',
     profile.wheelchairRequired ? '휠체어 접근 필요' : '',
     profile.accessibleRestroomRequired ? '장애인 화장실 필요' : '',
     profile.disabledParkingRequired ? '장애인 주차 필요' : '',
     profile.assistiveDeviceRequired ? '보조공학기기 필요' : '',
+    profile.restAreaRequired ? '장애인 휴게공간 필요' : '',
+    profile.elevatorRequired ? '엘리베이터 이용 필요' : '',
   ].filter(Boolean);
 };
 
@@ -338,7 +347,7 @@ function RecommendationCard({
     { label: '경력', score: Math.min(10, Math.max(0, recommendation.careerScore ?? 0)), maximum: 10 },
     { label: '급여', score: Math.min(10, Math.max(0, recommendation.salaryScore ?? 0)), maximum: 10 },
     { label: '근무방식', score: Math.min(10, Math.max(0, recommendation.workStyleScore ?? 0)), maximum: 10 },
-    { label: '접근성', score: Math.min(15, Math.max(0, recommendation.accessibilityScore ?? 0)), maximum: 15 },
+    { label: '접근성', score: Math.min(10, Math.max(0, recommendation.accessibilityScore ?? 0)), maximum: 10 },
   ];
 
   return (
@@ -358,7 +367,7 @@ function RecommendationCard({
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-extrabold text-[#596273]">
                 <MetaPill icon={BriefcaseBusiness} text={getJobRole(recommendation)} tone="blue" />
                 <MetaPill icon={MapPin} text={textOrDash(recommendation.location)} />
-                <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{textOrDash(recommendation.employmentType)}</span>
+                <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{normalizeEmploymentType(recommendation.employmentType) || '-'}</span>
                 <MetaPill icon={WalletCards} text={textOrDash(recommendation.salary)} tone="amber" />
               </div>
             </div>

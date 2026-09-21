@@ -1,6 +1,5 @@
 import {
   ArrowLeft,
-  BadgeCheck,
   Bookmark,
   BookmarkCheck,
   BriefcaseBusiness,
@@ -8,16 +7,12 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
-  Clock3,
   FileText,
   HeartHandshake,
   MapPin,
   MessageCircleQuestion,
-  Phone,
   Send,
-  ShieldCheck,
   UserRound,
-  Users,
   WalletCards,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -37,28 +32,54 @@ interface JobDetailPageProps {
 }
 
 const accessibilityLabels = [
-  { key: 'elevator' as const, label: '엘리베이터' },
+  { key: 'elevator' as const, label: '엘리베이터 이용 가능' },
+  { key: 'restArea' as const, label: '장애인 휴게공간' },
   { key: 'parking' as const, label: '장애인 주차' },
-  { key: 'wheelchair' as const, label: '휠체어 접근' },
+  { key: 'wheelchair' as const, label: '휠체어 접근 가능' },
   { key: 'restroom' as const, label: '장애인 화장실' },
-  { key: 'guideDog' as const, label: '안내견 동반' },
-  { key: 'hearingLoop' as const, label: '보청 지원' },
+  { key: 'hearingLoop' as const, label: '보조공학기기 지원' },
 ];
 
 const getNormalizedJobId = (jobId: string | null) => jobId?.replace(/^job-/, '') || '';
 const isPartTimeJob = (job: Job) => job.workType === 'PART_TIME' || job.category === 'PartTime' || job.requirements.includes('알바');
+const employmentTypeOptions = [
+  { value: 'ANY', label: '무관' }, { value: 'FULL_TIME', label: '정규직' },
+  { value: 'CONTRACT', label: '계약직' }, { value: 'PERMANENT_CONTRACT', label: '무기계약직' },
+  { value: 'CONVERSION_TYPE', label: '정규직 전환형' }, { value: 'PART_TIME', label: '시간제·파트타임' },
+  { value: 'INTERN', label: '인턴' }, { value: 'DISPATCH', label: '파견직' },
+  { value: 'FREELANCE', label: '프리랜서' },
+];
+const employmentTypeAliases: Record<string, string> = { INTERNSHIP: 'INTERN', FULL_TIME_CONVERSION: 'CONVERSION_TYPE', FREELANCER: 'FREELANCE' };
+const employmentCode = (value?: string) => value ? employmentTypeAliases[value] || value : 'ANY';
+
+const employmentLabel = (value: string) => ({
+  ANY: '무관', FULL_TIME: '정규직', CONTRACT: '계약직', PERMANENT_CONTRACT: '무기계약직',
+  CONVERSION_TYPE: '정규직 전환형', PART_TIME: '시간제·파트타임', INTERN: '인턴',
+  INTERNSHIP: '인턴', DISPATCH: '파견직', FREELANCE: '프리랜서',
+}[value] || value);
+
+const workModeLabel = (value?: string) => ({
+  ANY: '무관', OFFICE: '출근', REMOTE: '재택', HYBRID: '하이브리드',
+}[value || 'ANY'] || value || '미입력');
+
+const experienceLabel = (job: Job) => {
+  const value = job.experienceLevel || 'ANY';
+  const years = job.requiredCareerYears ?? (Number(value.match(/\d+/)?.[0] || '') || null);
+  if (value.startsWith('EXPERIENCED')) return years != null ? `경력 ${years}년 이상` : '경력';
+  return ({ ANY: '경력 무관', ENTRY: '신입' }[value] || value);
+};
+
+const educationLabel = (value?: string) => ({
+  ANY: '학력 무관', HIGH_SCHOOL: '고졸 이상', COLLEGE: '전문대졸 이상',
+  UNIVERSITY: '대졸 이상', BACHELOR: '대졸 이상', MASTER: '석사 이상', DOCTOR: '박사 이상',
+}[value || ''] || value || '미입력');
 
 const getJobMeta = (job: Job) => {
-  const partTime = isPartTimeJob(job);
-  const remote = job.isRemote || job.workType.includes('재택');
-
   return {
-    employment: partTime ? '아르바이트' : '정규/계약직',
-    schedule: partTime ? job.workType.replace(' 알바', '') || '협의 가능' : remote ? '주 5일, 유연근무' : '주 5일, 사무실 근무',
-    hours: partTime ? '하루 4~6시간, 시간 협의' : remote ? '09:00~18:00, 선택근무 가능' : '09:00~18:00',
-    payType: job.salary.includes('시급') ? '시급' : job.salary.includes('일급') ? '일급' : '월급/연봉',
-    applyMethods: partTime ? ['온라인 지원', '문자 지원', '전화 문의'] : ['온라인 지원', '이메일 지원'],
-    safeBadges: partTime ? ['기업 인증', '근로계약서 작성', '임금 조건 공개'] : ['기업 인증', '접근성 정보 확인', '채용 절차 공개'],
+    employment: employmentLabel(job.workType),
+    workMode: workModeLabel(job.workMode),
+    experience: experienceLabel(job),
+    education: educationLabel(job.educationLevel),
   };
 };
 
@@ -87,7 +108,7 @@ export function JobDetailPage({
     phone2: initialPhoneParts[1] || '',
     phone3: initialPhoneParts[2] || '',
     email: currentUser?.email || '',
-    employmentType: meta.employment,
+    employmentType: employmentCode(job.workType),
     coverLetter: '',
     privacyAgreed: false,
   });
@@ -141,7 +162,7 @@ export function JobDetailPage({
       ...prev,
       name: prev.name || currentUser.name || '',
       email: prev.email || currentUser.email || '',
-      employmentType: prev.employmentType || meta.employment,
+      employmentType: employmentCode(prev.employmentType || job.workType),
     }));
     setApplyError('');
     setIsApplyOpen(true);
@@ -194,9 +215,6 @@ export function JobDetailPage({
                 <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#7A8495]">
                   <Building2 size={15} />
                   {job.company}
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF8F8] px-2 py-0.5 text-xs text-[#217A83]">
-                    <BadgeCheck size={13} /> 인증 기업
-                  </span>
                 </p>
                 <h1 className="mt-2 text-2xl font-extrabold leading-tight text-black sm:text-3xl">{job.title}</h1>
                 <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold text-[#596273]">
@@ -204,7 +222,7 @@ export function JobDetailPage({
                     <MapPin size={14} /> {job.location}
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F3F6] px-3 py-1">
-                    <BriefcaseBusiness size={14} /> {job.workType}
+                    <BriefcaseBusiness size={14} /> {employmentLabel(job.workType)}
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF7E8] px-3 py-1 text-[#B45309]">
                     <WalletCards size={14} /> {job.salary}
@@ -240,9 +258,9 @@ export function JobDetailPage({
         <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: '급여', value: job.salary, icon: WalletCards },
-            { label: '근무시간', value: meta.hours, icon: Clock3 },
-            { label: '근무일', value: meta.schedule, icon: CalendarDays },
-            { label: '모집인원', value: `${job.headcount}명`, icon: Users },
+            { label: '근무방식', value: meta.workMode, icon: Building2 },
+            { label: '경력 조건', value: meta.experience, icon: BriefcaseBusiness },
+            { label: '마감일', value: job.deadline, icon: CalendarDays },
           ].map(item => {
             const Icon = item.icon;
             return (
@@ -261,12 +279,16 @@ export function JobDetailPage({
             <article className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
               <h2 className="text-lg font-extrabold text-black">주요 업무</h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-[#344054]">{job.description}</p>
+            </article>
+
+            <article className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-extrabold text-black">필수 요건</h2>
               <div className="mt-4 flex flex-wrap gap-2">
-                {job.requirements.map(requirement => (
+                {job.requirements.length > 0 ? job.requirements.map(requirement => (
                   <span key={requirement} className="rounded-full bg-[#E4EFFF] px-3 py-1.5 text-xs font-extrabold text-[#0D6BEA]">
                     {requirement}
                   </span>
-                ))}
+                )) : <p className="text-sm font-semibold text-[#7A8495]">등록된 필수 요건이 없습니다.</p>}
               </div>
             </article>
 
@@ -275,9 +297,12 @@ export function JobDetailPage({
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {[
                   ['고용형태', meta.employment],
-                  ['급여형태', meta.payType],
+                  ['근무방식', meta.workMode],
+                  ['경력조건', meta.experience],
+                  ['급여', job.salary],
                   ['근무지', job.location],
-                  ['지원방법', meta.applyMethods.join(', ')],
+                  ['직무분야', job.category || '미입력'],
+                  ['등록일', job.posted || '미입력'],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-lg bg-[#F8FAFC] px-4 py-3">
                     <p className="text-xs font-bold text-[#7A8495]">{label}</p>
@@ -288,14 +313,14 @@ export function JobDetailPage({
             </article>
 
             <article className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-extrabold text-black">복리후생 및 안심 배지</h2>
+              <h2 className="text-lg font-extrabold text-black">우대 사항</h2>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {[...meta.safeBadges, ...job.benefits].map(benefit => (
+                {job.benefits.length > 0 ? job.benefits.map(benefit => (
                   <span key={benefit} className="inline-flex items-center gap-2 rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm font-bold text-[#344054]">
                     <Check size={15} className="text-[#14843C]" />
                     {benefit}
                   </span>
-                ))}
+                )) : <p className="text-sm font-semibold text-[#7A8495]">등록된 우대 사항이 없습니다.</p>}
               </div>
             </article>
 
@@ -315,6 +340,11 @@ export function JobDetailPage({
                   </span>
                 ))}
               </div>
+              {job.accessibilityInfo && (
+                <p className="mt-4 whitespace-pre-line rounded-lg bg-[#F8FAFC] px-4 py-3 text-sm font-semibold leading-6 text-[#344054]">
+                  {job.accessibilityInfo}
+                </p>
+              )}
             </article>
 
             <article className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
@@ -339,13 +369,13 @@ export function JobDetailPage({
                   <span>{job.deadline}</span>
                 </p>
                 <p className="flex items-center justify-between gap-3">
-                  <span className="inline-flex items-center gap-2 text-[#7A8495]"><Users size={16} /> 모집 인원</span>
-                  <span>{job.headcount}명</span>
+                  <span className="inline-flex items-center gap-2 text-[#7A8495]"><BriefcaseBusiness size={16} /> 직무 분야</span>
+                  <span>{job.category || '미입력'}</span>
                 </p>
-                <p className="flex items-center justify-between gap-3">
-                  <span className="inline-flex items-center gap-2 text-[#7A8495]"><ShieldCheck size={16} /> AI 매칭</span>
-                  <span className="text-[#0D6BEA]">{job.aiScore}%</span>
-                </p>
+                {job.posted && <p className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-[#7A8495]"><CalendarDays size={16} /> 등록일</span>
+                  <span>{job.posted}</span>
+                </p>}
               </div>
               <button
                 type="button"
@@ -367,9 +397,9 @@ export function JobDetailPage({
               </h2>
               <div className="mt-3 space-y-2">
                 {[
-                  `초보도 지원할 수 있나요? ${job.requirements.includes('초보 가능') ? '가능합니다.' : '요구 역량을 확인해 주세요.'}`,
-                  `근무 시간은? ${meta.hours}`,
-                  `지원 방법은? ${meta.applyMethods.join(', ')}`,
+                  `경력 조건은? ${meta.experience}`,
+                  `근무 방식은? ${meta.workMode}`,
+                  `지원 마감일은? ${job.deadline}`,
                 ].map(question => (
                   <p key={question} className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-sm font-bold leading-6 text-[#344054]">
                     {question}
@@ -382,15 +412,12 @@ export function JobDetailPage({
               <h2 className="text-lg font-extrabold text-black">기업 정보</h2>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#596273]">{job.companyDesc}</p>
               <div className="mt-4 rounded-lg bg-[#F8FAFC] px-4 py-3">
-                <p className="text-sm font-extrabold text-black">{job.company} 채용담당자</p>
-                <p className="mt-2 flex items-center gap-2 text-sm font-bold text-[#596273]">
-                  <Phone size={15} />
-                  안심번호로 문의 가능
-                </p>
+                <p className="text-sm font-extrabold text-black">{job.company}</p>
+                <p className="mt-2 text-sm font-bold text-[#596273]">기업회원이 직접 등록한 채용공고입니다.</p>
               </div>
             </section>
 
-            <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
+            {job.aiReasons.length > 0 && <section className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm">
               <h2 className="text-lg font-extrabold text-black">AI 추천 이유</h2>
               <div className="mt-3 space-y-2">
                 {job.aiReasons.slice(0, 3).map(reason => (
@@ -400,7 +427,7 @@ export function JobDetailPage({
                   </p>
                 ))}
               </div>
-            </section>
+            </section>}
           </aside>
         </div>
       </main>
@@ -486,9 +513,7 @@ export function JobDetailPage({
                     onChange={event => updateApplicationForm('employmentType', event.target.value)}
                     className="h-11 rounded border border-[#D7DDE5] bg-white px-3 text-sm font-bold text-[#344054] outline-none focus:border-[#0D6BEA]"
                   >
-                    <option value="아르바이트">아르바이트</option>
-                    <option value="정규/계약직">정규/계약직</option>
-                    <option value="인턴">인턴</option>
+                    {employmentTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
 

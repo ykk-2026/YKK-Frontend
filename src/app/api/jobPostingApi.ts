@@ -8,8 +8,9 @@ export interface JobPostingForm {
   employmentType: string;
   location: string;
   salaryMin: number | null;
-  salaryMax: number | null;
+  workType: string;
   experienceLevel: string;
+  requiredCareerYears: number | null;
   educationLevel: string;
   description: string;
   requirements: string;
@@ -18,8 +19,8 @@ export interface JobPostingForm {
   wheelchairAccessible: boolean;
   accessibleRestroom: boolean;
   disabledParking: boolean;
-  remoteAvailable: boolean;
-  flexibleWorkAvailable: boolean;
+  restAreaAvailable: boolean;
+  elevatorAvailable: boolean;
   assistiveDeviceSupport: boolean;
   deadline: string;
 }
@@ -66,10 +67,15 @@ export const toJob = (posting: JobPosting): Job => ({
   companyColor: '#2563EB',
   title: posting.title,
   location: posting.location,
-  salary: salaryText(posting.salaryMin, posting.salaryMax),
+  salary: salaryText(posting.salaryMin),
   workType: posting.employmentType,
-  isRemote: posting.remoteAvailable,
+  workMode: posting.workType,
+  isRemote: posting.workType === 'REMOTE' || posting.workType === 'HYBRID',
   category: posting.jobCategory,
+  experienceLevel: posting.experienceLevel,
+  requiredCareerYears: posting.requiredCareerYears,
+  educationLevel: posting.educationLevel,
+  accessibilityInfo: posting.accessibilityInfo,
   requirements: splitText(posting.requirements),
   deadline: posting.deadline || '상시채용',
   posted: posting.createdAt?.slice(0, 10) || '',
@@ -78,9 +84,9 @@ export const toJob = (posting: JobPosting): Job => ({
   description: posting.description || '상세 업무 내용은 기업 담당자에게 문의해 주세요.',
   benefits: splitText(posting.preferredQualifications),
   companyDesc: `${posting.companyName}에서 등록한 채용공고입니다.`,
-  headcount: 1,
   accessibility: {
-    elevator: false,
+    elevator: posting.elevatorAvailable,
+    restArea: posting.restAreaAvailable,
     parking: posting.disabledParking,
     wheelchair: posting.wheelchairAccessible,
     restroom: posting.accessibleRestroom,

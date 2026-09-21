@@ -16,14 +16,13 @@ export interface ApiJobSeekerProfile {
   careerType?: string | null;
   careerYears?: number | null;
   minSalary?: number | null;
-  remotePreferred?: boolean | null;
-  flexiblePreferred?: boolean | null;
+  workType?: string | null;
   wheelchairRequired?: boolean | null;
   accessibleRestroomRequired?: boolean | null;
   disabledParkingRequired?: boolean | null;
   assistiveDeviceRequired?: boolean | null;
-  hybridPreferred?: boolean | null;
-  onsitePreferred?: boolean | null;
+  restAreaRequired?: boolean | null;
+  elevatorRequired?: boolean | null;
   contactTimeStart?: string | null;
   contactTimeEnd?: string | null;
   contactMethod?: string | null;

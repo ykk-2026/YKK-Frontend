@@ -437,8 +437,9 @@ export default function App() {
       email: profile.email, phone: profile.phone,
       currentRegion: profile.residenceRegion || prev.currentRegion,
       preferredRole: profile.desiredJob || prev.preferredRole,
-      remotePreferred: Boolean(profile.remotePreferred),
-      flexiblePreferred: Boolean(profile.flexiblePreferred),
+      workType: profile.workType || 'ANY',
+      restAreaRequired: Boolean(profile.restAreaRequired),
+      elevatorRequired: Boolean(profile.elevatorRequired),
     } : prev);
   };
 

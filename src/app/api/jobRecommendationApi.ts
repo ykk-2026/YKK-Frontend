@@ -7,6 +7,7 @@ export interface JobRecommendationDto {
   duty?: string | null;
   location: string;
   employmentType: string;
+  workType?: string;
   salary: string;
   totalScore: number;
   jobScore?: number;
@@ -26,9 +27,9 @@ export interface JobRecommendationDto {
   disabledRestroom?: boolean;
   accessibleRestroom?: boolean;
   disabledParking?: boolean;
+  restAreaAvailable?: boolean;
+  elevatorAvailable?: boolean;
   remoteWorkAvailable?: boolean;
-  remoteAvailable?: boolean;
-  flexibleWorkAvailable?: boolean;
   flexibleAvailable?: boolean;
   assistiveTechnologySupport?: boolean;
   assistiveDeviceSupport?: boolean;
@@ -43,13 +44,13 @@ interface ApiRecommendation extends Omit<JobRecommendationDto, 'job'> {
     jobCategory: string;
     location: string;
     employmentType: string;
+    workType?: string;
     salaryMin?: number | null;
-    salaryMax?: number | null;
     wheelchairAccessible?: boolean;
     accessibleRestroom?: boolean;
     disabledParking?: boolean;
-    remoteAvailable?: boolean;
-    flexibleWorkAvailable?: boolean;
+    restAreaAvailable?: boolean;
+    elevatorAvailable?: boolean;
     assistiveDeviceSupport?: boolean;
     accessibilityInfo?: string | null;
   } | null;
@@ -92,13 +93,14 @@ const flattenRecommendation = (item: ApiRecommendation): JobRecommendationDto =>
     jobCategory: job.jobCategory,
     location: job.location,
     employmentType: job.employmentType,
-    salary: salaryText(job.salaryMin, job.salaryMax),
+    workType: job.workType,
+    salary: salaryText(job.salaryMin),
     recommendReason: item.recommendReason || item.recommendationReason,
     wheelchairAccessible: job.wheelchairAccessible,
     accessibleRestroom: job.accessibleRestroom,
     disabledParking: job.disabledParking,
-    remoteAvailable: job.remoteAvailable,
-    flexibleWorkAvailable: job.flexibleWorkAvailable,
+    restAreaAvailable: job.restAreaAvailable,
+    elevatorAvailable: job.elevatorAvailable,
     assistiveDeviceSupport: job.assistiveDeviceSupport,
     accessibilitySupport: job.accessibilityInfo,
   };

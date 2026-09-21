@@ -12,10 +12,16 @@ interface JobsPageProps {
 }
 
 const employmentLabel = (value: string) => ({
+  ANY: '무관',
   FULL_TIME: '정규직',
   CONTRACT: '계약직',
-  PART_TIME: '파트타임',
+  PERMANENT_CONTRACT: '무기계약직',
+  CONVERSION_TYPE: '정규직 전환형',
+  PART_TIME: '시간제·파트타임',
   INTERN: '인턴',
+  INTERNSHIP: '인턴',
+  DISPATCH: '파견직',
+  FREELANCE: '프리랜서',
 }[value] || value);
 
 export function JobsPage({

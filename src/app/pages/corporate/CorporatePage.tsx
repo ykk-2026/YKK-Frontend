@@ -25,8 +25,9 @@ const emptyForm: JobPostingForm = {
   employmentType: 'FULL_TIME',
   location: '',
   salaryMin: null,
-  salaryMax: null,
+  workType: 'ANY',
   experienceLevel: 'ANY',
+  requiredCareerYears: null,
   educationLevel: '',
   description: '',
   requirements: '',
@@ -35,8 +36,8 @@ const emptyForm: JobPostingForm = {
   wheelchairAccessible: false,
   accessibleRestroom: false,
   disabledParking: false,
-  remoteAvailable: false,
-  flexibleWorkAvailable: false,
+  restAreaAvailable: false,
+  elevatorAvailable: false,
   assistiveDeviceSupport: false,
   deadline: '',
 };
@@ -88,8 +89,16 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
     setForm(previous => ({ ...previous, [name]: value }));
   };
 
-  const updateNumber = (name: 'salaryMin' | 'salaryMax', value: string) => {
+  const updateNumber = (name: 'salaryMin' | 'requiredCareerYears', value: string) => {
     setForm(previous => ({ ...previous, [name]: value ? Number(value) : null }));
+  };
+
+  const updateExperienceLevel = (value: string) => {
+    setForm(previous => ({
+      ...previous,
+      experienceLevel: value,
+      requiredCareerYears: value === 'EXPERIENCED' ? previous.requiredCareerYears : null,
+    }));
   };
 
   const updateCheck = (name: keyof JobPostingForm, checked: boolean) => {
@@ -102,10 +111,15 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
     setMessage('');
     setError('');
     try {
+      const payload = {
+        ...form,
+        experienceLevel: form.experienceLevel === 'EXPERIENCED' && form.requiredCareerYears != null
+          ? `EXPERIENCED ${form.requiredCareerYears}` : form.experienceLevel,
+      };
       if (editingJobId == null) {
-        await createJobPosting(form);
+        await createJobPosting(payload);
       } else {
-        await updateJobPosting(editingJobId, form);
+        await updateJobPosting(editingJobId, payload);
       }
       setForm({ ...emptyForm, companyName: form.companyName });
       setMessage(editingJobId == null
@@ -130,8 +144,9 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
       employmentType: job.employmentType,
       location: job.location,
       salaryMin: job.salaryMin,
-      salaryMax: job.salaryMax,
-      experienceLevel: job.experienceLevel || 'ANY',
+      workType: job.workType || 'ANY',
+      experienceLevel: job.experienceLevel?.startsWith('EXPERIENCED') ? 'EXPERIENCED' : job.experienceLevel || 'ANY',
+      requiredCareerYears: job.requiredCareerYears ?? (Number(job.experienceLevel?.match(/\d+/)?.[0] || '') || null),
       educationLevel: job.educationLevel || '',
       description: job.description || '',
       requirements: job.requirements || '',
@@ -140,8 +155,8 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
       wheelchairAccessible: Boolean(job.wheelchairAccessible),
       accessibleRestroom: Boolean(job.accessibleRestroom),
       disabledParking: Boolean(job.disabledParking),
-      remoteAvailable: Boolean(job.remoteAvailable),
-      flexibleWorkAvailable: Boolean(job.flexibleWorkAvailable),
+      restAreaAvailable: Boolean(job.restAreaAvailable),
+      elevatorAvailable: Boolean(job.elevatorAvailable),
       assistiveDeviceSupport: Boolean(job.assistiveDeviceSupport),
       deadline: job.deadline || '',
     });
@@ -217,31 +232,39 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
               <Field label="직무 분야 *"><input required value={form.jobCategory} onChange={event => updateText('jobCategory', event.target.value)} placeholder="예: 백엔드 개발" /></Field>
               <Field label="고용 형태 *">
                 <select value={form.employmentType} onChange={event => updateText('employmentType', event.target.value)}>
-                  <option value="FULL_TIME">정규직</option><option value="CONTRACT">계약직</option><option value="PART_TIME">파트타임</option><option value="INTERN">인턴</option>
+                  <option value="ANY">무관</option><option value="FULL_TIME">정규직</option><option value="CONTRACT">계약직</option><option value="PERMANENT_CONTRACT">무기계약직</option><option value="CONVERSION_TYPE">정규직 전환형</option><option value="PART_TIME">시간제·파트타임</option><option value="INTERN">인턴</option><option value="DISPATCH">파견직</option><option value="FREELANCE">프리랜서</option>
                 </select>
               </Field>
               <Field label="실제 근무지 상세주소 *"><input required value={form.location} onChange={event => updateText('location', event.target.value)} placeholder="예: 서울특별시 송파구 올림픽로 300" /></Field>
-              <Field label="최소 연봉(만원)"><input type="number" min="0" value={form.salaryMin ?? ''} onChange={event => updateNumber('salaryMin', event.target.value)} /></Field>
-              <Field label="최대 연봉(만원)"><input type="number" min="0" value={form.salaryMax ?? ''} onChange={event => updateNumber('salaryMax', event.target.value)} /></Field>
+              <Field label="근무방식">
+                <select value={form.workType} onChange={event => updateText('workType', event.target.value)}>
+                  <option value="ANY">무관</option><option value="OFFICE">출근</option><option value="REMOTE">재택</option><option value="HYBRID">하이브리드</option>
+                </select>
+              </Field>
+              <Field label="연봉(만원)"><input type="number" min="0" value={form.salaryMin ?? ''} onChange={event => updateNumber('salaryMin', event.target.value)} /></Field>
               <Field label="경력 조건">
-                <select value={form.experienceLevel} onChange={event => updateText('experienceLevel', event.target.value)}>
+                <select value={form.experienceLevel} onChange={event => updateExperienceLevel(event.target.value)}>
                   <option value="ANY">경력 무관</option><option value="ENTRY">신입</option><option value="EXPERIENCED">경력</option>
                 </select>
               </Field>
+              {form.experienceLevel === 'EXPERIENCED' && (
+                <Field label="요구 경력 연수">
+                  <input type="number" min="0" required value={form.requiredCareerYears ?? ''} onChange={event => updateNumber('requiredCareerYears', event.target.value)} placeholder="예: 3" />
+                </Field>
+              )}
               <Field label="마감일"><input type="date" value={form.deadline} onChange={event => updateText('deadline', event.target.value)} /></Field>
             </div>
             <div className="mt-4 grid gap-4">
               <Field label="업무 내용"><textarea rows={4} value={form.description} onChange={event => updateText('description', event.target.value)} /></Field>
               <Field label="필수 요건"><textarea rows={3} value={form.requirements} onChange={event => updateText('requirements', event.target.value)} placeholder="쉼표 또는 줄바꿈으로 구분" /></Field>
               <Field label="우대 사항"><textarea rows={3} value={form.preferredQualifications} onChange={event => updateText('preferredQualifications', event.target.value)} /></Field>
-              <Field label="접근성 안내"><textarea rows={2} value={form.accessibilityInfo} onChange={event => updateText('accessibilityInfo', event.target.value)} /></Field>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Check label="휠체어 접근 가능" checked={form.wheelchairAccessible} onChange={value => updateCheck('wheelchairAccessible', value)} />
               <Check label="장애인 화장실" checked={form.accessibleRestroom} onChange={value => updateCheck('accessibleRestroom', value)} />
               <Check label="장애인 주차" checked={form.disabledParking} onChange={value => updateCheck('disabledParking', value)} />
-              <Check label="재택근무 가능" checked={form.remoteAvailable} onChange={value => updateCheck('remoteAvailable', value)} />
-              <Check label="유연근무 가능" checked={form.flexibleWorkAvailable} onChange={value => updateCheck('flexibleWorkAvailable', value)} />
+              <Check label="장애인 휴게공간" checked={form.restAreaAvailable} onChange={value => updateCheck('restAreaAvailable', value)} />
+              <Check label="엘리베이터 이용 가능" checked={form.elevatorAvailable} onChange={value => updateCheck('elevatorAvailable', value)} />
               <Check label="보조공학기기 지원" checked={form.assistiveDeviceSupport} onChange={value => updateCheck('assistiveDeviceSupport', value)} />
             </div>
             {message && <p className="mt-4 rounded-lg bg-[#E7F8EF] p-3 text-sm font-bold text-[#14843C]">{message}</p>}

@@ -5,22 +5,19 @@ export interface InterestJob {
   id: number;
   companyName: string;
   title: string;
+  workType: string;
   accessibilityInfo: string | null;
   wheelchairAccessible: boolean;
   accessibleRestroom: boolean;
   disabledParking: boolean;
-  remoteAvailable: boolean;
-  flexibleWorkAvailable: boolean;
+  restAreaAvailable: boolean;
+  elevatorAvailable: boolean;
   assistiveDeviceSupport: boolean;
 }
 
-const salaryRange = (salary: string) => {
-  const values = salary.match(/\d[\d,]*/g)?.map(value => Number(value.replaceAll(',', ''))) || [];
-  return { salaryMin: values[0] || null, salaryMax: values[1] || null };
-};
-
 const accessibilityLabels: Record<keyof Job['accessibility'], string> = {
   elevator: '엘리베이터',
+  restArea: '장애인 휴게공간',
   parking: '장애인 주차시설',
   wheelchair: '휠체어 접근',
   restroom: '장애인 화장실',

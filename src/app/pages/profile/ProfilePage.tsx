@@ -47,19 +47,19 @@ const menuItems = [
   { label: '계정 설정', icon: Lock },
 ];
 
-const workTypes = [
-  { label: '재택근무', field: 'remotePreferred' as const },
-  { label: '유연근무', field: 'flexiblePreferred' as const },
-  { label: '하이브리드', field: 'hybridPreferred' as const },
-  { label: '출퇴근 근무', field: 'onsitePreferred' as const },
+const workTypeOptions = [
+  { value: 'ANY', label: '무관' },
+  { value: 'OFFICE', label: '출근' },
+  { value: 'REMOTE', label: '재택' },
+  { value: 'HYBRID', label: '하이브리드' },
 ];
 
 const workEnvironmentOptions = [
   { label: '휠체어 접근 필요', field: 'wheelchairRequired' as const },
   { label: '장애인 화장실 필요', field: 'accessibleRestroomRequired' as const },
   { label: '장애인 주차시설 필요', field: 'disabledParkingRequired' as const },
-  { label: '재택근무 선호', field: 'remotePreferred' as const },
-  { label: '유연근무 선호', field: 'flexiblePreferred' as const },
+  { label: '장애인 휴게공간', field: 'restAreaRequired' as const },
+  { label: '엘리베이터 이용 가능', field: 'elevatorRequired' as const },
   { label: '보조공학기기 필요', field: 'assistiveDeviceRequired' as const },
 ];
 
@@ -99,11 +99,17 @@ const genderLabels: Record<string, string> = {
 const employmentTypeOptions = [
   { value: 'ANY', label: '무관' },
   { value: 'FULL_TIME', label: '정규직' },
-  { value: 'PART_TIME', label: '파트타임' },
   { value: 'CONTRACT', label: '계약직' },
-  { value: 'INTERNSHIP', label: '인턴' },
-  { value: 'FREELANCER', label: '프리랜서' },
+  { value: 'PERMANENT_CONTRACT', label: '무기계약직' },
+  { value: 'CONVERSION_TYPE', label: '정규직 전환형' },
+  { value: 'PART_TIME', label: '시간제·파트타임' },
+  { value: 'INTERN', label: '인턴' },
+  { value: 'DISPATCH', label: '파견직' },
+  { value: 'FREELANCE', label: '프리랜서' },
 ];
+
+const employmentTypeAliases: Record<string, string> = { INTERNSHIP: 'INTERN', FULL_TIME_CONVERSION: 'CONVERSION_TYPE', FREELANCER: 'FREELANCE' };
+const normalizeEmploymentTypeValue = (value?: string | null) => value ? employmentTypeAliases[value] || value : 'ANY';
 
 const careerTypeOptions = [
   { value: 'ANY', label: '무관' },
@@ -149,15 +155,16 @@ const toProfileFormValues = (profile: ApiJobSeekerProfile) => ({
   name: profile.name || '', birthDate: profile.birthDate || '', gender: profile.gender || 'OTHER',
   email: profile.email || '', phone: profile.phone || '', residenceRegion: profile.residenceRegion || '',
   desiredJob: profile.desiredJob || '', desiredRegion: profile.desiredRegion || '',
-  employmentType: profile.employmentType || 'ANY', careerType: profile.careerType || 'ANY',
+  employmentType: normalizeEmploymentTypeValue(profile.employmentType), careerType: profile.careerType || 'ANY',
   careerYears: String(profile.careerYears ?? 0),
   minSalary: profile.minSalary ? Number(profile.minSalary).toLocaleString('ko-KR') : '',
-  remotePreferred: Boolean(profile.remotePreferred), flexiblePreferred: Boolean(profile.flexiblePreferred),
-  hybridPreferred: Boolean(profile.hybridPreferred), onsitePreferred: Boolean(profile.onsitePreferred),
+  workType: profile.workType || 'ANY',
   wheelchairRequired: Boolean(profile.wheelchairRequired),
   accessibleRestroomRequired: Boolean(profile.accessibleRestroomRequired),
   disabledParkingRequired: Boolean(profile.disabledParkingRequired),
   assistiveDeviceRequired: Boolean(profile.assistiveDeviceRequired),
+  restAreaRequired: Boolean(profile.restAreaRequired),
+  elevatorRequired: Boolean(profile.elevatorRequired),
   contactTimeStart: profile.contactTimeStart || '09:00', contactTimeEnd: profile.contactTimeEnd || '18:00',
   contactMethod: profile.contactMethod || 'PHONE', introduction: profile.introduction || '',
   profilePublic: profile.profilePublic ?? true,
@@ -216,7 +223,7 @@ export function ProfilePage({
     phone2: '',
     phone3: '',
     email: '',
-    employmentType: '정규/계약직',
+    employmentType: 'FULL_TIME',
     coverLetter: '',
     privacyAgreed: true,
   });
@@ -242,14 +249,13 @@ export function ProfilePage({
     careerType: 'ANY',
     careerYears: '0',
     minSalary: '',
-    remotePreferred: Boolean(currentUser?.remotePreferred),
-    flexiblePreferred: Boolean(currentUser?.flexiblePreferred),
-    hybridPreferred: false,
-    onsitePreferred: false,
+    workType: currentUser?.workType || 'ANY',
     wheelchairRequired: Boolean(currentUser?.wheelchairRequired),
     accessibleRestroomRequired: Boolean(currentUser?.accessibleRestroomRequired),
     disabledParkingRequired: Boolean(currentUser?.disabledParkingRequired),
     assistiveDeviceRequired: Boolean(currentUser?.assistiveDeviceRequired),
+    restAreaRequired: Boolean(currentUser?.restAreaRequired),
+    elevatorRequired: Boolean(currentUser?.elevatorRequired),
     contactTimeStart: '09:00',
     contactTimeEnd: '18:00',
     contactMethod: 'PHONE',
@@ -315,11 +321,6 @@ export function ProfilePage({
     setApplicationEditError('');
   };
 
-  const toggleWorkType = (field: (typeof workTypes)[number]['field']) => {
-    setProfileForm(prev => ({ ...prev, [field]: !prev[field] }));
-    setSavedMessage('');
-  };
-
   const saveProfileAvatar = (nextAvatar: ProfileAvatar, message: string) => {
     setProfileAvatar(nextAvatar);
     try {
@@ -368,12 +369,14 @@ export function ProfilePage({
       residenceRegion: profileForm.residenceRegion, desiredJob: profileForm.desiredJob.trim(),
       desiredRegion: profileForm.desiredRegion, employmentType: profileForm.employmentType,
       careerType: profileForm.careerType, careerYears: toNumberOrNull(profileForm.careerYears),
-      minSalary: toNumberOrNull(profileForm.minSalary), remotePreferred: profileForm.remotePreferred,
-      flexiblePreferred: profileForm.flexiblePreferred, wheelchairRequired: profileForm.wheelchairRequired,
+      minSalary: toNumberOrNull(profileForm.minSalary),
+      workType: profileForm.workType,
+      wheelchairRequired: profileForm.wheelchairRequired,
       accessibleRestroomRequired: profileForm.accessibleRestroomRequired,
       disabledParkingRequired: profileForm.disabledParkingRequired,
       assistiveDeviceRequired: profileForm.assistiveDeviceRequired,
-      hybridPreferred: profileForm.hybridPreferred, onsitePreferred: profileForm.onsitePreferred,
+      restAreaRequired: profileForm.restAreaRequired,
+      elevatorRequired: profileForm.elevatorRequired,
       contactTimeStart: profileForm.contactTimeStart, contactTimeEnd: profileForm.contactTimeEnd,
       contactMethod: profileForm.contactMethod, introduction: profileForm.introduction,
       profilePublic: profileForm.profilePublic,
@@ -434,7 +437,7 @@ export function ProfilePage({
       phone2: phoneParts[1] || '',
       phone3: phoneParts[2] || '',
       email: savedApplication?.email || profileForm.email,
-      employmentType: savedApplication?.employmentType || (job.category === 'PartTime' ? '아르바이트' : '정규/계약직'),
+      employmentType: normalizeEmploymentTypeValue(savedApplication?.employmentType || job.workType || (job.category === 'PartTime' ? 'PART_TIME' : 'FULL_TIME')),
       coverLetter: savedApplication?.coverLetter || '',
       privacyAgreed: savedApplication?.privacyAgreed ?? true,
     });
@@ -489,7 +492,7 @@ export function ProfilePage({
     closeApplicationEdit();
   };
 
-  const selectedWorkTypes = workTypes.filter(item => profileForm[item.field]).map(item => item.label);
+  const selectedWorkType = workTypeOptions.find(item => item.value === profileForm.workType)?.label || '무관';
 
   return (
     <div className="min-h-screen bg-[#F3F7FF] text-[#111827]">
@@ -881,13 +884,19 @@ export function ProfilePage({
                     </select>
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-bold">경력 구분</span>
+                    <span className="mb-2 block text-sm font-bold">희망 근무방식</span>
+                    <select className="w-full rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-sm" value={profileForm.workType} onChange={event => updateForm('workType', event.target.value)}>
+                      {workTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold">희망 직무 경력 구분</span>
                     <select className="w-full rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-sm" value={profileForm.careerType} onChange={event => updateForm('careerType', event.target.value)}>
                       {careerTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-bold">경력 연수</span>
+                    <span className="mb-2 block text-sm font-bold">희망 직무 경력 연수</span>
                     <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 text-sm" value={profileForm.careerYears} onChange={event => updateForm('careerYears', formatCareerYears(event.target.value))} inputMode="numeric" placeholder="예: 3" />
                   </label>
                   <label className="block">
@@ -1082,9 +1091,7 @@ export function ProfilePage({
                     onChange={event => updateApplicationEditForm('employmentType', event.target.value)}
                     className="h-11 rounded border border-[#D7DDE5] bg-white px-3 text-sm font-bold text-[#344054] outline-none focus:border-[#0D6BEA]"
                   >
-                    <option value="아르바이트">아르바이트</option>
-                    <option value="정규/계약직">정규/계약직</option>
-                    <option value="인턴">인턴</option>
+                    {employmentTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
               </div>
@@ -1148,7 +1155,7 @@ export function ProfilePage({
               <p><b>현재 거주지 상세주소</b> {profileForm.residenceRegion}</p>
               <p><b>경력</b> {careerTypeOptions.find(option => option.value === profileForm.careerType)?.label} / {profileForm.careerYears || 0}년</p>
               <p><b>희망 최소 연봉</b> {profileForm.minSalary ? `${formatSalaryLabel(profileForm.minSalary)} 이상` : '미입력'}</p>
-              <p><b>근무 방식</b> {selectedWorkTypes.length > 0 ? selectedWorkTypes.join(', ') : '미선택'}</p>
+              <p><b>근무 방식</b> {selectedWorkType}</p>
               <p><b>연락 가능 시간</b> {profileForm.contactTimeStart} ~ {profileForm.contactTimeEnd}</p>
               <p><b>선호 연락 방식</b> {contactMethodOptions.find(option => option.value === profileForm.contactMethod)?.label}</p>
               <p><b>공개 여부</b> {profileForm.profilePublic ? '공개' : '비공개'}</p>

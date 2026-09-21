@@ -41,12 +41,13 @@ export interface CurrentUser {
   birthDate?: string;
   gender?: string;
   preferredRole?: string;
-  remotePreferred?: boolean;
-  flexiblePreferred?: boolean;
+  workType?: string;
   wheelchairRequired?: boolean;
   accessibleRestroomRequired?: boolean;
   disabledParkingRequired?: boolean;
   assistiveDeviceRequired?: boolean;
+  restAreaRequired?: boolean;
+  elevatorRequired?: boolean;
   memberRole?: MemberRole;
   status?: MemberStatus;
   companyProfile?: CompanyProfileData;
@@ -112,8 +113,13 @@ export interface Job {
   location: string;
   salary: string;
   workType: string;
+  workMode: string;
   isRemote: boolean;
   category: string;
+  experienceLevel?: string;
+  requiredCareerYears?: number | null;
+  educationLevel?: string;
+  accessibilityInfo?: string;
   requirements: string[];
   deadline: string;
   posted: string;
@@ -122,9 +128,9 @@ export interface Job {
   description: string;
   benefits: string[];
   companyDesc: string;
-  headcount: number;
   accessibility: {
     elevator: boolean;
+    restArea: boolean;
     parking: boolean;
     wheelchair: boolean;
     restroom: boolean;

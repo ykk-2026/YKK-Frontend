@@ -11,14 +11,13 @@ export interface SavedJobSeekerProfile {
   careerType: string;
   careerYears: string;
   minSalary: string;
-  remotePreferred: boolean;
-  flexiblePreferred: boolean;
-  hybridPreferred: boolean;
-  onsitePreferred: boolean;
+  workType: string;
   wheelchairRequired: boolean;
   accessibleRestroomRequired: boolean;
   disabledParkingRequired: boolean;
   assistiveDeviceRequired: boolean;
+  restAreaRequired: boolean;
+  elevatorRequired: boolean;
   contactTimeStart: string;
   contactTimeEnd: string;
   contactMethod: string;
