@@ -8,6 +8,8 @@ interface JobCardProps {
   onBookmark: (id: string) => void;
 }
 
+const employmentLabel = (value: string) => value === 'REGULAR_EMPLOYEE' ? '상용직' : value;
+
 export function JobCard({ job, navigate, bookmarked, onBookmark }: JobCardProps) {
   return (
     <article className="bg-white border border-border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -40,7 +42,7 @@ export function JobCard({ job, navigate, bookmarked, onBookmark }: JobCardProps)
         </span>
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted">
           <Wifi size={13} />
-          {job.workType}
+          {employmentLabel(job.workType)}
         </span>
         <span className="px-2.5 py-1 rounded-full bg-muted">{job.salary}</span>
       </div>

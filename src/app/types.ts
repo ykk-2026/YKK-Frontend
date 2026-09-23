@@ -106,6 +106,7 @@ export interface CompanyProfileData {
 
 export interface Job {
   id: string;
+  source?: string;
   company: string;
   companyInitials: string;
   companyColor: string;

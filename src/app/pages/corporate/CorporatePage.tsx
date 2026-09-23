@@ -28,7 +28,7 @@ const emptyForm: JobPostingForm = {
   workType: 'ANY',
   experienceLevel: 'ANY',
   requiredCareerYears: null,
-  educationLevel: '',
+  educationLevel: 'ANY',
   description: '',
   requirements: '',
   preferredQualifications: '',
@@ -232,7 +232,12 @@ export function CorporatePage({ currentUser, navigate, onJobsChanged }: Corporat
               <Field label="직무 분야 *"><input required value={form.jobCategory} onChange={event => updateText('jobCategory', event.target.value)} placeholder="예: 백엔드 개발" /></Field>
               <Field label="고용 형태 *">
                 <select value={form.employmentType} onChange={event => updateText('employmentType', event.target.value)}>
-                  <option value="ANY">무관</option><option value="FULL_TIME">정규직</option><option value="CONTRACT">계약직</option><option value="PERMANENT_CONTRACT">무기계약직</option><option value="CONVERSION_TYPE">정규직 전환형</option><option value="PART_TIME">시간제·파트타임</option><option value="INTERN">인턴</option><option value="DISPATCH">파견직</option><option value="FREELANCE">프리랜서</option>
+                  <option value="ANY">무관</option><option value="FULL_TIME">정규직</option><option value="REGULAR_EMPLOYEE">상용직</option><option value="CONTRACT">계약직</option><option value="PERMANENT_CONTRACT">무기계약직</option><option value="CONVERSION_TYPE">정규직 전환형</option><option value="PART_TIME">시간제·파트타임</option><option value="INTERN">인턴</option><option value="DISPATCH">파견직</option><option value="FREELANCE">프리랜서</option>
+                </select>
+              </Field>
+              <Field label="학력 조건">
+                <select value={form.educationLevel} onChange={event => updateText('educationLevel', event.target.value)}>
+                  <option value="ANY">학력 무관</option><option value="ELEMENTARY_SCHOOL">초졸 이상</option><option value="MIDDLE_SCHOOL">중졸 이상</option><option value="HIGH_SCHOOL">고졸 이상</option><option value="COLLEGE">전문대졸 이상</option><option value="UNIVERSITY">대졸 이상</option><option value="MASTER">석사 이상</option><option value="DOCTOR">박사 이상</option>
                 </select>
               </Field>
               <Field label="실제 근무지 상세주소 *"><input required value={form.location} onChange={event => updateText('location', event.target.value)} placeholder="예: 서울특별시 송파구 올림픽로 300" /></Field>

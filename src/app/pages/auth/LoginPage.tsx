@@ -15,7 +15,6 @@ interface LoginPageProps {
 }
 
 type FindMode = 'id' | 'password' | null;
-type LoginMode = 'personal' | 'corporate';
 
 const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
 
@@ -29,7 +28,6 @@ const formatPhoneNumber = (value: string) => {
 const isPhoneLike = (value: string) => /^\d|^-?\d/.test(value.replace(/\s/g, ''));
 
 export function LoginPage({ navigate, onPersonalLogin, onCorporateLogin, onLoginSuccess, registeredUser, registeredCorporateUser, onBack, onResetPassword }: LoginPageProps) {
-  const [loginMode, setLoginMode] = useState<LoginMode>('personal');
   const [showPw, setShowPw] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
@@ -79,27 +77,19 @@ export function LoginPage({ navigate, onPersonalLogin, onCorporateLogin, onLogin
   const submitLogin = async () => {
     if (isSubmitting) return;
 
-    if (loginMode === 'corporate') {
-      setIsSubmitting(true);
-      setError('');
-      try {
-        await onCorporateLogin(loginId, password, autoLogin);
-        window.setTimeout(() => finishLogin('corporate'), 180);
-      } catch (loginError) {
-        setError(loginError instanceof Error ? loginError.message : '기업회원 로그인에 실패했습니다.');
-        setIsSubmitting(false);
-      }
-      return;
-    }
-
     setIsSubmitting(true);
     setError('');
     try {
       await onPersonalLogin(loginId, password, autoLogin);
       window.setTimeout(() => finishLogin('personal'), 180);
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : '로그인에 실패했습니다.');
-      setIsSubmitting(false);
+    } catch (personalLoginError) {
+      try {
+        await onCorporateLogin(loginId, password, autoLogin);
+        window.setTimeout(() => finishLogin('corporate'), 180);
+      } catch {
+        setError(personalLoginError instanceof Error ? personalLoginError.message : '로그인에 실패했습니다.');
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -191,31 +181,7 @@ export function LoginPage({ navigate, onPersonalLogin, onCorporateLogin, onLogin
           </div>
 
           <div className="mb-7">
-            <div className="grid grid-cols-2 rounded-lg border border-border bg-muted/30 p-1">
-              {([
-                { id: 'personal', label: '개인회원' },
-                { id: 'corporate', label: '기업회원' },
-              ] as const).map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setLoginMode(item.id);
-                    setLoginId('');
-                    setPassword('');
-                    setError('');
-                  }}
-                  className={`rounded-md px-3 py-2.5 text-sm font-bold transition ${
-                    loginMode === item.id ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <h2 className="mt-5 text-center text-xl font-bold text-foreground">
-              {loginMode === 'corporate' ? '기업회원 로그인' : '개인회원 로그인'}
-            </h2>
+            <h2 className="text-center text-xl font-bold text-foreground">회원 로그인</h2>
             <div className="mt-4 h-px bg-border" />
           </div>
 

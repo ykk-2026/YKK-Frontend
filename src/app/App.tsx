@@ -17,7 +17,7 @@ import { loginCompany, registerCompany } from '@/app/api/companyApi';
 import { deleteInterestJob, getInterestJobs, saveInterestJob } from '@/app/api/interestJobApi';
 import { getJobApplications, saveJobApplication } from '@/app/api/jobApplicationApi';
 import type { ApiJobSeekerProfile } from '@/app/api/profileApi';
-import { getOpenJobPostings, toJob } from '@/app/api/jobPostingApi';
+import { getOpenJobPostings, syncKeadJobPostings, toJob } from '@/app/api/jobPostingApi';
 
 // MARKER-MAKE-KIT-INVOKED
 const noNavPages: Page[] = ['login', 'register'];
@@ -29,6 +29,7 @@ const currentJobStorageKey = 'jobBridgeCurrentJob';
 const appliedJobsStorageKey = 'jobBridgeAppliedJobs';
 const applicationFormsStorageKey = 'jobBridgeApplicationForms';
 const pendingApplicationStorageKey = 'jobBridgePendingApplicationJob';
+const keadSyncStorageKey = 'jobBridgeKeadSyncState';
 const pageValues: Page[] = [
   'main',
   'login',
@@ -164,7 +165,25 @@ export default function App() {
   useEffect(() => {
     localStorage.removeItem(appliedJobsStorageKey);
     localStorage.removeItem(applicationFormsStorageKey);
-    loadJobs();
+
+    let cancelled = false;
+    const loadAndSyncJobs = async () => {
+      await loadJobs();
+      if (sessionStorage.getItem(keadSyncStorageKey)) return;
+
+      sessionStorage.setItem(keadSyncStorageKey, 'pending');
+      try {
+        await syncKeadJobPostings();
+        sessionStorage.setItem(keadSyncStorageKey, 'done');
+        if (!cancelled) await loadJobs();
+      } catch (error) {
+        sessionStorage.removeItem(keadSyncStorageKey);
+        console.warn('KEAD 채용공고를 동기화하지 못했습니다.', error);
+      }
+    };
+
+    loadAndSyncJobs();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

@@ -99,6 +99,7 @@ const genderLabels: Record<string, string> = {
 const employmentTypeOptions = [
   { value: 'ANY', label: '무관' },
   { value: 'FULL_TIME', label: '정규직' },
+  { value: 'REGULAR_EMPLOYEE', label: '상용직' },
   { value: 'CONTRACT', label: '계약직' },
   { value: 'PERMANENT_CONTRACT', label: '무기계약직' },
   { value: 'CONVERSION_TYPE', label: '정규직 전환형' },
@@ -110,11 +111,23 @@ const employmentTypeOptions = [
 
 const employmentTypeAliases: Record<string, string> = { INTERNSHIP: 'INTERN', FULL_TIME_CONVERSION: 'CONVERSION_TYPE', FREELANCER: 'FREELANCE' };
 const normalizeEmploymentTypeValue = (value?: string | null) => value ? employmentTypeAliases[value] || value : 'ANY';
+const employmentTypeLabel = (value: string) => employmentTypeOptions.find(option => option.value === value)?.label || value;
 
 const careerTypeOptions = [
   { value: 'ANY', label: '무관' },
   { value: 'ENTRY', label: '신입' },
   { value: 'EXPERIENCED', label: '경력' },
+];
+
+const educationLevelOptions = [
+  { value: 'ANY', label: '학력 무관' },
+  { value: 'ELEMENTARY_SCHOOL', label: '초졸' },
+  { value: 'MIDDLE_SCHOOL', label: '중졸' },
+  { value: 'HIGH_SCHOOL', label: '고졸' },
+  { value: 'COLLEGE', label: '전문대졸' },
+  { value: 'UNIVERSITY', label: '대졸' },
+  { value: 'MASTER', label: '석사' },
+  { value: 'DOCTOR', label: '박사' },
 ];
 
 const contactMethodOptions = [
@@ -159,6 +172,7 @@ const toProfileFormValues = (profile: ApiJobSeekerProfile) => ({
   careerYears: String(profile.careerYears ?? 0),
   minSalary: profile.minSalary ? Number(profile.minSalary).toLocaleString('ko-KR') : '',
   workType: profile.workType || 'ANY',
+  educationLevel: profile.educationLevel || 'ANY',
   wheelchairRequired: Boolean(profile.wheelchairRequired),
   accessibleRestroomRequired: Boolean(profile.accessibleRestroomRequired),
   disabledParkingRequired: Boolean(profile.disabledParkingRequired),
@@ -250,6 +264,7 @@ export function ProfilePage({
     careerYears: '0',
     minSalary: '',
     workType: currentUser?.workType || 'ANY',
+    educationLevel: 'ANY',
     wheelchairRequired: Boolean(currentUser?.wheelchairRequired),
     accessibleRestroomRequired: Boolean(currentUser?.accessibleRestroomRequired),
     disabledParkingRequired: Boolean(currentUser?.disabledParkingRequired),
@@ -371,6 +386,7 @@ export function ProfilePage({
       careerType: profileForm.careerType, careerYears: toNumberOrNull(profileForm.careerYears),
       minSalary: toNumberOrNull(profileForm.minSalary),
       workType: profileForm.workType,
+      educationLevel: profileForm.educationLevel,
       wheelchairRequired: profileForm.wheelchairRequired,
       accessibleRestroomRequired: profileForm.accessibleRestroomRequired,
       disabledParkingRequired: profileForm.disabledParkingRequired,
@@ -647,7 +663,7 @@ export function ProfilePage({
                               <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F3F6] px-3 py-1">
                                 <MapPin size={13} /> {job.location}
                               </span>
-                              <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{job.workType}</span>
+                              <span className="rounded-full bg-[#F1F3F6] px-3 py-1">{employmentTypeLabel(job.workType)}</span>
                             </span>
                           </span>
                         </button>
@@ -808,6 +824,12 @@ export function ProfilePage({
                       <input className="w-full rounded-lg border border-[#DCEAF3] px-3 py-3 pr-10 text-sm" value={profileForm.phone} onChange={event => updateForm('phone', event.target.value)} />
                       <Phone size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A8495]" />
                     </div>
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold">학력 조건</span>
+                    <select className="w-full rounded-lg border border-[#DCEAF3] bg-white px-3 py-3 text-sm" value={profileForm.educationLevel} onChange={event => updateForm('educationLevel', event.target.value)}>
+                      {educationLevelOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
                   </label>
                   <label className="block sm:col-span-2">
                     <span className="mb-2 block text-sm font-bold">현재 거주지 상세주소</span>
@@ -1151,6 +1173,7 @@ export function ProfilePage({
             <div className="mt-5 grid gap-3 text-sm">
               <p><b>성별</b> {genderLabels[profileForm.gender] || profileForm.gender}</p>
               <p><b>전화번호</b> {profileForm.phone}</p>
+              <p><b>학력 조건</b> {educationLevelOptions.find(option => option.value === profileForm.educationLevel)?.label}</p>
               <p><b>이메일</b> {profileForm.email || '미입력'}</p>
               <p><b>현재 거주지 상세주소</b> {profileForm.residenceRegion}</p>
               <p><b>경력</b> {careerTypeOptions.find(option => option.value === profileForm.careerType)?.label} / {profileForm.careerYears || 0}년</p>

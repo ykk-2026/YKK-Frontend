@@ -63,6 +63,8 @@ const normalizeEmploymentType = (value?: string) => {
       return '무관';
     case 'FULL_TIME':
       return '정규직';
+    case 'REGULAR_EMPLOYEE':
+      return '상용직';
     case 'CONTRACT':
       return '계약직';
     case 'PERMANENT_CONTRACT':
@@ -346,7 +348,7 @@ function RecommendationCard({
     { label: '고용형태', score: Math.min(10, Math.max(0, recommendation.employmentTypeScore ?? 0)), maximum: 10 },
     { label: '경력', score: Math.min(10, Math.max(0, recommendation.careerScore ?? 0)), maximum: 10 },
     { label: '급여', score: Math.min(10, Math.max(0, recommendation.salaryScore ?? 0)), maximum: 10 },
-    { label: '근무방식', score: Math.min(10, Math.max(0, recommendation.workStyleScore ?? 0)), maximum: 10 },
+    { label: '학력조건', score: Math.min(10, Math.max(0, recommendation.educationScore ?? 0)), maximum: 10 },
     { label: '접근성', score: Math.min(10, Math.max(0, recommendation.accessibilityScore ?? 0)), maximum: 10 },
   ];
 

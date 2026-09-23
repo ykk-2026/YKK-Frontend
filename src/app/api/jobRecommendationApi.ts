@@ -17,7 +17,7 @@ export interface JobRecommendationDto {
   employmentTypeScore?: number;
   careerScore?: number;
   salaryScore?: number;
-  workStyleScore?: number;
+  educationScore?: number;
   accessibilityScore?: number;
   recommendReason?: string | null;
   reason?: string | null;

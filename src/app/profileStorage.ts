@@ -12,6 +12,7 @@ export interface SavedJobSeekerProfile {
   careerYears: string;
   minSalary: string;
   workType: string;
+  educationLevel: string;
   wheelchairRequired: boolean;
   accessibleRestroomRequired: boolean;
   disabledParkingRequired: boolean;

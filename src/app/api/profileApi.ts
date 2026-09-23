@@ -17,6 +17,7 @@ export interface ApiJobSeekerProfile {
   careerYears?: number | null;
   minSalary?: number | null;
   workType?: string | null;
+  educationLevel?: string | null;
   wheelchairRequired?: boolean | null;
   accessibleRestroomRequired?: boolean | null;
   disabledParkingRequired?: boolean | null;

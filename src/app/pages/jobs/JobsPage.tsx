@@ -14,6 +14,7 @@ interface JobsPageProps {
 const employmentLabel = (value: string) => ({
   ANY: '무관',
   FULL_TIME: '정규직',
+  REGULAR_EMPLOYEE: '상용직',
   CONTRACT: '계약직',
   PERMANENT_CONTRACT: '무기계약직',
   CONVERSION_TYPE: '정규직 전환형',
@@ -122,7 +123,14 @@ export function JobsPage({
                 <article key={job.id} className="rounded-xl border border-[#DDE3EA] bg-white p-5 shadow-sm transition hover:border-[#9EC5FF] hover:shadow-md">
                   <div className="flex items-start justify-between gap-4">
                     <button type="button" onClick={() => navigate('job-detail', bookmarkId)} className="min-w-0 flex-1 text-left">
-                      <p className="text-sm font-extrabold text-[#0D6BEA]">{job.company}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-extrabold text-[#0D6BEA]">{job.company}</p>
+                        {job.source === 'KEAD' && (
+                          <span className="rounded-full bg-[#E8F7EE] px-2 py-1 text-[11px] font-extrabold text-[#087443]">
+                            장애인고용공단
+                          </span>
+                        )}
+                      </div>
                       <h2 className="mt-2 text-xl font-black text-black">{job.title}</h2>
                     </button>
                     <button

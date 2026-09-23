@@ -44,6 +44,7 @@ const getNormalizedJobId = (jobId: string | null) => jobId?.replace(/^job-/, '')
 const isPartTimeJob = (job: Job) => job.workType === 'PART_TIME' || job.category === 'PartTime' || job.requirements.includes('알바');
 const employmentTypeOptions = [
   { value: 'ANY', label: '무관' }, { value: 'FULL_TIME', label: '정규직' },
+  { value: 'REGULAR_EMPLOYEE', label: '상용직' },
   { value: 'CONTRACT', label: '계약직' }, { value: 'PERMANENT_CONTRACT', label: '무기계약직' },
   { value: 'CONVERSION_TYPE', label: '정규직 전환형' }, { value: 'PART_TIME', label: '시간제·파트타임' },
   { value: 'INTERN', label: '인턴' }, { value: 'DISPATCH', label: '파견직' },
@@ -53,7 +54,7 @@ const employmentTypeAliases: Record<string, string> = { INTERNSHIP: 'INTERN', FU
 const employmentCode = (value?: string) => value ? employmentTypeAliases[value] || value : 'ANY';
 
 const employmentLabel = (value: string) => ({
-  ANY: '무관', FULL_TIME: '정규직', CONTRACT: '계약직', PERMANENT_CONTRACT: '무기계약직',
+  ANY: '무관', FULL_TIME: '정규직', REGULAR_EMPLOYEE: '상용직', CONTRACT: '계약직', PERMANENT_CONTRACT: '무기계약직',
   CONVERSION_TYPE: '정규직 전환형', PART_TIME: '시간제·파트타임', INTERN: '인턴',
   INTERNSHIP: '인턴', DISPATCH: '파견직', FREELANCE: '프리랜서',
 }[value] || value);
@@ -70,7 +71,8 @@ const experienceLabel = (job: Job) => {
 };
 
 const educationLabel = (value?: string) => ({
-  ANY: '학력 무관', HIGH_SCHOOL: '고졸 이상', COLLEGE: '전문대졸 이상',
+  ANY: '학력 무관', ELEMENTARY_SCHOOL: '초졸 이상', MIDDLE_SCHOOL: '중졸 이상',
+  HIGH_SCHOOL: '고졸 이상', COLLEGE: '전문대졸 이상',
   UNIVERSITY: '대졸 이상', BACHELOR: '대졸 이상', MASTER: '석사 이상', DOCTOR: '박사 이상',
 }[value || ''] || value || '미입력');
 
@@ -302,6 +304,7 @@ export function JobDetailPage({
                   ['급여', job.salary],
                   ['근무지', job.location],
                   ['직무분야', job.category || '미입력'],
+                  ['학력 조건', meta.education],
                   ['등록일', job.posted || '미입력'],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-lg bg-[#F8FAFC] px-4 py-3">

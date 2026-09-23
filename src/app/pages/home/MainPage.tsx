@@ -53,6 +53,8 @@ const notices = [
   { title: '장애인 고용 우수 기업 채용관 OPEN', date: '2025.05.15' },
 ];
 
+const employmentLabel = (value: string) => value === 'REGULAR_EMPLOYEE' ? '상용직' : value;
+
 function HeroIllustration() {
   return (
     <div className="pointer-events-none relative hidden h-[250px] w-[560px] shrink-0 lg:block">
@@ -102,11 +104,11 @@ export function MainPage({ jobs, navigate, bookmarks, onBookmark, onSearch }: Ma
   const recommendedJobs = jobs.slice(0, 4).map(job => ({
     id: `job-${job.id}`, company: job.company, initial: job.company.slice(0, 1), color: job.companyColor,
     title: job.title, location: job.location, salary: job.salary,
-    tags: [job.workType, job.isRemote ? '재택근무 가능' : '', job.category].filter(Boolean),
+    tags: [employmentLabel(job.workType), job.isRemote ? '재택근무 가능' : '', job.category].filter(Boolean),
   }));
   const latestJobs = jobs.slice(0, 7).map(job => ({
     id: `job-${job.id}`, category: job.category, company: job.company, title: job.title,
-    location: job.location, type: job.workType, deadline: job.deadline, color: job.companyColor,
+    location: job.location, type: employmentLabel(job.workType), deadline: job.deadline, color: job.companyColor,
   }));
   const latestJobCategories = ['전체', ...Array.from(new Set(latestJobs.map(job => job.category)))];
   const accessibilityCounts = [
