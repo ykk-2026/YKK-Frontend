@@ -91,6 +91,12 @@ const getJobRole = (recommendation: JobRecommendationDto) =>
 const getReason = (recommendation: JobRecommendationDto) =>
   textOrDash(recommendation.recommendReason || recommendation.reason);
 
+const getReasonTitle = (totalScore: number) => {
+  if (totalScore >= 70) return '추천 이유';
+  if (totalScore >= 50) return '조건 비교 결과';
+  return '주요 미일치 조건';
+};
+
 const getDetailJobId = (jobId: number | string) => `job-${String(jobId).replace(/^job-/, '')}`;
 
 const getProfileChips = (profile: Partial<SavedJobSeekerProfile> | null) => {
@@ -376,7 +382,7 @@ function RecommendationCard({
           </div>
 
           <div className="mt-5">
-            <InfoBlock title="종합 추천 이유" value={getReason(recommendation)} />
+            <InfoBlock title={getReasonTitle(recommendation.totalScore)} value={getReason(recommendation)} />
           </div>
 
           <div className="mt-4 rounded-lg border border-[#E3EAF3] p-4">
